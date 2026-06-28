@@ -40,6 +40,8 @@ class AnalyzerEngine:
     defines whether the decision process within the analyzer should be logged or not.
     :param default_score_threshold: Minimum confidence value
     for detected entities to be returned
+    :param recognizer_score_thresholds: Optional recognizer and entity-specific
+    score thresholds applied when no request-level score threshold is provided.
     :param supported_languages: List of possible languages this engine could be run on.
     Used for loading the right NLP models and recognizers for these languages.
     :param context_aware_enhancer: instance of type ContextAwareEnhancer for enhancing
