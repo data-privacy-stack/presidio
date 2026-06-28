@@ -67,15 +67,17 @@ class ConfigurationValidator:
                 recognizer_thresholds, bool
             ):
                 validated_thresholds[recognizer_name] = {
-                    "default": ConfigurationValidator.validate_score_threshold(
-                        recognizer_thresholds
+                    "default": ConfigurationValidator._validate_named_threshold(
+                        recognizer_name=recognizer_name,
+                        threshold_name="default",
+                        threshold_value=recognizer_thresholds,
                     )
                 }
                 continue
 
             if not isinstance(recognizer_thresholds, dict):
                 raise ValueError(
-                    f"Thresholds for recognizer '{recognizer_name}' "
+                    f"recognizer_score_thresholds for recognizer '{recognizer_name}' "
                     f"must be a dictionary"
                 )
 
@@ -98,12 +100,31 @@ class ConfigurationValidator:
                     )
 
                 validated_recognizer_thresholds[threshold_name] = (
-                    ConfigurationValidator.validate_score_threshold(threshold_value)
+                    ConfigurationValidator._validate_named_threshold(
+                        recognizer_name=recognizer_name,
+                        threshold_name=threshold_name,
+                        threshold_value=threshold_value,
+                    )
                 )
 
             validated_thresholds[recognizer_name] = validated_recognizer_thresholds
 
         return validated_thresholds
+
+    @staticmethod
+    def _validate_named_threshold(
+        recognizer_name: str,
+        threshold_name: str,
+        threshold_value: float,
+    ) -> float:
+        """Validate one named recognizer threshold and keep config context."""
+        try:
+            return ConfigurationValidator.validate_score_threshold(threshold_value)
+        except ValueError as exc:
+            raise ValueError(
+                "recognizer_score_thresholds value for "
+                f"'{recognizer_name}.{threshold_name}' {exc}"
+            ) from exc
 
     @staticmethod
     def validate_nlp_configuration(config: Dict[str, Any]) -> Dict[str, Any]:

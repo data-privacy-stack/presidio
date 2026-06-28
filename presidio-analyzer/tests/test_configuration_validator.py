@@ -361,7 +361,7 @@ def test_configuration_validator_analyzer_config_valid_with_recognizer_score_thr
                     "CreditCardRecognizer": ["default", 0.4],
                 },
             },
-            "must be a dictionary",
+            "recognizer_score_thresholds",
         ),
         (
             {
@@ -379,7 +379,7 @@ def test_configuration_validator_analyzer_config_valid_with_recognizer_score_thr
                     "CreditCardRecognizer": {"default": 1.5},
                 },
             },
-            "must be between 0.0 and 1.0",
+            "recognizer_score_thresholds",
         ),
         (
             {
