@@ -1,8 +1,8 @@
 """Tests for the Pydantic-based validation system using existing adapted classes."""
+# ruff: noqa: E501
+
 import pytest
-
 from presidio_analyzer.input_validation import ConfigurationValidator
-
 
 # ========== Language Code Validation Tests ==========
 
@@ -316,6 +316,81 @@ def test_configuration_validator_analyzer_config_valid():
 
     validated = ConfigurationValidator.validate_analyzer_configuration(valid_config)
     assert validated == valid_config
+
+
+def test_configuration_validator_analyzer_config_valid_with_recognizer_score_thresholds():
+    """Validator should accept numeric shorthand and nested overrides."""
+    valid_config = {
+        "supported_languages": ["en"],
+        "default_score_threshold": 0.5,
+        "recognizer_score_thresholds": {
+            "CreditCardRecognizer": 0.4,
+            "SpacyRecognizer": {
+                "PERSON": 0.6,
+            },
+        },
+    }
+
+    validated = ConfigurationValidator.validate_analyzer_configuration(valid_config)
+    assert validated == {
+        "supported_languages": ["en"],
+        "default_score_threshold": 0.5,
+        "recognizer_score_thresholds": {
+            "CreditCardRecognizer": {"default": 0.4},
+            "SpacyRecognizer": {"PERSON": 0.6},
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    "invalid_config,expected_message",
+    [
+        (
+            {
+                "supported_languages": ["en"],
+                "recognizer_score_thresholds": {
+                    123: {"default": 0.4},
+                },
+            },
+            "non-empty strings",
+        ),
+        (
+            {
+                "supported_languages": ["en"],
+                "recognizer_score_thresholds": {
+                    "CreditCardRecognizer": ["default", 0.4],
+                },
+            },
+            "must be a dictionary",
+        ),
+        (
+            {
+                "supported_languages": ["en"],
+                "recognizer_score_thresholds": {
+                    "CreditCardRecognizer": {"": 0.4},
+                },
+            },
+            "nested keys must be non-empty strings",
+        ),
+        (
+            {
+                "supported_languages": ["en"],
+                "recognizer_score_thresholds": {
+                    "CreditCardRecognizer": {"default": 1.5},
+                },
+            },
+            "must be between 0.0 and 1.0",
+        ),
+    ],
+)
+def test_configuration_validator_analyzer_config_invalid_recognizer_score_thresholds(
+    invalid_config, expected_message
+):
+    """Validator should reject malformed threshold overrides."""
+    with pytest.raises(ValueError) as exc_info:
+        ConfigurationValidator.validate_analyzer_configuration(invalid_config)
+
+    assert expected_message in str(exc_info.value)
 
 
 def test_analyzer_config_minimal():

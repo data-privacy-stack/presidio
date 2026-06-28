@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from collections import Counter
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import regex as re
 
@@ -56,6 +56,7 @@ class AnalyzerEngine:
         default_score_threshold: float = 0,
         supported_languages: List[str] = None,
         context_aware_enhancer: Optional[ContextAwareEnhancer] = None,
+        recognizer_score_thresholds: Optional[Dict[str, Dict[str, float]]] = None,
     ):
         if not supported_languages:
             supported_languages = ["en"]
@@ -102,6 +103,9 @@ class AnalyzerEngine:
 
         self.log_decision_process = log_decision_process
         self.default_score_threshold = default_score_threshold
+        self.recognizer_score_thresholds = self.__normalize_recognizer_score_thresholds(
+            recognizer_score_thresholds
+        )
 
         if not context_aware_enhancer:
             logger.debug(
@@ -340,10 +344,64 @@ class AnalyzerEngine:
         :return: List[RecognizerResult]
         """
         if score_threshold is None:
-            score_threshold = self.default_score_threshold
+            return [
+                result
+                for result in results
+                if result.score >= self.__get_result_score_threshold(result)
+            ]
 
         new_results = [result for result in results if result.score >= score_threshold]
         return new_results
+
+    @staticmethod
+    def __normalize_recognizer_score_thresholds(
+        recognizer_score_thresholds: Optional[Dict[str, Dict[str, float]]]
+    ) -> Dict[str, Dict[str, float]]:
+        """Normalize shorthand threshold values into the nested mapping shape."""
+        normalized_thresholds: Dict[str, Dict[str, float]] = {}
+
+        for recognizer_name, recognizer_thresholds in (
+            recognizer_score_thresholds or {}
+        ).items():
+            if isinstance(recognizer_thresholds, (int, float)) and not isinstance(
+                recognizer_thresholds, bool
+            ):
+                normalized_thresholds[recognizer_name] = {
+                    "default": recognizer_thresholds
+                }
+            elif isinstance(recognizer_thresholds, dict):
+                normalized_thresholds[recognizer_name] = recognizer_thresholds
+            else:
+                raise ValueError(
+                    "recognizer_score_thresholds values must be a number "
+                    "or a dictionary"
+                )
+
+        return normalized_thresholds
+
+    def __get_result_score_threshold(self, result: RecognizerResult) -> float:
+        """Resolve the threshold to apply for a single recognizer result."""
+        if not self.recognizer_score_thresholds:
+            return self.default_score_threshold
+
+        metadata = result.recognition_metadata or {}
+        recognizer_name = metadata.get(RecognizerResult.RECOGNIZER_NAME_KEY)
+        if not recognizer_name:
+            return self.default_score_threshold
+
+        recognizer_thresholds = self.recognizer_score_thresholds.get(recognizer_name)
+        if not recognizer_thresholds:
+            return self.default_score_threshold
+
+        entity_threshold = recognizer_thresholds.get(result.entity_type)
+        if entity_threshold is not None:
+            return entity_threshold
+
+        recognizer_default_threshold = recognizer_thresholds.get("default")
+        if recognizer_default_threshold is not None:
+            return recognizer_default_threshold
+
+        return self.default_score_threshold
 
     @staticmethod
     def _remove_allow_list(

@@ -45,6 +45,61 @@ class ConfigurationValidator:
         return threshold
 
     @staticmethod
+    def validate_recognizer_score_thresholds(
+        thresholds: Dict[str, Any],
+    ) -> Dict[str, Dict[str, float]]:
+        """Validate recognizer-specific score thresholds."""
+        if not isinstance(thresholds, dict):
+            raise ValueError("recognizer_score_thresholds must be a dictionary")
+
+        validated_thresholds: Dict[str, Dict[str, float]] = {}
+        for recognizer_name, recognizer_thresholds in thresholds.items():
+            if (
+                not isinstance(recognizer_name, str)
+                or recognizer_name.strip() != recognizer_name
+                or not recognizer_name
+            ):
+                raise ValueError(
+                    "recognizer_score_thresholds keys must be non-empty strings"
+                )
+
+            if isinstance(recognizer_thresholds, (int, float)) and not isinstance(
+                recognizer_thresholds, bool
+            ):
+                validated_thresholds[recognizer_name] = {
+                    "default": ConfigurationValidator.validate_score_threshold(
+                        recognizer_thresholds
+                    )
+                }
+                continue
+
+            if not isinstance(recognizer_thresholds, dict):
+                raise ValueError(
+                    f"Thresholds for recognizer '{recognizer_name}' "
+                    f"must be a dictionary"
+                )
+
+            validated_recognizer_thresholds: Dict[str, float] = {}
+            for threshold_name, threshold_value in recognizer_thresholds.items():
+                if (
+                    not isinstance(threshold_name, str)
+                    or threshold_name.strip() != threshold_name
+                    or not threshold_name
+                ):
+                    raise ValueError(
+                        "recognizer_score_thresholds nested keys must be "
+                        "non-empty strings"
+                    )
+
+                validated_recognizer_thresholds[threshold_name] = (
+                    ConfigurationValidator.validate_score_threshold(threshold_value)
+                )
+
+            validated_thresholds[recognizer_name] = validated_recognizer_thresholds
+
+        return validated_thresholds
+
+    @staticmethod
     def validate_nlp_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
         """Validate NLP configuration structure.
 
@@ -112,6 +167,7 @@ class ConfigurationValidator:
         valid_keys = {
             "supported_languages",
             "default_score_threshold",
+            "recognizer_score_thresholds",
             "nlp_configuration",
             "recognizer_registry",
         }
@@ -133,6 +189,13 @@ class ConfigurationValidator:
         if "default_score_threshold" in config:
             ConfigurationValidator.validate_score_threshold(
                 config["default_score_threshold"]
+            )
+
+        if "recognizer_score_thresholds" in config:
+            config["recognizer_score_thresholds"] = (
+                ConfigurationValidator.validate_recognizer_score_thresholds(
+                config["recognizer_score_thresholds"]
+            )
             )
 
         # Validate nested configurations

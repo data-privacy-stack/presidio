@@ -70,10 +70,22 @@ recognizer_registry:
 
 The configuration file contains the following parameters:
 
-  - `supported_languages`: A list of supported languages that the analyzer will support.
-  - `default_score_threshold`: A score that determines the minimal threshold for detection.
-  - `nlp_configuration`: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.
-  - `recognizer_registry`: All the recognizers that will be used by the analyzer. 
+- `supported_languages`: A list of supported languages that the analyzer will support.
+- `default_score_threshold`: A score that determines the minimal threshold for detection.
+- `recognizer_score_thresholds`: Optional per-recognizer thresholds keyed by the recognizer name from `RecognizerResult.RECOGNIZER_NAME_KEY`. Use `default` for a recognizer-wide fallback, then add entity names for overrides.
+- `nlp_configuration`: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.
+- `recognizer_registry`: All the recognizers that will be used by the analyzer. 
+
+Example:
+
+```yaml
+recognizer_score_thresholds:
+  CreditCardRecognizer:
+    default: 0.4
+    CREDIT_CARD: 0.7
+  SpacyRecognizer:
+    PERSON: 0.6
+```
 
 !!! note "Note"
 

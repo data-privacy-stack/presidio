@@ -39,8 +39,16 @@ supported_languages:
   - en
   - es
 default_score_threshold: 0.4
+recognizer_score_thresholds:
+  CreditCardRecognizer:
+    default: 0.4
+    CREDIT_CARD: 0.7
+  SpacyRecognizer:
+    PERSON: 0.6
 """
 ```
+
+Use this when a recognizer needs a lower or higher cutoff than the global `default_score_threshold`, with entity-specific overrides taking priority over the recognizer default.
 
 ### Recognizer Registry parameters
 

@@ -88,6 +88,9 @@ class AnalyzerEngineProvider:
         nlp_engine = self._load_nlp_engine()
         supported_languages = self.configuration.get("supported_languages", ["en"])
         default_score_threshold = self.configuration.get("default_score_threshold", 0)
+        recognizer_score_thresholds = self.configuration.get(
+            "recognizer_score_thresholds", {}
+        )
 
         registry = self._load_recognizer_registry(
             supported_languages=supported_languages, nlp_engine=nlp_engine
@@ -98,6 +101,7 @@ class AnalyzerEngineProvider:
             registry=registry,
             supported_languages=supported_languages,
             default_score_threshold=default_score_threshold,
+            recognizer_score_thresholds=recognizer_score_thresholds,
         )
 
         return analyzer
