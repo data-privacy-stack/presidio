@@ -719,6 +719,14 @@ def test_numeric_threshold_shorthand_applies():
     assert results[0].entity_type == "URL"
 
 
+def test_direct_threshold_config_rejects_boolean_values():
+    """Direct constructor config should reject boolean threshold values."""
+    with pytest.raises(ValueError, match="values must be numeric"):
+        _build_threshold_analyzer(
+            recognizer_score_thresholds={"ThresholdRecognizer": {"PERSON": True}}
+        )
+
+
 def test_empty_recognizer_thresholds_use_default():
     """An empty threshold map should keep the global default behavior."""
     analyzer_engine = _build_threshold_analyzer(recognizer_score_thresholds={})

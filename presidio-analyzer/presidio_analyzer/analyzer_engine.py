@@ -363,6 +363,15 @@ class AnalyzerEngine:
         for recognizer_name, recognizer_thresholds in (
             recognizer_score_thresholds or {}
         ).items():
+            if (
+                not isinstance(recognizer_name, str)
+                or recognizer_name.strip() != recognizer_name
+                or not recognizer_name
+            ):
+                raise ValueError(
+                    "recognizer_score_thresholds keys must be non-empty strings"
+                )
+
             if isinstance(recognizer_thresholds, (int, float)) and not isinstance(
                 recognizer_thresholds, bool
             ):
@@ -370,7 +379,26 @@ class AnalyzerEngine:
                     "default": recognizer_thresholds
                 }
             elif isinstance(recognizer_thresholds, dict):
-                normalized_thresholds[recognizer_name] = recognizer_thresholds
+                normalized_thresholds[recognizer_name] = {}
+                for threshold_name, threshold_value in recognizer_thresholds.items():
+                    if (
+                        not isinstance(threshold_name, str)
+                        or threshold_name.strip() != threshold_name
+                        or not threshold_name
+                    ):
+                        raise ValueError(
+                            "recognizer_score_thresholds nested keys must be "
+                            "non-empty strings"
+                        )
+                    if not isinstance(threshold_value, (int, float)) or isinstance(
+                        threshold_value, bool
+                    ):
+                        raise ValueError(
+                            "recognizer_score_thresholds values must be numeric"
+                        )
+                    normalized_thresholds[recognizer_name][
+                        threshold_name
+                    ] = threshold_value
             else:
                 raise ValueError(
                     "recognizer_score_thresholds values must be a number "

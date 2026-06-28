@@ -381,6 +381,15 @@ def test_configuration_validator_analyzer_config_valid_with_recognizer_score_thr
             },
             "must be between 0.0 and 1.0",
         ),
+        (
+            {
+                "supported_languages": ["en"],
+                "recognizer_score_thresholds": {
+                    "CreditCardRecognizer": {"default": True},
+                },
+            },
+            "values must be numeric",
+        ),
     ],
 )
 def test_configuration_validator_analyzer_config_invalid_recognizer_score_thresholds(

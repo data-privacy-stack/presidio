@@ -90,6 +90,12 @@ class ConfigurationValidator:
                         "recognizer_score_thresholds nested keys must be "
                         "non-empty strings"
                     )
+                if not isinstance(threshold_value, (int, float)) or isinstance(
+                    threshold_value, bool
+                ):
+                    raise ValueError(
+                        "recognizer_score_thresholds values must be numeric"
+                    )
 
                 validated_recognizer_thresholds[threshold_name] = (
                     ConfigurationValidator.validate_score_threshold(threshold_value)
