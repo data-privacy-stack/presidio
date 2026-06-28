@@ -74,7 +74,7 @@ The configuration file contains the following parameters:
 - `default_score_threshold`: A score that determines the minimal threshold for detection.
 - `recognizer_score_thresholds`: Optional per-recognizer thresholds keyed by the recognizer name from `RecognizerResult.RECOGNIZER_NAME_KEY`. Use `default` for a recognizer-wide fallback, then add entity names for overrides.
 - `nlp_configuration`: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.
-- `recognizer_registry`: All the recognizers that will be used by the analyzer. 
+- `recognizer_registry`: All the recognizers that will be used by the analyzer.
 
 Example:
 

@@ -261,9 +261,10 @@ class AnalyzerEngine:
                 json.dumps([str(result.to_dict()) for result in results]),
             )
 
-        # Remove duplicates or low score results
-        results = EntityRecognizer.remove_duplicates(results)
+        # Filter low-score results before deduplication so recognizer-specific
+        # thresholds do not get lost when duplicate spans collapse.
         results = self.__remove_low_scores(results, score_threshold)
+        results = EntityRecognizer.remove_duplicates(results)
 
         if allow_list:
             results = self._remove_allow_list(

@@ -114,6 +114,22 @@ class FallbackRecognizer(EntityRecognizer, ABC):
         ]
 
 
+class DuplicateThresholdRecognizer(EntityRecognizer, ABC):
+    """Recognizer that emits a duplicate span for threshold ordering tests."""
+
+    def __init__(self, name):
+        """Use the recognizer name as the threshold lookup key."""
+        super().__init__(supported_entities=["PERSON"], name=name)
+
+    def load(self):
+        """Keep the test recognizer lightweight."""
+        return None
+
+    def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+        """Return a duplicate result with a configurable recognizer name."""
+        return [RecognizerResult("PERSON", 0, 4, 0.5)]
+
+
 def _build_threshold_analyzer(
     recognizer_score_thresholds=None, default_score_threshold=0.8
 ):
@@ -739,6 +755,35 @@ def test_direct_threshold_config_rejects_non_dict_top_level_values():
     """Direct constructor config should reject non-dictionary threshold payloads."""
     with pytest.raises(ValueError, match="must be a dictionary"):
         _build_threshold_analyzer(recognizer_score_thresholds=0.4)
+
+
+def test_duplicate_results_keep_recognizers_that_meet_their_thresholds():
+    """Threshold filtering should run before duplicate collapse."""
+    registry = RecognizerRegistry()
+    registry.add_recognizer(DuplicateThresholdRecognizer("StrictRecognizer"))
+    registry.add_recognizer(DuplicateThresholdRecognizer("LenientRecognizer"))
+
+    analyzer_engine = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NlpEngineMock(),
+        default_score_threshold=0.0,
+        recognizer_score_thresholds={
+            "StrictRecognizer": {"PERSON": 0.9},
+            "LenientRecognizer": {"PERSON": 0.4},
+        },
+    )
+
+    results = analyzer_engine.analyze(
+        text="John",
+        language="en",
+        entities=["PERSON"],
+    )
+
+    assert len(results) == 1
+    assert (
+        results[0].recognition_metadata[RecognizerResult.RECOGNIZER_NAME_KEY]
+        == "LenientRecognizer"
+    )
 
 
 def test_empty_recognizer_thresholds_use_default():
