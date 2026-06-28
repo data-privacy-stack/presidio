@@ -727,6 +727,20 @@ def test_direct_threshold_config_rejects_boolean_values():
         )
 
 
+def test_direct_threshold_config_rejects_out_of_range_values():
+    """Direct constructor config should reject out-of-range threshold values."""
+    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+        _build_threshold_analyzer(
+            recognizer_score_thresholds={"ThresholdRecognizer": {"PERSON": 1.5}}
+        )
+
+
+def test_direct_threshold_config_rejects_non_dict_top_level_values():
+    """Direct constructor config should reject non-dictionary threshold payloads."""
+    with pytest.raises(ValueError, match="must be a dictionary"):
+        _build_threshold_analyzer(recognizer_score_thresholds=0.4)
+
+
 def test_empty_recognizer_thresholds_use_default():
     """An empty threshold map should keep the global default behavior."""
     analyzer_engine = _build_threshold_analyzer(recognizer_score_thresholds={})

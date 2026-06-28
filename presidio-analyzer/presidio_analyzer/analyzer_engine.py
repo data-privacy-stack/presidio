@@ -15,6 +15,7 @@ from presidio_analyzer.context_aware_enhancers import (
     ContextAwareEnhancer,
     LemmaContextAwareEnhancer,
 )
+from presidio_analyzer.input_validation import ConfigurationValidator
 from presidio_analyzer.nlp_engine import NlpArtifacts, NlpEngine, NlpEngineProvider
 from presidio_analyzer.recognizer_registry import (
     RecognizerRegistry,
@@ -360,11 +361,17 @@ class AnalyzerEngine:
         recognizer_score_thresholds: Optional[Dict[str, Dict[str, float]]]
     ) -> Dict[str, Dict[str, float]]:
         """Normalize shorthand threshold values into the nested mapping shape."""
+        if recognizer_score_thresholds is None:
+            return {}
+        if not isinstance(recognizer_score_thresholds, dict):
+            raise ValueError("recognizer_score_thresholds must be a dictionary")
+
         normalized_thresholds: Dict[str, Dict[str, float]] = {}
 
-        for recognizer_name, recognizer_thresholds in (
-            recognizer_score_thresholds or {}
-        ).items():
+        for (
+            recognizer_name,
+            recognizer_thresholds,
+        ) in recognizer_score_thresholds.items():
             if (
                 not isinstance(recognizer_name, str)
                 or recognizer_name.strip() != recognizer_name
@@ -378,7 +385,9 @@ class AnalyzerEngine:
                 recognizer_thresholds, bool
             ):
                 normalized_thresholds[recognizer_name] = {
-                    "default": recognizer_thresholds
+                    "default": ConfigurationValidator.validate_score_threshold(
+                        recognizer_thresholds
+                    )
                 }
             elif isinstance(recognizer_thresholds, dict):
                 normalized_thresholds[recognizer_name] = {}
@@ -400,7 +409,9 @@ class AnalyzerEngine:
                         )
                     normalized_thresholds[recognizer_name][
                         threshold_name
-                    ] = threshold_value
+                    ] = ConfigurationValidator.validate_score_threshold(
+                        threshold_value
+                    )
             else:
                 raise ValueError(
                     "recognizer_score_thresholds values must be a number "
