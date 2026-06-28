@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from collections import Counter
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import regex as re
 
@@ -25,6 +25,7 @@ from presidio_analyzer.recognizer_registry import (
 logger = logging.getLogger("presidio-analyzer")
 
 REGEX_TIMEOUT_SECONDS = int(os.environ.get("REGEX_TIMEOUT_SECONDS", 60))
+RecognizerScoreThresholds = Dict[str, Union[float, Dict[str, float]]]
 
 class AnalyzerEngine:
     """
@@ -59,7 +60,7 @@ class AnalyzerEngine:
         default_score_threshold: float = 0,
         supported_languages: List[str] = None,
         context_aware_enhancer: Optional[ContextAwareEnhancer] = None,
-        recognizer_score_thresholds: Optional[Dict[str, Dict[str, float]]] = None,
+        recognizer_score_thresholds: Optional[RecognizerScoreThresholds] = None,
     ):
         if not supported_languages:
             supported_languages = ["en"]
@@ -106,8 +107,8 @@ class AnalyzerEngine:
 
         self.log_decision_process = log_decision_process
         self.default_score_threshold = default_score_threshold
-        self.recognizer_score_thresholds = self.__normalize_recognizer_score_thresholds(
-            recognizer_score_thresholds
+        self.recognizer_score_thresholds = (
+            self.__normalize_recognizer_score_thresholds(recognizer_score_thresholds)
         )
 
         if not context_aware_enhancer:
@@ -359,67 +360,14 @@ class AnalyzerEngine:
 
     @staticmethod
     def __normalize_recognizer_score_thresholds(
-        recognizer_score_thresholds: Optional[Dict[str, Dict[str, float]]]
+        recognizer_score_thresholds: Optional[RecognizerScoreThresholds]
     ) -> Dict[str, Dict[str, float]]:
         """Normalize shorthand threshold values into the nested mapping shape."""
         if recognizer_score_thresholds is None:
             return {}
-        if not isinstance(recognizer_score_thresholds, dict):
-            raise ValueError("recognizer_score_thresholds must be a dictionary")
-
-        normalized_thresholds: Dict[str, Dict[str, float]] = {}
-
-        for (
-            recognizer_name,
-            recognizer_thresholds,
-        ) in recognizer_score_thresholds.items():
-            if (
-                not isinstance(recognizer_name, str)
-                or recognizer_name.strip() != recognizer_name
-                or not recognizer_name
-            ):
-                raise ValueError(
-                    "recognizer_score_thresholds keys must be non-empty strings"
-                )
-
-            if isinstance(recognizer_thresholds, (int, float)) and not isinstance(
-                recognizer_thresholds, bool
-            ):
-                normalized_thresholds[recognizer_name] = {
-                    "default": ConfigurationValidator.validate_score_threshold(
-                        recognizer_thresholds
-                    )
-                }
-            elif isinstance(recognizer_thresholds, dict):
-                normalized_thresholds[recognizer_name] = {}
-                for threshold_name, threshold_value in recognizer_thresholds.items():
-                    if (
-                        not isinstance(threshold_name, str)
-                        or threshold_name.strip() != threshold_name
-                        or not threshold_name
-                    ):
-                        raise ValueError(
-                            "recognizer_score_thresholds nested keys must be "
-                            "non-empty strings"
-                        )
-                    if not isinstance(threshold_value, (int, float)) or isinstance(
-                        threshold_value, bool
-                    ):
-                        raise ValueError(
-                            "recognizer_score_thresholds values must be numeric"
-                        )
-                    normalized_thresholds[recognizer_name][
-                        threshold_name
-                    ] = ConfigurationValidator.validate_score_threshold(
-                        threshold_value
-                    )
-            else:
-                raise ValueError(
-                    "recognizer_score_thresholds values must be a number "
-                    "or a dictionary"
-                )
-
-        return normalized_thresholds
+        return ConfigurationValidator.validate_recognizer_score_thresholds(
+            recognizer_score_thresholds
+        )
 
     def __get_result_score_threshold(self, result: RecognizerResult) -> float:
         """Resolve the threshold to apply for a single recognizer result."""
