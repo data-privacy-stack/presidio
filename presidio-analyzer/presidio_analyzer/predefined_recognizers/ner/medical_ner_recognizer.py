@@ -36,6 +36,7 @@ class MedicalNERRecognizer(HuggingFaceNerRecognizer):
         supported_entities: Optional[List[str]] = None,
         name: str = "MedicalNERRecognizer",
         supported_language: str = "en",
+        context: Optional[List[str]] = None,
         aggregation_strategy: str = "simple",
         threshold: float = 0.3,
         device: Optional[Union[str, int]] = None,
@@ -50,6 +51,7 @@ class MedicalNERRecognizer(HuggingFaceNerRecognizer):
         :param supported_entities: Entity types to return (None = all mapped).
         :param name: Recognizer name
         :param supported_language: Language code
+        :param context: Context words used for context-aware score enhancement
         :param aggregation_strategy: Pipeline aggregation strategy
         :param threshold: Minimum confidence score (0.0 - 1.0)
         :param device: Device string/int (None = auto-detect)
@@ -61,6 +63,7 @@ class MedicalNERRecognizer(HuggingFaceNerRecognizer):
             supported_entities=supported_entities,
             name=name,
             supported_language=supported_language,
+            context=context,
             aggregation_strategy=aggregation_strategy,
             threshold=threshold,
             device=device,
