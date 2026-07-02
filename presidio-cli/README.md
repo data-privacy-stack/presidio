@@ -70,6 +70,8 @@ Configuration file supports the following parameters in a yaml file:
 
 - allow - list of tokens that should not be marked as PII.
 
+- threshold - only show problems/findings whose scores are at or above this threshold.
+
 Note: a file requires at least one parameter to be set.
 
 An example of yaml configuration file content:
@@ -87,6 +89,7 @@ entities:
 allow:
   - "allowed token 1"
   - "allowed token 2"
+threshold: 0.8
 
 ```
 
@@ -114,6 +117,16 @@ presidio -c presidio_cli/conf/limited.yaml tests/
 # run with configuration limited.yaml in single file only tests/test_analyzer.py
 presidio -c presidio_cli/conf/limited.yaml tests/test_analyzer.py
 ```
+
+### Threshold override
+
+Use `--threshold` to override the loaded config for a single run:
+
+```shell
+presidio --threshold 0.7 tests/
+```
+
+The CLI keeps the existing selection order: `--config-data`, `--config-file`, `.presidiocli`, then the default config. The command-line flag only changes the in-memory threshold after that config is loaded.
 
 ### Configuration as a parameter
 

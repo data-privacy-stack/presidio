@@ -60,7 +60,7 @@ class EsNieRecognizer(PatternRecognizer):
 
         pattern_text = EntityRecognizer.sanitize_value(
             pattern_text, self.replacement_pairs
-        )
+        ).upper()
 
         letters = "TRWAGMYFPDXBNJZSQVHLCKE"
         letter = pattern_text[-1]
