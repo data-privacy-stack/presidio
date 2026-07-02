@@ -68,6 +68,22 @@ class RecognizerListLoader:
         return recognizer.get("context", None)
 
     @staticmethod
+    def _get_recognizer_negative_context(
+        recognizer: Union[Dict[str, Any], str],
+    ) -> Optional[List[str]]:
+        """Extract negative_context list from recognizer configuration.
+
+        Mirrors _get_recognizer_context() but for negative context words.
+        Negative context words reduce confidence when found near the entity.
+
+        :param recognizer: The recognizer configuration dict or string
+        :return: List of negative context words, or None if not specified
+        """
+        if isinstance(recognizer, str):
+            return None
+        return recognizer.get("negative_context", None)
+
+    @staticmethod
     def _split_recognizers(
         recognizers_conf: Union[Dict[str, Any], str],
     ) -> Tuple[List[Union[str, Dict[str, Any]]], List[Union[str, Dict[str, Any]]]]:
@@ -114,19 +130,36 @@ class RecognizerListLoader:
             or "supported_languages" not in recognizer_conf
             or recognizer_conf["supported_languages"] is None
         ):
+            negative_context_list = (
+                RecognizerListLoader._get_recognizer_negative_context(
+                    recognizer=recognizer_conf
+                )
+            )
             return [
                 {
                     "supported_language": language,
                     "context": RecognizerListLoader._get_recognizer_context(
                         recognizer=recognizer_conf
                     ),
+                    "negative_context": negative_context_list,
                 }
                 for language in supported_languages
             ]
 
         if isinstance(recognizer_conf["supported_languages"][0], str):
+            negative_context_list = (
+                RecognizerListLoader._get_recognizer_negative_context(
+                    recognizer=recognizer_conf
+                )
+            )
             return [
-                {"supported_language": language, "context": None}
+                {
+                    "supported_language": language,
+                    "context": RecognizerListLoader._get_recognizer_context(
+                        recognizer=recognizer_conf
+                    ),
+                    "negative_context": negative_context_list,
+                }
                 for language in recognizer_conf["supported_languages"]
             ]
 
@@ -134,6 +167,7 @@ class RecognizerListLoader:
             {
                 "supported_language": language["language"],
                 "context": language.get("context", None),
+                "negative_context": language.get("negative_context", None),
             }
             for language in recognizer_conf["supported_languages"]
         ]
@@ -346,6 +380,12 @@ class RecognizerListLoader:
         # to prevent leaking into strict parent __init__.
         if not accepts_supported_entity:
             kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITY, None)
+
+        # 3. Filter: Remove 'negative_context' if not supported by recognizer
+        # Predefined recognizers may not accept negative_context parameter
+        accepts_negative_context = "negative_context" in params
+        if not accepts_negative_context and not has_var_kw:
+            kwargs.pop("negative_context", None)
 
         return kwargs
 

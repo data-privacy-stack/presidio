@@ -124,3 +124,158 @@ result = analyzer.analyze(
 print("Result:")
 print(result)
 ```
+
+## Example: Reducing confidence with negative context words
+
+While positive context words increase confidence in PII detection, Presidio also supports negative context words that *reduce* confidence when found near a detected entity. This is useful for filtering out false positives from test data, examples, or documentation.
+
+Common use cases include:
+- Filtering test data (e.g., "test SSN", "example email")
+- Avoiding sample/mock data (e.g., "sample username", "mock password")
+- Ignoring documentation (e.g., "For example: john@example.com")
+
+Let's create a US Social Security Number recognizer without negative context first:
+
+<!--pytest-codeblocks:cont-->
+```python
+from presidio_analyzer import (
+    Pattern,
+    PatternRecognizer,
+    RecognizerRegistry,
+    AnalyzerEngine,
+)
+
+# Define the regex pattern
+regex = r"(\d{3}-\d{2}-\d{4})"
+ssn_pattern = Pattern(name="ssn (weak)", regex=regex, score=0.9)
+
+# Define the recognizer WITHOUT negative context
+ssn_recognizer = PatternRecognizer(
+    supported_entity="US_SSN", patterns=[ssn_pattern]
+)
+
+registry = RecognizerRegistry()
+registry.add_recognizer(ssn_recognizer)
+analyzer = AnalyzerEngine(registry=registry)
+
+# Test
+text = "This is a test SSN: 123-45-6789"
+results = analyzer.analyze(text=text, language="en")
+print(f"Result:\n {results}")
+print(f"Score: {results[0].score if results else 'N/A'}")
+```
+
+The score is high (0.9) even though the text clearly indicates this is test data. Let's add negative context words to filter this out:
+
+<!--pytest-codeblocks:cont-->
+```python
+from presidio_analyzer import PatternRecognizer
+
+# Define the recognizer WITH negative context
+ssn_recognizer_w_negative_context = PatternRecognizer(
+    supported_entity="US_SSN",
+    patterns=[ssn_pattern],
+    negative_context=["test", "example", "dummy"],
+)
+```
+
+Now let's test with the updated recognizer:
+
+<!--pytest-codeblocks:cont-->
+```python
+from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+
+registry = RecognizerRegistry()
+registry.add_recognizer(ssn_recognizer_w_negative_context)
+analyzer = AnalyzerEngine(registry=registry)
+
+# Test with negative context word in text
+text = "This is a test SSN: 123-45-6789"
+results = analyzer.analyze(text=text, language="en")
+print(f"Result:\n {results}")
+if results:
+    print(f"Score: {results[0].score}")
+else:
+    print("Entity filtered out by negative context!")
+```
+
+The score is now reduced from 0.9 to approximately 0.6 (base score 0.9 minus default penalty of 0.3), which is typically below the confidence threshold and gets filtered out.
+
+### How negative context scoring works
+
+The negative context penalty is applied during the enhancement phase:
+
+```
+final_score = max(base_score - negative_context_penalty, 0)
+```
+
+- **base_score**: The original detection score (e.g., 0.9)
+- **negative_context_penalty**: Default is 0.3 (can be configured)
+- **final_score**: Never goes below 0
+
+### Comparison table
+
+| Text | Base Score | Negative Context Found | Final Score | Detection |
+|------|-----------|----------------------|-------------|-----------|
+| "My SSN is 123-45-6789" | 0.9 | No | 0.9 |  Detected |
+| "Test SSN: 123-45-6789" | 0.9 | Yes ("test") | 0.6 |  Filtered |
+| "Example: 123-45-6789" | 0.9 | Yes ("example") | 0.6 | Filtered |
+| "SSN 555-55-5555" | 0.9 | No | 0.9 |  Detected |
+
+### Configuration methods for negative context
+
+Negative context can be configured in three ways:
+
+**Method 1: Recognizer-level (static)**
+
+Define negative context words when creating the recognizer:
+
+<!--pytest-codeblocks:cont-->
+```python
+recognizer = PatternRecognizer(
+    supported_entity="US_SSN",
+    patterns=[ssn_pattern],
+    negative_context=["test", "example", "dummy"],
+)
+```
+
+**Method 2: Runtime (dynamic)**
+
+Pass negative context words at the request level:
+
+<!--pytest-codeblocks:cont-->
+```python
+results = analyzer.analyze(
+    text="This is a sample SSN: 123-45-6789",
+    language="en",
+    negative_context=["sample", "mock"],
+)
+```
+
+**Method 3: Enhancer tuning**
+
+Adjust the penalty factor applied to all negative context matches:
+
+<!--pytest-codeblocks:cont-->
+```python
+from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
+
+# Increase penalty to 0.5 instead of default 0.3
+enhancer = LemmaContextAwareEnhancer(negative_context_penalty=0.5)
+
+registry = RecognizerRegistry()
+registry.add_recognizer(ssn_recognizer_w_negative_context)
+analyzer = AnalyzerEngine(
+    registry=registry, context_aware_enhancer=enhancer
+)
+
+results = analyzer.analyze(text="This is a test SSN: 123-45-6789", language="en")
+print(f"Score with higher penalty: {results[0].score if results else 'Filtered'}")
+```
+
+### Important notes
+
+- **Backward compatibility**: Negative context is optional. If not specified, it defaults to an empty list and has no effect.
+- **Explicit disabling**: Passing an empty list `[]` explicitly disables negative context, even if a recognizer has default negative context configured.
+- **Independent of positive context**: Negative context is evaluated separately from positive context. Both can be active simultaneously.
+- **Combining with positive context**: If both positive and negative context words are present in the text, both effects are applied to the score.

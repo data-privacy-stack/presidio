@@ -29,6 +29,8 @@ class PatternRecognizer(LocalRecognizer):
     :param deny_list: A list of words to detect,
     in case our recognizer uses a predefined list of words (deny list)
     :param context: list of context words
+    :param negative_context: a list of words which can reduce confidence score
+    based on the context in which the entity appears
     :param deny_list_score: confidence score for a term
     identified using a deny-list
     :param global_regex_flags: regex flags to be used in regex matching,
@@ -55,6 +57,7 @@ class PatternRecognizer(LocalRecognizer):
         patterns: List[Pattern] = None,
         deny_list: List[str] = None,
         context: List[str] = None,
+        negative_context: Optional[List[str]] = None,
         deny_list_score: float = 1.0,
         global_regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
         version: str = "0.0.1",
@@ -73,6 +76,8 @@ class PatternRecognizer(LocalRecognizer):
             supported_entities=[supported_entity],
             supported_language=supported_language,
             name=name,
+            context=context,
+            negative_context=negative_context,
             version=version,
             country_code=country_code,
         )
@@ -80,7 +85,6 @@ class PatternRecognizer(LocalRecognizer):
             self.patterns = []
         else:
             self.patterns = patterns
-        self.context = context
         self.deny_list_score = deny_list_score
         self.global_regex_flags = global_regex_flags
 
@@ -287,6 +291,7 @@ class PatternRecognizer(LocalRecognizer):
         return_dict["patterns"] = [pat.to_dict() for pat in self.patterns]
         return_dict["deny_list"] = self.deny_list
         return_dict["context"] = self.context
+        return_dict["negative_context"] = self.negative_context
         return_dict["supported_entity"] = return_dict["supported_entities"][0]
         del return_dict["supported_entities"]
 
@@ -302,6 +307,10 @@ class PatternRecognizer(LocalRecognizer):
         if patterns:
             patterns_list = [Pattern.from_dict(pat) for pat in patterns]
             entity_recognizer_dict["patterns"] = patterns_list
+
+        # Ensure negative_context is safely loaded with a default
+        if "negative_context" not in entity_recognizer_dict:
+            entity_recognizer_dict["negative_context"] = None
 
         # Transform supported_entities (plural) to supported_entity (singular)
         # PatternRecognizer only accepts supported_entity (singular)

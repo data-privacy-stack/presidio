@@ -3,6 +3,7 @@ import logging
 import os
 from collections import Counter
 from typing import List, Optional
+import inspect
 
 import regex as re
 
@@ -24,6 +25,7 @@ from presidio_analyzer.recognizer_registry import (
 logger = logging.getLogger("presidio-analyzer")
 
 REGEX_TIMEOUT_SECONDS = int(os.environ.get("REGEX_TIMEOUT_SECONDS", 60))
+
 
 class AnalyzerEngine:
     """
@@ -111,6 +113,25 @@ class AnalyzerEngine:
             context_aware_enhancer = LemmaContextAwareEnhancer()
 
         self.context_aware_enhancer = context_aware_enhancer
+        self._context_aware_enhancer_supports_negative_context = (
+            self._validate_context_aware_enhancer(context_aware_enhancer)
+        )
+
+    @staticmethod
+    def _validate_context_aware_enhancer(
+        enhancer: ContextAwareEnhancer,
+    ) -> bool:
+        """
+        Check if the context aware enhancer supports negative_context parameter.
+
+        This validation is done once during initialization to avoid runtime reflection
+        overhead during each analyze() call.
+
+        :param enhancer: The context aware enhancer instance to validate
+        :return: True if enhancer supports negative_context parameter, False otherwise
+        """
+        enhancer_signature = inspect.signature(enhancer.enhance_using_context)
+        return "negative_context" in enhancer_signature.parameters
 
     def get_recognizers(self, language: Optional[str] = None) -> List[EntityRecognizer]:
         """
@@ -160,6 +181,7 @@ class AnalyzerEngine:
         allow_list: Optional[List[str]] = None,
         allow_list_match: Optional[str] = "exact",
         regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
+        negative_context: Optional[List[str]] = None,
         nlp_artifacts: Optional[NlpArtifacts] = None,
     ) -> List[RecognizerResult]:
         """
@@ -178,11 +200,17 @@ class AnalyzerEngine:
         for this specific request.
         :param context: List of context words to enhance confidence score if matched
         with the recognized entity's recognizer context
+        :param negative_context: List of negative context words to reduce confidence
+        score if matched with the recognized entity's context. Works in addition to
+        recognizer-level negative context configuration.
         :param allow_list: List of words that the user defines as being allowed to keep
         in the text
-        :param allow_list_match: How the allow_list should be interpreted; either as "exact" or as "regex".
-        - If `regex`, results which match with any regex condition in the allow_list would be allowed and not be returned as potential PII.
-        - if `exact`, results which exactly match any value in the allow_list would be allowed and not be returned as potential PII.
+        :param allow_list_match: How the allow_list should be interpreted; either as
+        "exact" or as "regex".
+        - If `regex`, results which match with any regex condition in the allow_list
+          would be allowed and not be returned as potential PII.
+        - if `exact`, results which exactly match any value in the allow_list would be
+          allowed and not be returned as potential PII.
         :param regex_flags: regex flags to be used for when allow_list_match is "regex"
         :param nlp_artifacts: precomputed NlpArtifacts
         :return: an array of the found entities in the text
@@ -197,7 +225,11 @@ class AnalyzerEngine:
         analyzer = AnalyzerEngine()
 
         # Call analyzer to get results
-        results = analyzer.analyze(text='My phone number is 212-555-5555', entities=['PHONE_NUMBER'], language='en')
+        results = analyzer.analyze(
+            text='My phone number is 212-555-5555',
+            entities=['PHONE_NUMBER'],
+            language='en',
+        )
         print(results)
         ```
 
@@ -245,7 +277,7 @@ class AnalyzerEngine:
                 results.extend(current_results)
 
         results = self._enhance_using_context(
-            text, results, nlp_artifacts, recognizers, context
+            text, results, nlp_artifacts, recognizers, context, negative_context
         )
 
         if self.log_decision_process:
@@ -275,6 +307,7 @@ class AnalyzerEngine:
         nlp_artifacts: NlpArtifacts,
         recognizers: List[EntityRecognizer],
         context: Optional[List[str]] = None,
+        negative_context: Optional[List[str]] = None,
     ) -> List[RecognizerResult]:
         """
         Enhance confidence score using context words.
@@ -287,6 +320,7 @@ class AnalyzerEngine:
                               accuracy of the context enhancement process
         :param recognizers: the list of recognizers
         :param context: list of context words
+        :param negative_context: list of negative context words to reduce confidence
         """
         results = []
 
@@ -319,13 +353,23 @@ class AnalyzerEngine:
 
         # Update results in case surrounding words or external context are relevant to
         # the context words.
-        results = self.context_aware_enhancer.enhance_using_context(
-            text=text,
-            raw_results=results,
-            nlp_artifacts=nlp_artifacts,
-            recognizers=recognizers,
-            context=context,
-        )
+        enhancer_kwargs = {
+            "text": text,
+            "raw_results": results,
+            "nlp_artifacts": nlp_artifacts,
+            "recognizers": recognizers,
+            "context": context,
+        }
+
+        # Only pass negative_context if user provided it and enhancer supports it
+        # Use stored capability from initialization to avoid runtime reflection
+        if (
+            negative_context is not None
+            and self._context_aware_enhancer_supports_negative_context
+        ):
+            enhancer_kwargs["negative_context"] = negative_context
+
+        results = self.context_aware_enhancer.enhance_using_context(**enhancer_kwargs)
 
         return results
 

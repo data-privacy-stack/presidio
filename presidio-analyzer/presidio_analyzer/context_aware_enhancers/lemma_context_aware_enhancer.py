@@ -13,7 +13,10 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
     """
     A class representing a lemma based context aware enhancer logic.
 
-    Context words might enhance confidence score of a recognized entity,
+    Context words might enhance or reduce confidence score of a recognized entity:
+    - Positive context: boosts confidence (e.g., "social" for SSN)
+    - Negative context: reduces confidence (e.g., "test" for SSN)
+
     LemmaContextAwareEnhancer is an implementation of Lemma based context aware logic,
     it compares spacy lemmas of each word in context of the matched entity to given
     context and the recognizer context words,
@@ -30,6 +33,8 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         - "whole_word": Match context words only as whole words
           (e.g., 'lic' matches 'lic' but not 'duplicate').
           Prevents false positives.
+    :param negative_context_penalty: How much to reduce confidence when negative
+      context words are found. Default 0.3. Applied after positive context boost.
     """
 
     def __init__(
@@ -39,12 +44,14 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         context_prefix_count: int = 5,
         context_suffix_count: int = 0,
         context_matching_mode: str = "substring",
+        negative_context_penalty: float = 0.3,
     ):
         super().__init__(
             context_similarity_factor=context_similarity_factor,
             min_score_with_context_similarity=min_score_with_context_similarity,
             context_prefix_count=context_prefix_count,
             context_suffix_count=context_suffix_count,
+            negative_context_penalty=negative_context_penalty,
         )
         if context_matching_mode not in ["whole_word", "substring"]:
             raise ValueError(
@@ -60,6 +67,7 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         nlp_artifacts: NlpArtifacts,
         recognizers: List[EntityRecognizer],
         context: Optional[List[str]] = None,
+        negative_context: Optional[List[str]] = None,
     ) -> List[RecognizerResult]:
         """
         Update results in case the lemmas of surrounding words or input context
@@ -78,6 +86,7 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
                               accuracy of the context enhancement process
         :param recognizers: the list of recognizers
         :param context: list of context words
+        :param negative_context: list of negative context words to reduce confidence
         """  # noqa: D205,D400
 
         # create a deep copy of the results object, so we can manipulate it
@@ -86,11 +95,21 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         # create recognizer context dictionary
         recognizers_dict = {recognizer.id: recognizer for recognizer in recognizers}
 
-        # Create empty list in None or lowercase all context words in the list
-        if not context:
+        # Create empty list if None or lowercase all context words in the list
+        if context is None:
             context = []
         else:
             context = [word.lower() for word in context]
+
+        # Process negative_context carefully to distinguish between None and []
+        # - None means: use recognizer's default negative_context
+        # - [] means: explicitly disable negative context (don't use recognizer defaults)
+        # - [...] means: use runtime negative_context (may also include recognizer defaults)
+        runtime_negative_context_provided = negative_context is not None
+        if negative_context is None:
+            negative_context = []
+        else:
+            negative_context = [word.lower() for word in negative_context]
 
         # Sanity
         if nlp_artifacts is None:
@@ -119,19 +138,12 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
                 continue
 
             # skip recognizer result if the recognizer doesn't support
-            # context enhancement
-            if not recognizer.context:
+            # context enhancement (either positive or negative)
+            if not (recognizer.context or recognizer.negative_context):
                 logger.debug(
                     "recognizer '%s' does not support context enhancement",
                     recognizer.name,
                 )
-                continue
-
-            # skip context enhancement if already boosted by recognizer level
-            if result.recognition_metadata.get(
-                RecognizerResult.IS_SCORE_ENHANCED_BY_CONTEXT_KEY
-            ):
-                logger.debug("result score already boosted, skipping")
                 continue
 
             # extract lemmatized context from the surrounding of the match
@@ -144,20 +156,68 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
             # combine other sources of context with surrounding words
             surrounding_words.extend(context)
 
-            supportive_context_word = self._find_supportive_word_in_context(
-                surrounding_words, recognizer.context, self.context_matching_mode
+            # Check if result was already boosted by recognizer to avoid double boost
+            already_boosted = result.recognition_metadata.get(
+                RecognizerResult.IS_SCORE_ENHANCED_BY_CONTEXT_KEY
             )
-            if supportive_context_word != "":
-                result.score += self.context_similarity_factor
-                result.score = max(result.score, self.min_score_with_context_similarity)
-                result.score = min(result.score, ContextAwareEnhancer.MAX_SCORE)
 
-                # Update the explainability object with context information
-                # helped to improve the score
-                result.analysis_explanation.set_supportive_context_word(
-                    supportive_context_word
+            # Apply positive context only if not already boosted
+            if not already_boosted:
+                supportive_context_word = self._find_supportive_word_in_context(
+                    surrounding_words, recognizer.context, self.context_matching_mode
                 )
-                result.analysis_explanation.set_improved_score(result.score)
+                if supportive_context_word != "":
+                    result.score += self.context_similarity_factor
+                    result.score = max(
+                        result.score, self.min_score_with_context_similarity
+                    )
+                    result.score = min(result.score, ContextAwareEnhancer.MAX_SCORE)
+
+                    # Update the explainability object with context information
+                    # helped to improve the score
+                    result.analysis_explanation.set_supportive_context_word(
+                        supportive_context_word
+                    )
+                    result.analysis_explanation.set_improved_score(result.score)
+
+            # Apply negative context penalty if recognizer has negative_context defined
+            # or if negative_context is provided at runtime
+            # This is independent of positive boost to always catch negative context
+            #
+            # Semantics:
+            # - If negative_context was None (not provided): use recognizer.negative_context only
+            # - If negative_context was [] (empty list): explicitly disable, don't use recognizer defaults
+            # - If negative_context has values: use recognizer.negative_context + runtime negative_context
+            effective_negative_context = []
+
+            if not runtime_negative_context_provided:
+                # Runtime negative_context was None, use recognizer's defaults only
+                if recognizer.negative_context:
+                    effective_negative_context.extend(recognizer.negative_context)
+            else:
+                # Runtime negative_context was provided (could be empty list or have values)
+                # Only include recognizer defaults if runtime list is not empty
+                if recognizer.negative_context and negative_context:
+                    effective_negative_context.extend(recognizer.negative_context)
+                # Always include the runtime negative_context (empty or not)
+                effective_negative_context.extend(negative_context)
+
+            if effective_negative_context:
+                negative_context_word = self._find_supportive_word_in_context(
+                    surrounding_words,
+                    effective_negative_context,
+                    self.context_matching_mode,
+                )
+                if negative_context_word != "":
+                    result.score -= self.negative_context_penalty
+                    result.score = max(result.score, ContextAwareEnhancer.MIN_SCORE)
+                    logger.debug(
+                        "Applied negative context penalty for word '%s'",
+                        negative_context_word,
+                    )
+                    # Update explanation to reflect the final score
+                    # after negative penalty
+                    result.analysis_explanation.set_improved_score(result.score)
         return results
 
     @staticmethod

@@ -136,7 +136,11 @@ def test_when_duplicate_word_in_text_then_lic_context_not_matched_with_whole_wor
     text = "This is a duplicate document with code ABC12345"
     nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
     
-    recognizer_results = test_recognizer.analyze(text, nlp_artifacts)
+    recognizer_results = test_recognizer.analyze(
+        text=text,
+        entities=[],
+        nlp_artifacts=nlp_artifacts,
+    )
     assert len(recognizer_results) > 0
     
     original_score = recognizer_results[0].score
@@ -179,7 +183,11 @@ def test_when_duplicate_word_in_text_then_lic_context_matches_with_substring(
     text = "This is a duplicate document with code ABC12345"
     nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
     
-    recognizer_results = test_recognizer.analyze(text, nlp_artifacts)
+    recognizer_results = test_recognizer.analyze(
+        text=text,
+        entities=[],
+        nlp_artifacts=nlp_artifacts,
+    )
     assert len(recognizer_results) > 0
     
     original_score = recognizer_results[0].score
@@ -263,7 +271,11 @@ def test_when_substring_mode_then_compound_words_work_in_integration(spacy_nlp_e
     text = "My passportnumber is ABC12345"
     nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
     
-    recognizer_results = test_recognizer.analyze(text, nlp_artifacts)
+    recognizer_results = test_recognizer.analyze(
+        text=text,
+        entities=[],
+        nlp_artifacts=nlp_artifacts,
+    )
     assert len(recognizer_results) > 0
     
     original_score = recognizer_results[0].score

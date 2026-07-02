@@ -105,7 +105,11 @@ def test_when_text_with_aditional_context_lemma_based_context_enhancer_then_anal
     """
     text = "John Smith license is AC432223"
     nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
-    recognizer_results = us_license_recognizer.analyze(text, nlp_artifacts)
+    recognizer_results = us_license_recognizer.analyze(
+        text=text,
+        entities=[],
+        nlp_artifacts=nlp_artifacts,
+    )
     results_without_additional_context = lemma_context.enhance_using_context(
         text, recognizer_results, nlp_artifacts, [us_license_recognizer]
     )
@@ -143,7 +147,11 @@ def test_when_text_with_only_additional_context_lemma_based_context_enhancer_the
     """
     text = "John Smith D.R is AC432223"
     nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
-    recognizer_results = us_license_recognizer.analyze(text, nlp_artifacts)
+    recognizer_results = us_license_recognizer.analyze(
+        text=text,
+        entities=[],
+        nlp_artifacts=nlp_artifacts,
+    )
     results_without_additional_context = lemma_context.enhance_using_context(
         text, recognizer_results, nlp_artifacts, [us_license_recognizer]
     )

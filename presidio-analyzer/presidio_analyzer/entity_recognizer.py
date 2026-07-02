@@ -29,6 +29,8 @@ class EntityRecognizer:
     :param version: the recognizer current version
     :param context: a list of words which can help boost confidence score
     when they appear in context of the matched entity
+    :param negative_context: a list of words which can reduce confidence score
+    when they appear in context of the matched entity
     :param country_code: Optional ISO 3166-1 alpha-2 country tag. Custom
         recognizers may set it per instance; predefined recognizers should
         prefer the class-level :attr:`COUNTRY_CODE`. Values are stripped,
@@ -52,6 +54,7 @@ class EntityRecognizer:
         supported_language: str = "en",
         version: str = "0.0.1",
         context: Optional[List[str]] = None,
+        negative_context: Optional[List[str]] = None,
         country_code: Optional[str] = None,
     ):
         self.supported_entities = supported_entities
@@ -66,7 +69,8 @@ class EntityRecognizer:
         self.supported_language = supported_language
         self.version = version
         self.is_loaded = False
-        self.context = context if context else []
+        self.context = context if context is not None else []
+        self.negative_context = negative_context if negative_context is not None else []
 
         self._country_code = self._resolve_country_code(country_code)
 
@@ -241,6 +245,8 @@ class EntityRecognizer:
             "supported_language": self.supported_language,
             "name": self.name,
             "version": self.version,
+            "context": self.context,
+            "negative_context": self.negative_context,
         }
         if self._country_code is not None:
             return_dict["country_code"] = self._country_code
