@@ -147,6 +147,11 @@ def entities():
         ),
         # Valid HETU with the canonical "-" century separator.
         ("131052-308T", 1, ((0, 11),)),
+        # Regression: a valid code whose control character is written in lower
+        # case must still be detected. The pattern matches case-insensitively,
+        # so the control character is upper-cased before the checksum.
+        ("131052-308t", 1, ((0, 11),)),
+        ("020504a902e", 1, ((0, 11),)),
         # invalid Personal Identity Codes scores
         ("111111-111A", 0, ()),
         ("111111+110G", 0, ()),
