@@ -5,59 +5,87 @@ All notable changes to this project will be documented in this file.
 ## [unreleased]
 
 ### Anonymizer
+### General
 #### Fixed
-- Custom operator `validate()` no longer calls the user-supplied lambda with a dummy `"PII"` value. Previously, stateful lambdas (e.g. those accumulating a token-to-original-value map for de-anonymization) would receive a spurious invocation during validation, inserting a junk entry (`{"TOKEN_1": "PII"}`) into the map and skewing all subsequent token counters. The return-type contract is now enforced in `operate()` when the lambda runs on real data. Fixes [#2024](https://github.com/microsoft/presidio/issues/2024).
+- Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
+
+## [2.2.363] - 2026-06-28
+### General
+#### Added
+- Published source distributions alongside wheels in the PyPI release pipeline (#1924) (Thanks @Copilot)
+
+#### Changed
+- Rebranded repository documentation and links for Data Privacy Stack, added project transition notices about Presidio's move to its new home at https://presidio.dataprivacystack.org/project_transition/, migrated the docs site to Material for MkDocs/Zensical, and updated docs publishing and search verification workflows (#2097, #2098, #2100, #2102, #2104, #2117, #2118, #2119, #2120, #2121, #2122) (Thanks @omri374, @SharonHart)
+- Moved container image publishing from Microsoft Container Registry to GitHub Container Registry under `ghcr.io/data-privacy-stack`, updated Docker usage documentation, and fixed GHCR authentication and provenance publishing in CI (#2103, #2123, #2124) (Thanks @SharonHart, @Copilot)
+- Updated Dependabot coverage and grouping for package, Docker, Docker Compose, and GitHub Actions dependencies, with defensive dependency range controls (#1928, #1929, #1965, #1984, #2005) (Thanks @dependabot, @Copilot, @SharonHart)
+- Updated GitHub Actions dependencies, Docker base images, and sample dependency pins across CI/release workflows (#1913, #1914, #1915, #1920, #1927, #1935, #1936, #1937, #1938, #1966, #1967, #1968, #1975, #1976, #1985, #1991, #1996) (Thanks @dependabot)
+- Updated Copilot development instructions for the repository (#1866) (Thanks @omri374)
+
+#### Fixed
+- Skipped the coverage PR-comment step outside pull request runs to prevent CI failures on push and workflow-dispatch runs (#1921) (Thanks @Copilot)
+- Cleaned stale Poetry virtual environments during CI reruns to avoid mixed NumPy installs and `IndentationError` failures (#2091) (Thanks @Copilot)
+- Fixed OpenAI anonymization sample typos, Fabric sample dependency guidance, and duplicate ZIP-code example documentation (#2017, #2027, #2034) (Thanks @ynachiket, @BelizSertcan)
 
 ### Analyzer
-#### Changed
-- Added Python 3.14 package support for `presidio-analyzer` by allowing Python `<3.15` and avoiding `spacy==3.8.14`, which does not provide compatible Python 3.14 wheels.
-
 #### Added
-- Optional `countries` filter on `RecognizerRegistry.load_predefined_recognizers()` to scope predefined country-specific recognizers to a subset of locales (e.g. `countries=["us", "uk"]`). The same filter is also exposed as a top-level `supported_countries` field in the recognizer-registry YAML, mirroring `supported_languages`, and as an advisory per-recognizer `country_code:` field on every predefined country-specific entry in `default_recognizers.yaml` (cross-checked against the class attribute at load time). Country tagging works via two reconciled paths: the class-level `EntityRecognizer.COUNTRY_CODE` ClassVar (canonical for predefined recognizers) and the new `country_code` constructor kwarg on `EntityRecognizer` / `PatternRecognizer` (the path for custom recognizers without a subclass — flows through `PatternRecognizer.from_dict` so YAML `type: custom` entries can declare `country_code:` directly). Conflicting values raise `ValueError` at construction time so a predefined country recognizer can never be silently re-tagged. The resolved tag is read via the `country_code()` and `is_country_specific()` instance methods, and serialized through `to_dict()` / `from_dict()` for round-tripping. Inputs to the `countries` filter are validated up front (rejects bare strings, non-iterables, non-string elements, and blank codes). Locale-agnostic recognizers and untagged custom recognizers are always loaded regardless of the filter, preserving backwards compatibility. Adds `RecognizerRegistry.get_country_codes()` for introspection and a `WARNING` log when a requested country has no matching recognizer. See `docs/analyzer/filtering_by_country.md`. Fixes #1328.
-- Canadian SIN (`CA_SIN`) recognizer for the Canadian Social Insurance Number, using regex pattern matching, context words (English and French), and Luhn checksum validation. Disabled by default.
-- South African ID number (`ZA_ID_NUMBER`) recognizer for the 13-digit national identity number, using pattern matching, context words, birth-date validation, and Luhn checksum validation. Disabled by default.
+- UK Driving Licence Number (`UK_DRIVING_LICENCE`) recognizer with pattern matching and context support (#1857) (Thanks @tee-jagz)
+- German PII recognizers for `DE_TAX_ID`, `DE_TAX_NUMBER`, `DE_PASSPORT`, `DE_ID_CARD`, `DE_SOCIAL_SECURITY`, `DE_HEALTH_INSURANCE`, `DE_KFZ`, `DE_HANDELSREGISTER`, and `DE_PLZ`; all are disabled by default (#1909) (Thanks @MvdB)
+- `SE_PERSONNUMMER` recognizer for Swedish personal identity and coordination numbers, plus Swedish Organisationsnummer recognition; both are disabled by default (#1912, #1918) (Thanks @goveebee)
+- `SlimSpacyNlpEngine` and slim analyzer configs, enabling lightweight tokenization/lemmatization while delegating NER to recognizers such as GLiNER (#1916) (Thanks @SharonHart)
+- Canadian SIN (`CA_SIN`) recognizer with English/French context and Luhn checksum validation (#1934) (Thanks @kennionblack)
+- Turkish recognizers for `TR_NATIONAL_ID`, `TR_LICENSE_PLATE`, and `TR_PHONE_NUMBER`; all are disabled by default (#1995, #1999, #2006) (Thanks @mrcuren)
+- Spanish Passport (`ES_PASSPORT`) recognizer (#2011) (Thanks @asensionacher)
+- Optional `countries` filter for `RecognizerRegistry.load_predefined_recognizers()`, country metadata on predefined/custom recognizers, country-code introspection, and YAML `supported_countries` support (#2000) (Thanks @ynachiket)
+- Configurable `supported_entity` support in `PhoneRecognizer`, including correct propagation to recognizer results (#2014) (Thanks @max-tarlov-infinitusai)
+- Philippines TIN (`PH_TIN`) and Philippine mobile number (`PH_MOBILE_NUMBER`) recognizers; both are disabled by default (#2016, #2038) (Thanks @aaronaco, @Surya-5555)
+- South African ID number (`ZA_ID_NUMBER`) recognizer with birth-date and Luhn validation; disabled by default (#2064) (Thanks @thatomokoena)
 
-- Philippines TIN (`PH_TIN`) recognizer for the Philippines Taxpayer Identification Number, using regex pattern matching, context words, and weighted modulo 11 checksum validation. Disabled by default.
-
-- Swedish PII recognizers for `SE_PERSONNUMMER` to identify Swedish Personal ID Numbers using pattern match and checksum. The recognizer also supports Swedish coordination numbers (samordningsnummer), issued to individuals who are not registered residents in Sweden but require identification. All disabled by default.
-
-- German PII recognizers for `DE_TAX_ID` (Steueridentifikationsnummer, §§ 139a–139e AO, ISO 7064 Mod 11,10 checksum), `DE_TAX_NUMBER` (Steuernummer, § 139a AO, ELSTER and slash formats), `DE_PASSPORT` (Reisepassnummer, PassG § 4, ICAO Doc 9303), `DE_ID_CARD` (Personalausweisnummer, PAuswG), `DE_SOCIAL_SECURITY` (Rentenversicherungsnummer, § 147 SGB VI, DRV checksum), `DE_HEALTH_INSURANCE` (Krankenversicherungsnummer/KVNR, § 290 SGB V, GKV checksum), `DE_KFZ` (KFZ-Kennzeichen, FZV § 8), `DE_HANDELSREGISTER` (Handelsregisternummer HRA/HRB, §§ 9/14 HGB), and `DE_PLZ` (Postleitzahl, very low base confidence, context-only). All disabled by default.
-
-- Added recognizer for Swedish Organisationsnummer, ID number for all Swedish oragnisations.
-
-- Added recognizer for Spanish Passport (`ES_PASSPORT`).
-
-- Added Korean Resident Registration Number (RRN) recognizer (KrRrnRecognizer).
-
-- Added Thai National ID Number (TNIN) recognizer (ThTninRecognizer).
-
-- Added `supported_entity` parameter to `PhoneRecognizer`. Previously, this recognizer hard-coded `["PHONE_NUMBER"]` as the only possible supported entity.
+#### Changed
+- Consolidated analyzer configuration into a single `analyzer.yaml` flow while preserving the older config files with deprecation banners (#1970) (Thanks @SharonHart)
+- Added Python 3.14 package support for `presidio-analyzer` by allowing Python `<3.15` and avoiding `spacy==3.8.14`, which does not provide compatible Python 3.14 wheels (#2105) (Thanks @michaelgiraldo)
+- Updated analyzer dependencies and metadata for `stanza`, `gliner`, `spacy-huggingface-pipelines`, `pydantic`, `pyyaml`, `azure-ai-textanalytics`, `azure-core`, `phonenumbers`, `tldextract`, `azure-identity`, `numpy`, and explicit `click` support (#1979, #1981, #1982, #1987, #1988, #1989, #1992, #1993, #1994, #2001, #2058, #2090, #2092) (Thanks @dependabot, @Copilot, @SharonHart)
 
 #### Fixed
-- Fixed an issue where the CreditCardRecognizer regex could incorrectly identify 13-digit Unix timestamps as credit card numbers. Validated that 13 digit numbers that start with `1` and have no separators (e.g. `1748503543012`) are not flagged as credit cards.
-- Enhance NlpEngineProvider with validation methods for NLP engines, configuration, and conf file path.
-- Fixed `PhoneRecognizer._get_recognizer_result` to use the constructor-provided `supported_entity` instead of the hard-coded `"PHONE_NUMBER"` string, making the `supported_entity` parameter from PR #2014 fully functional.
-- Fixed incorrect Prüfziffer algorithm in `DeHealthInsuranceRecognizer` (KVNR); now uses alternating factors [1,2,…,1,2] per § 290 SGB V Anlage 1 (#1972).
-- Fixed incorrect check-digit weights in `DeSocialSecurityRecognizer` (RVNR); now uses VKVV § 4 weights [2,1,2,5,7,1,2,1,2,1,2,1]. Previous weights diverged from the Deutsche Rentenversicherung specification and rejected the canonical DRV example 15070649C103.
-- Fixed incorrect check-digit algorithm in `DeLanrRecognizer`; now uses KBV Arztnummern-Richtlinie weights [4,9,4,9,4,9] without the spurious Quersumme step, and the complement-to-10 formula `(10 − sum mod 10) mod 10`. Previous weights and formula were internally self-consistent only.
-- Enforced post-2016 BZSt repetition rule in `DeTaxIdRecognizer` (no digit may appear more than three times in positions 1–10).
-- Registered `DeLanrRecognizer`, `DeBsnrRecognizer`, `DeVatIdRecognizer` and `DeFuehrerscheinRecognizer` in the default registry (previously imported but missing from `conf/default_recognizers.yaml`, so they were unreachable via the default registry).
+- Resolved LangExtract configuration path loading for installed PyPI packages (#1917) (Thanks @RonShakutai)
+- Fixed analyzer Docker configuration handling and Stanza model accessibility (#1930) (Thanks @TheSabari07)
+- Improved IP recognizer regexes and regression coverage for IPv4-mapped/embedded and compressed IPv6 edge cases (#1941, #1940, #2062) (Thanks @kennionblack, @extrasmall0, @AlexanderSanin)
+- Corrected German recognizer checksum and structural validation for KVNR, RVNR, LANR, VAT ID, passport/ID MRZ checksums, BSNR, tax IDs, and default registry coverage (#1990) (Thanks @MvdB)
+- Fixed Polish PESEL checksum validation (#1998) (Thanks @sienioApius)
+- Fixed `PhoneRecognizer` default region typo from `FE` to `FR` (#2009) (Thanks @Copilot)
+- Preserved GLiNER and recognizer-specific configuration fields through Pydantic validation and config serialization (#2007, #2081) (Thanks @yuriihavrylko, @ultramancode)
+- Ignored empty allow-list terms in regex matching (#2061) (Thanks @uwezkhan)
+- Capped URL recognizer host matching to avoid quadratic backtracking (#2063) (Thanks @uwezkhan)
+- Fixed Singapore UEN detection for Format C identifiers with the `R` prefix (#2088) (Thanks @jichaowang02-lang)
+- Fixed Australian ACN checksum validation for valid ACNs whose check digit is `0` (#2087) (Thanks @jichaowang02-lang)
+- Added missing IBAN registry formats for EG, IQ, LY, LC, SC, and UA (#2078) (Thanks @AUTHENSOR)
+- Matched punycode/IDN domains in email recognition so internationalized email addresses are detected (#2077) (Thanks @AUTHENSOR)
+- Updated URL recognizer test bounds for Data Privacy Stack domains (#2125) (Thanks @SharonHart)
 
+### Anonymizer
 #### Added
-- ISO 7064 Mod 11,10 structural checksum in `DeVatIdRecognizer`. Algorithm identical to `DeTaxIdRecognizer`; widely used by community validators (python-stdnum, VIES-adjacent).
-- ICAO Doc 9303 MRZ checksum validation in `DePassportRecognizer` and `DeIdCardRecognizer` (weights 7, 3, 1 repeating; letters A=10…Z=35; sum mod 10).
-- Structural validation improvements in `DeBsnrRecognizer` per KBV Arztnummern-Richtlinie Anlage 1; valid KV regional codes are defined for defense-in-depth/documentation purposes, but unknown prefixes are not currently rejected (no public checksum exists for BSNR).
-- Turkish PII recognizer for `TR_NATIONAL_ID` (TCKN) to identify Turkish National Identification Numbers using pattern match, context, and NVI checksum validation. Disabled by default.
-- Turkish phone number detection via configurable `PhoneRecognizer` with `supported_regions=["TR"]` and `supported_entity="TR_PHONE_NUMBER"`. Supports international (+90), national (0), and local formats using the `phonenumbers` library. Disabled by default; users enable it programmatically.
-- Turkish PII recognizer for `TR_LICENSE_PLATE` (plaka) to identify Turkish vehicle license plates using pattern match, context, and province code validation (01-81). Disabled by default.
-- Added PH_MOBILE_NUMBER recognizer for Philippine mobile phone numbers using PhoneRecognizer with supported_regions=['PH'] (disabled by default).
+- Added `merge_entities_with_whitespace` support to `anonymize()` so adjacent analysis results can be merged across whitespace before anonymization (#1932) (Thanks @harishkernel)
+
+#### Changed
+- Updated the optional Azure Identity dependency for anonymizer AHDS support (#1983) (Thanks @dependabot)
+
+#### Fixed
+- Custom operator `validate()` no longer calls the user-supplied lambda with a dummy `"PII"` value. Previously, stateful lambdas accumulating a token-to-original-value map for de-anonymization would receive a spurious validation invocation, inserting a junk entry and skewing later token counters. The return-type contract is now enforced in `operate()` when the lambda runs on real data (#2025) (Thanks @HammadSiddiqui)
 
 ### Image Redactor
 #### Added
-- Added Azure SDK credential support to `DocumentIntelligenceOCR` so callers can use Azure Identity credentials instead of API keys. Fixes #1882.
+- Added Azure SDK credential support to `DocumentIntelligenceOCR` so callers can use Azure Identity credentials instead of API keys (#2085) (Thanks @mturac)
+
+#### Changed
+- Updated image-redactor dependencies for `opencv-python`, `gunicorn`, `pytesseract`, and `azure-ai-formrecognizer` (#1978, #1977, #1980, #1986) (Thanks @dependabot)
 
 #### Fixed
-- Fixed an undefined variable in the Document Intelligence OCR setup example in the image-redactor documentation. The "Creating an image redactor engine in Python" snippet defined `diOCR` but referenced `di_ocr`, raising `NameError` when copied verbatim; the snippet now consistently uses `diOCR`.
+- Returned the rendered image when no text is detected during image-redactor verification (#2040) (Thanks @AlexanderSanin)
+- Fixed duplicate entity sorting in the DICOM verification engine and removed double bounding-box formatting in `eval_dicom_instance` (#2084, #2079) (Thanks @ArjunPakhan, @AlexanderSanin)
+- Fixed an undefined variable in the Document Intelligence OCR setup example in the image-redactor documentation (#2089) (Thanks @Dashtid)
+
+### Presidio-Structured
+#### Changed
+- Added an explicit `click` dependency to package metadata (#2058) (Thanks @Copilot)
 
 ## [2.2.362] - 2026-03-15
 ### General
@@ -79,7 +107,6 @@ All notable changes to this project will be documented in this file.
 
 ### Analyzer
 #### Added
-- UK Driving Licence Number (UK_DRIVING_LICENCE) recognizer with pattern matching and context support
 - `HuggingFaceNerRecognizer` for direct NER model inference using HuggingFace pipelines without requiring spaCy (#1834) (Thanks @ultramancode)
 - Transformer-based `MedicalNERRecognizer` as a subclass of `HuggingFaceNerRecognizer` for clinical entity detection (#1853) (Thanks @stevenelliottjr)
 - US NPI (National Provider Identifier) recognizer with Luhn checksum validation and context support (#1847) (Thanks @stevenelliottjr)
@@ -229,8 +256,8 @@ All notable changes to this project will be documented in this file.
     - EsNifRecognizer
     - InVoterRecognizer
 
-  To re-enable them, either change the [default YAML](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml) to have them as `enabled: true`, or via code, add them to the recognizer registry manually.
-    - Yaml based: see more here: [YAML based configuration](https://microsoft.github.io/presidio/analyzer/analyzer_engine_provider/).
+  To re-enable them, either change the [default YAML](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml) to have them as `enabled: true`, or via code, add them to the recognizer registry manually.
+    - Yaml based: see more here: [YAML based configuration](https://presidio.dataprivacystack.org/analyzer/analyzer_engine_provider/).
     - Code based:
       ```py
       from presidio_analyzer import AnalyzerEngine
@@ -353,13 +380,13 @@ All notable changes to this project will be documented in this file.
 ## [2.2.355] - 2024-10-28
 ### Added
 #### Docs
- * Add a link to HashiCorp vault operator resource ([#1468](https://github.com/microsoft/presidio/pull/1468)) (Thanks [Akshay Karle](https://github.com/akshaykarle))
+ * Add a link to HashiCorp vault operator resource ([#1468](https://github.com/data-privacy-stack/presidio/pull/1468)) (Thanks [Akshay Karle](https://github.com/akshaykarle))
 ### Changed
 #### Analyzer
- * Updates to the transformers conf docs and yaml file ([#1467](https://github.com/microsoft/presidio/pull/1467)) 
+ * Updates to the transformers conf docs and yaml file ([#1467](https://github.com/data-privacy-stack/presidio/pull/1467)) 
 
 #### Docs
- * docs: clarify the docs on deploying presidio to k8s ([#1453](https://github.com/microsoft/presidio/pull/1453)) (Thanks [Roel Fauconnier](https://github.com/roel4ez))
+ * docs: clarify the docs on deploying presidio to k8s ([#1453](https://github.com/data-privacy-stack/presidio/pull/1453)) (Thanks [Roel Fauconnier](https://github.com/roel4ez))
 
 
 ## [2.2.355] - July 9th 2024
@@ -649,15 +676,15 @@ The default recognizers are now automatically loaded from file.
 - Added CodeQL scanning
 
 #### Analyzer
-- Introduced [BatchAnalyzerEngine](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/batch_analyzer_engine.py)
-- Added [allow-list functionality](https://github.com/microsoft/presidio/blob/4cbfc1a80dc15da7d5a9cf5a1c680e8df4f2b349/presidio-analyzer/presidio_analyzer/analyzer_engine.py#L135) to ignore specific strings
-- Added notebook on [anonymizing known values](https://github.com/microsoft/presidio/blob/main/docs/samples/python/Anonymizing%20known%20values.ipynb)
-- Added [sample for using `transformers` models in Presidio](https://github.com/microsoft/presidio/blob/main/docs/samples/python/transformers_recognizer.py)
+- Introduced [BatchAnalyzerEngine](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/batch_analyzer_engine.py)
+- Added [allow-list functionality](https://github.com/data-privacy-stack/presidio/blob/4cbfc1a80dc15da7d5a9cf5a1c680e8df4f2b349/presidio-analyzer/presidio_analyzer/analyzer_engine.py#L135) to ignore specific strings
+- Added notebook on [anonymizing known values](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/Anonymizing%20known%20values.ipynb)
+- Added [sample for using `transformers` models in Presidio](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/transformers_recognizer.py)
 
 ### Changed
 
 #### Anonymizer
-- Bug fix for getting the text before anonymizing (https://github.com/microsoft/presidio/pull/890)
+- Bug fix for getting the text before anonymizing (https://github.com/data-privacy-stack/presidio/pull/890)
 
 #### Image redactor
 - Deps update
@@ -695,7 +722,7 @@ Bug fix in context support
 #### Analyzer
 
 * Added a URL recognizer
-* Added a new capability for creating new logic for context detection. See [ContextAwareEnhancer](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/context_aware_enhancers/context_aware_enhancer.py) and [LemmaContextAwareEnhancer](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/context_aware_enhancers/lemma_context_aware_enhancer.py). Documentation would be added on a future release.
+* Added a new capability for creating new logic for context detection. See [ContextAwareEnhancer](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/context_aware_enhancers/context_aware_enhancer.py) and [LemmaContextAwareEnhancer](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/context_aware_enhancers/lemma_context_aware_enhancer.py). Documentation would be added on a future release.
 Furthermore, it is now possible to pass context words thruogh the `analyze` method (or via API) and those would be taken into account for context enhancement. 
 
 
@@ -793,32 +820,33 @@ Upgrade Analyzer spacy version to 3.0.5
 New endpoint for deanonymizing encrypted entities by the anonymizer.  
 
 
-[unreleased]: https://github.com/microsoft/presidio/compare/2.2.362...HEAD
-[2.2.362]: https://github.com/microsoft/presidio/compare/2.2.361...2.2.362
-[2.2.361]: https://github.com/microsoft/presidio/compare/2.2.360...2.2.361
-[2.2.360]: https://github.com/microsoft/presidio/compare/2.2.359...2.2.360
-[2.2.359]: https://github.com/microsoft/presidio/compare/2.2.358...2.2.359
-[2.2.358]: https://github.com/microsoft/presidio/compare/2.2.357...2.2.358
-[2.2.357]: https://github.com/microsoft/presidio/compare/2.2.356...2.2.357
-[2.2.356]: https://github.com/microsoft/presidio/compare/2.2.355...2.2.356
-[2.2.355]: https://github.com/microsoft/presidio/compare/2.2.354...2.2.355
-[2.2.354]: https://github.com/microsoft/presidio/compare/2.2.353...2.2.354
-[2.2.353]: https://github.com/microsoft/presidio/compare/2.2.352...2.2.353
-[2.2.352]: https://github.com/microsoft/presidio/compare/2.2.351...2.2.352
-[2.2.351]: https://github.com/microsoft/presidio/compare/2.2.350...2.2.351
-[2.2.350]: https://github.com/microsoft/presidio/compare/2.2.35...2.2.350
-[2.2.35]: https://github.com/microsoft/presidio/compare/2.2.34...2.2.35
-[2.2.34]: https://github.com/microsoft/presidio/compare/2.2.33...2.2.34
-[2.2.33]: https://github.com/microsoft/presidio/compare/2.2.32...2.2.33
-[2.2.32]: https://github.com/microsoft/presidio/compare/2.2.31...2.2.32
-[2.2.31]: https://github.com/microsoft/presidio/compare/2.2.30...2.2.31
-[2.2.30]: https://github.com/microsoft/presidio/compare/2.2.29...2.2.30
-[2.2.29]: https://github.com/microsoft/presidio/compare/2.2.28...2.2.29
-[2.2.28]: https://github.com/microsoft/presidio/compare/2.2.27...2.2.28
-[2.2.27]: https://github.com/microsoft/presidio/compare/2.2.26...2.2.27
-[2.2.26]: https://github.com/microsoft/presidio/compare/2.2.25...2.2.26
-[2.2.25]: https://github.com/microsoft/presidio/compare/2.2.24...2.2.25
-[2.2.24]: https://github.com/microsoft/presidio/compare/2.2.23...2.2.24
-[2.2.23]: https://github.com/microsoft/presidio/compare/2.2.2...2.2.23
-[2.2.2]: https://github.com/microsoft/presidio/compare/2.2.1...2.2.2
-[2.2.1]: https://github.com/microsoft/presidio/compare/2.2.0...2.2.1
+[unreleased]: https://github.com/data-privacy-stack/presidio/compare/2.2.363...HEAD
+[2.2.363]: https://github.com/data-privacy-stack/presidio/compare/2.2.362...2.2.363
+[2.2.362]: https://github.com/data-privacy-stack/presidio/compare/2.2.361...2.2.362
+[2.2.361]: https://github.com/data-privacy-stack/presidio/compare/2.2.360...2.2.361
+[2.2.360]: https://github.com/data-privacy-stack/presidio/compare/2.2.359...2.2.360
+[2.2.359]: https://github.com/data-privacy-stack/presidio/compare/2.2.358...2.2.359
+[2.2.358]: https://github.com/data-privacy-stack/presidio/compare/2.2.357...2.2.358
+[2.2.357]: https://github.com/data-privacy-stack/presidio/compare/2.2.356...2.2.357
+[2.2.356]: https://github.com/data-privacy-stack/presidio/compare/2.2.355...2.2.356
+[2.2.355]: https://github.com/data-privacy-stack/presidio/compare/2.2.354...2.2.355
+[2.2.354]: https://github.com/data-privacy-stack/presidio/compare/2.2.353...2.2.354
+[2.2.353]: https://github.com/data-privacy-stack/presidio/compare/2.2.352...2.2.353
+[2.2.352]: https://github.com/data-privacy-stack/presidio/compare/2.2.351...2.2.352
+[2.2.351]: https://github.com/data-privacy-stack/presidio/compare/2.2.350...2.2.351
+[2.2.350]: https://github.com/data-privacy-stack/presidio/compare/2.2.35...2.2.350
+[2.2.35]: https://github.com/data-privacy-stack/presidio/compare/2.2.34...2.2.35
+[2.2.34]: https://github.com/data-privacy-stack/presidio/compare/2.2.33...2.2.34
+[2.2.33]: https://github.com/data-privacy-stack/presidio/compare/2.2.32...2.2.33
+[2.2.32]: https://github.com/data-privacy-stack/presidio/compare/2.2.31...2.2.32
+[2.2.31]: https://github.com/data-privacy-stack/presidio/compare/2.2.30...2.2.31
+[2.2.30]: https://github.com/data-privacy-stack/presidio/compare/2.2.29...2.2.30
+[2.2.29]: https://github.com/data-privacy-stack/presidio/compare/2.2.28...2.2.29
+[2.2.28]: https://github.com/data-privacy-stack/presidio/compare/2.2.27...2.2.28
+[2.2.27]: https://github.com/data-privacy-stack/presidio/compare/2.2.26...2.2.27
+[2.2.26]: https://github.com/data-privacy-stack/presidio/compare/2.2.25...2.2.26
+[2.2.25]: https://github.com/data-privacy-stack/presidio/compare/2.2.24...2.2.25
+[2.2.24]: https://github.com/data-privacy-stack/presidio/compare/2.2.23...2.2.24
+[2.2.23]: https://github.com/data-privacy-stack/presidio/compare/2.2.2...2.2.23
+[2.2.2]: https://github.com/data-privacy-stack/presidio/compare/2.2.1...2.2.2
+[2.2.1]: https://github.com/data-privacy-stack/presidio/compare/2.2.0...2.2.1

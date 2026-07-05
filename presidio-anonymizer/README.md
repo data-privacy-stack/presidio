@@ -200,5 +200,5 @@ docker-compose up -d
 
 ### HTTP API
 
-Follow the [API Spec](https://microsoft.github.io/presidio/api-docs/api-docs.html#tag/Anonymizer) for the
+Follow the [API Spec](https://presidio.dataprivacystack.org/api-docs/api-docs.html#tag/Anonymizer) for the
 Anonymizer REST API reference details

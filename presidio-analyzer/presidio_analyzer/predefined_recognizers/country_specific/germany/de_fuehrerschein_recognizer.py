@@ -13,9 +13,13 @@ class DeFuehrerscheinRecognizer(PatternRecognizer):
     via FeV reform), the number follows a fixed 11-character structure:
 
         Pos 1–2:   Behördenkürzel – 2 uppercase letters identifying the issuing
-                   Fahrerlaubnisbehörde (derived from the Kfz-Zulassungskürzel of
-                   the issuing Kreis/Stadt, e.g. "B0" Berlin, "MU" München,
-                   "HH" Hamburg, "KO" Koblenz)
+                   Fahrerlaubnisbehörde (derived from the Kfz-Zulassungskürzel
+                   of the issuing Kreis/Stadt, e.g. "MU" München, "HH" Hamburg,
+                   "KO" Koblenz, "BO" Bochum).  Single-letter Kfz codes such
+                   as "B" (Berlin) or "K" (Köln) are used in combination as
+                   2-letter authority codes here (e.g. "BO", "KN"); pure
+                   single-letter + digit forms like "B0" are out of scope for
+                   this strict pattern (see tests/test_de_fuehrerschein_recognizer.py).
         Pos 3–5:   Behördennummer – 3-digit authority code within the Bundesland
                    (assigned by the Kraftfahrt-Bundesamt, KBA)
         Pos 6–10:  Laufende Nummer – 5-digit sequential issue number
@@ -27,7 +31,7 @@ class DeFuehrerscheinRecognizer(PatternRecognizer):
     EU standard: Annex I to Directive 2006/126/EC (Field 5).
     Data protection: DSGVO Art. 4 Nr. 1 (personenbezogene Daten), BDSG.
 
-    Examples (fictitious): B012345678A, MU12345678B, HH98765432C
+    Examples (fictitious): BO12345678A, MU12345678B, HH98765432C
 
     Scope note: Pre-2013 German driving licenses (pink folded card, laminated
     card) used locally defined, non-standardized number formats and remain

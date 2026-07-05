@@ -61,7 +61,7 @@ The following code can exist as part of a service available to the appropriate a
         self.deanonymizer.add_deanonymizer(InstanceCounterDeanonymizer)
 ```
 
-`InstanceCounterAnonymizer` and `InstanceCounterDeanonymizer` taken from [these examples](https://microsoft.github.io/presidio/samples/python/pseudonomyzation/).
+`InstanceCounterAnonymizer` and `InstanceCounterDeanonymizer` taken from [these examples](https://data-privacy-stack.github.io/presidio/samples/python/pseudonymization/).
 
 We anonymize data with the following:
 

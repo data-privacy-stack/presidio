@@ -6,9 +6,9 @@ Run Presidio PII Masking across Anthropic/Gemini/Bedrock/etc. calls with [LiteLL
 
 **Flow:** App <-> `LiteLLM Proxy + Presidio PII Masking` <-> LLM Provider
 
-## Pre-Requiesites
+## Prerequisites
 - Run `pip install 'litellm[proxy]'` [Docs](https://docs.litellm.ai/docs/proxy/quick_start)
-- Setup [Presidio Docker](https://microsoft.github.io/presidio/installation/#using-docker)
+- Setup [Presidio Docker](https://data-privacy-stack.github.io/presidio/installation/#using-docker)
 
 ## Quick Start
 

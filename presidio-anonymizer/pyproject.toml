@@ -4,9 +4,9 @@ requires = ["poetry-core"]
 
 [project]
 name = "presidio_anonymizer"
-version = "2.2.362"
+version = "2.2.363"
 description = "Presidio Anonymizer package - replaces analyzed text with desired values."
-authors = [{name = "Presidio", email = "presidio@microsoft.com"}]
+authors = [{name = "Presidio", email = "presidio@dataprivacystack.org"}]
 license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 keywords = ["presidio_anonymizer"]
-urls = {Homepage = "https://github.com/Microsoft/presidio"}
+urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 
 requires-python = ">=3.10,<4.0"

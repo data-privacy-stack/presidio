@@ -145,6 +145,8 @@ def entities():
             1,
             ((0, 11),),
         ),
+        # Valid HETU with the canonical "-" century separator.
+        ("131052-308T", 1, ((0, 11),)),
         # invalid Personal Identity Codes scores
         ("111111-111A", 0, ()),
         ("111111+110G", 0, ()),
@@ -152,6 +154,13 @@ def entities():
         ("310289-211C", 0, ()),
         ("012245A110G", 0, ()),
         ("010324A110G", 0, ()),
+        # Regression: an illegal century separator must be rejected. The class
+        # [+-ABCDEFYXWVU] parsed "+-A" as a character range, wrongly admitting
+        # '/', ':', '.', etc. These carry the valid date+control of 131052-308T
+        # but an invalid separator.
+        ("131052/308T", 0, ()),
+        ("131052:308T", 0, ()),
+        ("131052.308T", 0, ()),
     ],
 )
 def test_when_all_finnish_personal_identity_code_then_succeed(

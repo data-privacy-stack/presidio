@@ -28,11 +28,19 @@ def entities():
         ("Z8078221M en mi NIE", 1, ((0, 9),),),
         ("Mi Número de identificación de extranjero es Y8063915-Z", 1, \
             ((45, 55),),),
+        # valid NIE in lowercase (prefix and control letter are upper-cased
+        # before checksum)
+        ("x9613851n", 1, ((0, 9),),),
+        ("z8078221m", 1, ((0, 9),),),
+        # uppercase still detected
+        ("X9613851N", 1, ((0, 9),),),
         # invalid NIE scores
         ("Y8063915Q", 0, ()),
         ("Y806391Q", 0, ()),
         ("58063915Q", 0, ()),
         ("W8063915Q", 0, ()),
+        # invalid checksum stays rejected regardless of case
+        ("x9613851q", 0, ()),
     ],
 )
 def test_when_all_es_nie_then_succeed(

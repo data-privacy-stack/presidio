@@ -4,7 +4,7 @@
   </div>
   <div class="dps-hero__body">
     <h1 class="dps-hero__title">Presidio</h1>
-    <p class="dps-hero__byline">by data <strong>privacy</strong> stack</p>
+    <p class="dps-hero__byline"><span class="dps-hero__byline-prefix">by </span><span class="dps-hero__byline-brand">Data Privacy Stack</span></p>
   </div>
 </div>
 
@@ -44,7 +44,7 @@ bitcoin wallets, US phone numbers, financial data and more.
 
 ## Demo
 
-Link to demo: <https://aka.ms/presidio-demo>
+Link to demo: <https://huggingface.co/spaces/presidio/presidio_demo>
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/RPJ3-kEUybU?si=9HolTiQRZmxV7BqV" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
@@ -77,6 +77,6 @@ Link to demo: <https://aka.ms/presidio-demo>
 
 ## Support
 
-- Before you submit an issue, please go over the documentation. For general discussions, please use the [Github repo's discussion board](https://github.com/microsoft/presidio/discussions).
-- If you have a usage question, found a bug or have a suggestion for improvement, please file a [Github issue](https://github.com/microsoft/presidio/issues).
-- For other matters, please email [presidio@microsoft.com](mailto:presidio@microsoft.com).
+- Before you submit an issue, please go over the documentation. For general discussions, please use the [GitHub repo's discussion board](https://github.com/data-privacy-stack/presidio/discussions).
+- If you have a usage question, found a bug or have a suggestion for improvement, please file a [GitHub issue](https://github.com/data-privacy-stack/presidio/issues).
+- For other matters, please email [presidio@dataprivacystack.org](mailto:presidio@dataprivacystack.org).

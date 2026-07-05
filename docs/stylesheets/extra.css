@@ -2,10 +2,10 @@
    Data Privacy Stack — Presidio docs theme
    Violet/indigo brand built around the "Inky" octopus mascot.
    Light-first, calm neutral canvas; the mascot carries the colour.
-   Type: Plus Jakarta Sans (display) + Inter (body).
+   Type: Plus Jakarta Sans (display), Montserrat (brand byline) + Inter (body).
    ========================================================================= */
 
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Montserrat:wght@400;600&family=Inter:wght@400;500;600;700&display=swap");
 
 /* ---- Brand tokens ------------------------------------------------------- */
 :root {
@@ -269,6 +269,8 @@ body,
    ========================================================================= */
 .md-footer-meta {
   background: var(--md-footer-bg-color--dark);
+  --md-default-fg-color: var(--md-primary-bg-color);
+  --md-default-fg-color--light: color-mix(in srgb, var(--md-primary-bg-color) 72%, transparent);
 }
 
 /* =========================================================================
@@ -324,7 +326,7 @@ body,
 }
 
 .md-typeset .dps-hero__title {
-  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
   font-size: clamp(2.5rem, 11vw, 7rem);
   font-size: clamp(2.5rem, 21cqi, 8rem);
   line-height: 0.9;
@@ -339,18 +341,25 @@ body,
 }
 
 .md-typeset .dps-hero__byline {
-  font-family: "Space Grotesk", "Inter", sans-serif;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.38em;
+  max-width: 100%;
+  font-family: "Montserrat", "Inter", sans-serif;
   font-size: clamp(0.95rem, 4.6cqi, 1.3rem);
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.005em;
-  text-transform: lowercase;
   white-space: nowrap;
   margin: 0;
   color: var(--md-default-fg-color--lighter);
 }
 
-.md-typeset .dps-hero__byline strong {
-  font-weight: 700;
+.md-typeset .dps-hero__byline-brand {
+  font-family: "Montserrat", "Inter", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--md-default-fg-color--light);
 }
 
@@ -378,7 +387,7 @@ body,
   align-items: center;
 }
 
-.dps-hero__mascot {
+.md-typeset .dps-hero__mascot {
   width: 100%;
   max-width: 140px;
   height: auto;
@@ -456,11 +465,48 @@ body,
     gap: 1.5rem;
   }
   .dps-hero__media { order: -1; }
-  .dps-hero__mascot { max-width: 150px; }
+  .md-typeset .dps-hero__mascot { max-width: 120px; }
   .dps-hero__tagline { margin-inline: auto; }
   .dps-hero__cta { justify-content: center; }
   .dps-hero__body { align-items: center; }
   .dps-features { grid-template-columns: 1fr; }
+}
+
+@media screen and (max-width: 44.984375em) {
+  .dps-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 0.35rem;
+    margin: 0.25rem 0 1.35rem;
+    padding: 0.85rem 1rem;
+    border-radius: 18px;
+  }
+
+  .dps-hero__media {
+    display: flex;
+    order: -1;
+  }
+
+  .md-typeset .dps-hero__mascot {
+    max-width: 48px;
+    filter: drop-shadow(0 8px 14px rgba(79, 70, 229, 0.18));
+  }
+
+  .dps-hero__body {
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .md-typeset .dps-hero__title {
+    font-size: clamp(2rem, 11vw, 2.65rem);
+    line-height: 0.95;
+  }
+
+  .md-typeset .dps-hero__byline {
+    font-size: clamp(0.75rem, 3.8vw, 0.95rem);
+    line-height: 1.25;
+    white-space: normal;
+  }
 }
 
 /* =========================================================================
@@ -474,4 +520,85 @@ body,
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* =========================================================================
+   12. Converted notebook content (Jupyter → Markdown under Zensical)
+   mkdocs-jupyter used to ship Jupyter's own CSS. Zensical renders the
+   notebook Markdown natively, so pandas tables, figures and cell outputs
+   are styled here with the brand tokens — matching the scheme light + dark.
+   ========================================================================= */
+
+/* Responsive images: safety net so wide plots / DICOM frames never overflow */
+.md-typeset img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Notebook figure outputs (matplotlib / DICOM): frame them so they read as
+   intentional and stay legible against the dark canvas. */
+.md-typeset img[alt="png"],
+.md-typeset img[alt="jpeg"],
+.md-typeset img[alt="svg"] {
+  display: block;
+  margin: 1.3rem auto;
+  padding: 0.65rem;
+  background: #ffffff;
+  border: 1px solid var(--dps-border);
+  border-radius: 12px;
+  box-shadow: var(--dps-shadow);
+}
+
+/* pandas DataFrame tables: they ship as <table class="dataframe" border="1">.
+   Reset the legacy bordered look, adopt the site table treatment, and scroll
+   horizontally so wide frames never break the layout on narrow viewports. */
+.md-typeset table.dataframe {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--dps-border);
+  border-radius: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  box-shadow: 0 0 0 1px var(--dps-border);
+  -webkit-overflow-scrolling: touch;
+}
+
+.md-typeset table.dataframe th,
+.md-typeset table.dataframe td {
+  border: 0;
+  border-bottom: 1px solid var(--dps-border);
+  padding: 0.4rem 0.85rem;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.md-typeset table.dataframe thead th {
+  background: color-mix(in srgb, var(--md-primary-fg-color) 7%, var(--dps-card));
+  color: var(--md-default-fg-color);
+  font-weight: 600;
+  border-bottom: 2px solid color-mix(in srgb, var(--md-accent-fg-color) 35%, var(--dps-border));
+}
+
+.md-typeset table.dataframe tbody th {
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  background: color-mix(in srgb, var(--md-default-fg-color) 3%, transparent);
+}
+
+.md-typeset table.dataframe tbody tr:nth-child(even) > td {
+  background: color-mix(in srgb, var(--md-default-fg-color) 3%, transparent);
+}
+
+.md-typeset table.dataframe tbody tr:hover > td {
+  background: var(--md-accent-fg-color--transparent);
+}
+
+.md-typeset table.dataframe tr:last-child td,
+.md-typeset table.dataframe tr:last-child th {
+  border-bottom: 0;
 }
