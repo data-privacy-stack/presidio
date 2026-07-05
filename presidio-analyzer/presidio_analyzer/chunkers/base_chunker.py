@@ -116,15 +116,27 @@ class BaseTextChunker(ABC):
                     all_chunks.append((text_idx, chunk, False))
                     flat_chunk_texts.append(chunk.text)
 
-        # Call predict_batch_func once with all chunk texts
+        # Call predict_batch_func once with all chunk texts, sorted by
+        # length. Batched pipelines pad each batch to its longest member,
+        # so grouping similar-length chunks minimizes wasted compute on
+        # padding tokens. Results are restored to original order after.
         if flat_chunk_texts:
-            flat_results = predict_batch_func(flat_chunk_texts)
-            if len(flat_results) != len(flat_chunk_texts):
+            order = sorted(
+                range(len(flat_chunk_texts)),
+                key=lambda i: len(flat_chunk_texts[i]),
+            )
+            sorted_results = predict_batch_func(
+                [flat_chunk_texts[i] for i in order]
+            )
+            if len(sorted_results) != len(flat_chunk_texts):
                 raise ValueError(
-                    f"predict_batch_func returned {len(flat_results)} results "
+                    f"predict_batch_func returned {len(sorted_results)} results "
                     f"for {len(flat_chunk_texts)} input chunks. The function "
                     "must return one result list per input chunk."
                 )
+            flat_results = [None] * len(flat_chunk_texts)
+            for sorted_pos, orig_idx in enumerate(order):
+                flat_results[orig_idx] = sorted_results[sorted_pos]
         else:
             flat_results = []
 

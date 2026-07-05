@@ -93,7 +93,8 @@ class _SimpleChunker(BaseTextChunker):
 
 
 def test_predict_batch_no_chunking_needed():
-    """Texts that fit in one chunk: predict_batch_func called once with all texts."""
+    """Texts that fit in one chunk: predict_batch_func called once with all
+    texts, sorted by length to minimize padding waste."""
     chunker = _SimpleChunker(max_len=100)
     texts = ["Hello world", "Foo bar"]
 
@@ -101,20 +102,49 @@ def test_predict_batch_no_chunking_needed():
 
     def mock_predict_batch(chunk_texts):
         call_log.append(chunk_texts)
-        return [
-            [RecognizerResult("PERSON", 0, 5, 0.9)],
-            [RecognizerResult("LOCATION", 0, 3, 0.8)],
-        ]
+        results = []
+        for ct in chunk_texts:
+            if ct == "Hello world":
+                results.append([RecognizerResult("PERSON", 0, 5, 0.9)])
+            elif ct == "Foo bar":
+                results.append([RecognizerResult("LOCATION", 0, 3, 0.8)])
+            else:
+                results.append([])
+        return results
 
     results = chunker.predict_batch_with_chunking(texts, mock_predict_batch)
 
     assert len(call_log) == 1
-    assert call_log[0] == texts
+    assert call_log[0] == sorted(texts, key=len)
     assert len(results) == 2
     assert len(results[0]) == 1
     assert results[0][0].entity_type == "PERSON"
     assert len(results[1]) == 1
     assert results[1][0].entity_type == "LOCATION"
+
+
+def test_predict_batch_results_restored_to_original_order():
+    """Chunks are predicted in length-sorted order but results must map back
+    to the original text positions."""
+    chunker = _SimpleChunker(max_len=100)
+    # Deliberately NOT in length order
+    texts = ["the longest text of them all", "mid text", "tiny"]
+
+    def mock_predict_batch(chunk_texts):
+        # Sorting contract: called shortest-first
+        assert chunk_texts == sorted(chunk_texts, key=len)
+        # One entity per chunk, spanning the whole chunk text
+        return [
+            [RecognizerResult("ENT", 0, len(ct), 0.9)] for ct in chunk_texts
+        ]
+
+    results = chunker.predict_batch_with_chunking(texts, mock_predict_batch)
+
+    assert len(results) == 3
+    # Each result's span length must match its own text, not another's
+    for text, text_results in zip(texts, results):
+        assert len(text_results) == 1
+        assert text_results[0].end == len(text)
 
 
 def test_predict_batch_with_chunking_needed():
@@ -278,11 +308,21 @@ def test_hf_batch_analyze_multiple_texts(hf_recognizer):
     """Verify batch_analyze returns correct results for multiple texts."""
     rec, mock_pipeline = hf_recognizer
 
-    # Mock pipeline to accept list input and return list of list of predictions
-    mock_pipeline.return_value = [
-        [{"entity_group": "PER", "start": 11, "end": 23, "score": 0.95}],
-        [{"entity_group": "LOC", "start": 0, "end": 8, "score": 0.88}],
-    ]
+    # Mock pipeline keyed on input text: chunks arrive length-sorted, so
+    # positional return values would map to the wrong texts.
+    predictions_by_text = {
+        "My name is Taewoong Kim": [
+            {"entity_group": "PER", "start": 11, "end": 23, "score": 0.95}
+        ],
+        "New York is great": [
+            {"entity_group": "LOC", "start": 0, "end": 8, "score": 0.88}
+        ],
+    }
+
+    def pipeline_side_effect(batch_texts, **kwargs):
+        return [predictions_by_text[t] for t in batch_texts]
+
+    mock_pipeline.side_effect = pipeline_side_effect
 
     texts = ["My name is Taewoong Kim", "New York is great"]
     entities = ["PERSON", "LOCATION"]
@@ -402,11 +442,21 @@ def test_gliner_batch_analyze(mock_gliner_for_batch):
 
     mock_gliner = mock_gliner_for_batch
 
-    # Mock inference (batch prediction)
-    mock_gliner.inference.return_value = [
-        [{"label": "person", "start": 11, "end": 19, "score": 0.95}],
-        [{"label": "location", "start": 0, "end": 8, "score": 0.85}],
-    ]
+    # Mock inference keyed on input text: chunks arrive length-sorted, so
+    # positional return values would map to the wrong texts.
+    predictions_by_text = {
+        "My name is John Doe": [
+            {"label": "person", "start": 11, "end": 19, "score": 0.95}
+        ],
+        "New York is great": [
+            {"label": "location", "start": 0, "end": 8, "score": 0.85}
+        ],
+    }
+
+    def inference_side_effect(texts, **kwargs):
+        return [predictions_by_text[t] for t in texts]
+
+    mock_gliner.inference.side_effect = inference_side_effect
 
     entity_mapping = {"person": "PERSON", "location": "LOCATION"}
     rec = GLiNERRecognizer(entity_mapping=entity_mapping)
