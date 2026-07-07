@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 #### Fixed
 - Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
 
+#### Changed
+- Added Python 3.14 package support for `presidio-anonymizer`, `presidio-image-redactor`, `presidio-cli`, `presidio-structured`, and `presidio` by allowing Python `<3.15` and excluding `spacy==3.8.14` on Python 3.14 where applicable (#2096) (Thanks @Copilot)
+
 ## [2.2.363] - 2026-06-28
 ### General
 #### Added
