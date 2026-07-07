@@ -66,7 +66,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         component: 
           - name: 'Analyzer'
             path: 'presidio-analyzer'
@@ -88,37 +88,6 @@ jobs:
             path: 'presidio-structured'
             extras: ''
             spacy-models: ''
-        include:
-          - python-version: '3.14'
-            component:
-              name: 'Analyzer'
-              path: 'presidio-analyzer'
-              extras: '--all-extras'
-              spacy-models: 'en_core_web_lg en_core_web_sm'
-          - python-version: '3.14'
-            component:
-              name: 'Anonymizer'
-              path: 'presidio-anonymizer'
-              extras: ''
-              spacy-models: ''
-          - python-version: '3.14'
-            component:
-              name: 'Image Redactor'
-              path: 'presidio-image-redactor'
-              extras: ''
-              spacy-models: 'en_core_web_lg'
-          - python-version: '3.14'
-            component:
-              name: 'CLI'
-              path: 'presidio-cli'
-              extras: ''
-              spacy-models: ''
-          - python-version: '3.14'
-            component:
-              name: 'Structured'
-              path: 'presidio-structured'
-              extras: ''
-              spacy-models: ''
     env:
       POETRY_CACHE_DIR: /mnt/poetry_cache
       COVERAGE_THRESHOLD: 90
