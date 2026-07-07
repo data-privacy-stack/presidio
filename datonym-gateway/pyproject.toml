@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "datonym-gateway"
+version = "0.1.0"
+description = "DatOnym German prompt anonymization gateway for LLM calls."
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+license = "MIT"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "httpx>=0.27,<1.0",
+    "pydantic>=2.8,<3.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "presidio-analyzer>=2.2.363,<3.0",
+    "presidio-anonymizer>=2.2.363,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["datonym_gateway"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

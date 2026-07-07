@@ -1,0 +1,202 @@
+supported_languages:
+  - de
+default_score_threshold: 0.35
+
+nlp_configuration:
+  nlp_engine_name: spacy
+  models:
+    - lang_code: de
+      model_name: de_core_news_md
+
+  ner_model_configuration:
+    model_to_presidio_entity_mapping:
+      PER: PERSON
+      PERSON: PERSON
+      LOC: LOCATION
+      LOCATION: LOCATION
+      GPE: LOCATION
+      ORG: ORGANIZATION
+      ORGANIZATION: ORGANIZATION
+      DATE: DATE_TIME
+      TIME: DATE_TIME
+      NORP: NRP
+
+    low_confidence_score_multiplier: 0.4
+    low_score_entity_names:
+      - ORGANIZATION
+      - ORG
+    default_score: 0.85
+
+recognizer_registry:
+  global_regex_flags: 26
+  recognizers:
+    - name: SpacyRecognizer
+      supported_languages:
+        - de
+      type: predefined
+
+    - name: CreditCardRecognizer
+      supported_languages:
+        - language: de
+          context:
+            - kreditkarte
+            - kartennummer
+            - visa
+            - mastercard
+            - amex
+            - maestro
+      type: predefined
+
+    - name: DateRecognizer
+      supported_languages:
+        - language: de
+          context:
+            - datum
+            - geburtsdatum
+            - geboren
+            - termin
+            - frist
+            - uhrzeit
+      type: predefined
+
+    - name: EmailRecognizer
+      supported_languages:
+        - language: de
+          context:
+            - email
+            - e-mail
+            - mail
+            - mailadresse
+            - kontakt
+      type: predefined
+
+    - name: IbanRecognizer
+      supported_languages:
+        - language: de
+          context:
+            - iban
+            - konto
+            - kontonummer
+            - bankverbindung
+            - ueberweisung
+            - lastschrift
+      type: predefined
+
+    - name: IpRecognizer
+      supported_languages:
+        - language: de
+          context:
+            - ip
+            - ip-adresse
+            - ipv4
+            - ipv6
+            - server
+      type: predefined
+
+    - name: PhoneRecognizer
+      supported_languages:
+        - language: de
+          context:
+            - telefon
+            - telefonnummer
+            - rufnummer
+            - handy
+            - mobil
+            - durchwahl
+            - fax
+            - anruf
+      supported_regions:
+        - DE
+        - AT
+        - CH
+        - LU
+      type: predefined
+
+    - name: UrlRecognizer
+      supported_languages:
+        - language: de
+          context:
+            - url
+            - website
+            - webseite
+            - link
+            - domain
+      type: predefined
+
+    - name: DeTaxIdRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeTaxNumberRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DePassportRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeIdCardRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeSocialSecurityRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeHealthInsuranceRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeKfzRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeHandelsregisterRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DePlzRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeLanrRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeBsnrRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeVatIdRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
+
+    - name: DeFuehrerscheinRecognizer
+      supported_languages:
+        - de
+      type: predefined
+      country_code: de
