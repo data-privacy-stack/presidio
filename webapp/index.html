@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>datOnym</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>datOnym</h1>
+        <p>Prompt-Anonymisierung im Browser</p>
+      </div>
+      <div class="status" id="status">Bereit</div>
+    </header>
+
+    <main class="shell">
+      <section class="pane input-pane">
+        <div class="pane-header">
+          <label for="promptInput">Prompt</label>
+          <button type="button" class="ghost" id="sampleButton">Beispiel</button>
+        </div>
+        <textarea id="promptInput" spellcheck="false"></textarea>
+        <div class="button-row">
+          <button type="button" id="anonymizeButton">Anonymisieren</button>
+          <button type="button" class="ghost" id="clearButton">Leeren</button>
+        </div>
+      </section>
+
+      <section class="pane output-pane">
+        <div class="pane-header">
+          <label for="anonymizedOutput">Anonymisierter Prompt</label>
+          <button type="button" class="ghost" id="copyPromptButton">Kopieren</button>
+        </div>
+        <textarea id="anonymizedOutput" readonly spellcheck="false"></textarea>
+        <div
+          class="drag-card"
+          id="promptDragHandle"
+          draggable="true"
+          tabindex="0"
+          role="button"
+          aria-label="Anonymisierten Prompt ziehen"
+        >
+          Prompt ziehen
+        </div>
+      </section>
+
+      <section class="pane mapping-pane">
+        <div class="pane-header">
+          <h2>Mapping</h2>
+          <span id="mappingCount">0 Tokens</span>
+        </div>
+        <div class="mapping-list empty" id="mappingList">Keine Tokens</div>
+      </section>
+
+      <section class="pane detector-pane">
+        <div class="pane-header">
+          <h2>Erkennung</h2>
+          <span id="entityCount">0 Treffer</span>
+        </div>
+        <div class="entity-list empty" id="entityList">Keine Treffer</div>
+      </section>
+
+      <section class="pane response-pane">
+        <div class="pane-header">
+          <label for="llmResponseInput">LLM-Antwort</label>
+          <button type="button" class="ghost" id="pasteDemoButton">Demo-Antwort</button>
+        </div>
+        <textarea id="llmResponseInput" spellcheck="false"></textarea>
+        <div class="drop-zone" id="responseDropZone">Antwort hier ablegen</div>
+        <div class="button-row">
+          <button type="button" id="personalizeButton">Personalisieren</button>
+        </div>
+      </section>
+
+      <section class="pane personalized-pane">
+        <div class="pane-header">
+          <label for="personalizedOutput">Personalisierte Antwort</label>
+          <button type="button" class="ghost" id="copyResponseButton">Kopieren</button>
+        </div>
+        <textarea id="personalizedOutput" readonly spellcheck="false"></textarea>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

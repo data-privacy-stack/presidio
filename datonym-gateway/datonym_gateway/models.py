@@ -51,6 +51,30 @@ class AnonymizeResponse(BaseModel):
     token_count: int
 
 
+class DemoAnonymizeRequest(BaseModel):
+    """Local demo anonymization request."""
+
+    text: str = Field(min_length=0)
+    language: str | None = None
+
+
+class DemoMappingEntry(BaseModel):
+    """Request-local token mapping shown only in the demo UI."""
+
+    entity_type: str
+    token: str
+    original: str
+
+
+class DemoAnonymizeResponse(BaseModel):
+    """Local demo response with visible mapping values."""
+
+    text: str
+    restored_text: str
+    entities: list[EntityFinding]
+    mapping: list[DemoMappingEntry]
+
+
 class HealthResponse(BaseModel):
     """Health check response."""
 

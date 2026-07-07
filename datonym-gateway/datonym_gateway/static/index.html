@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DatOnym Demo</title>
+    <link rel="stylesheet" href="/demo/assets/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>DatOnym</h1>
+        <p>Lokale Testansicht</p>
+      </div>
+      <div id="status" class="status">Bereit</div>
+    </header>
+
+    <main class="layout">
+      <section class="workspace">
+        <div class="field-header">
+          <label for="sourceText">Eingabetext</label>
+          <button id="sampleButton" type="button">Beispiel</button>
+        </div>
+        <textarea id="sourceText" spellcheck="false"></textarea>
+        <div class="actions">
+          <button id="anonymizeButton" type="button">Anonymisieren</button>
+          <button id="clearButton" class="secondary" type="button">Leeren</button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="field-header">
+          <label for="anonymizedText">Anonymisierter Text</label>
+          <button id="copyButton" class="secondary" type="button">Kopieren</button>
+        </div>
+        <textarea id="anonymizedText" readonly spellcheck="false"></textarea>
+      </section>
+
+      <section class="panel mapping-panel">
+        <div class="panel-title">Mapping</div>
+        <div id="mappingList" class="mapping-list empty">Keine Tokens</div>
+      </section>
+
+      <section class="panel entity-panel">
+        <div class="panel-title">Erkannte Entitäten</div>
+        <div id="entityList" class="entity-list empty">Keine Treffer</div>
+      </section>
+
+      <section class="workspace restore-panel">
+        <div class="field-header">
+          <label for="responseText">Antwort mit Tokens</label>
+          <button id="restoreButton" class="secondary" type="button">Zurücksetzen</button>
+        </div>
+        <textarea id="responseText" spellcheck="false"></textarea>
+      </section>
+
+      <section class="workspace restore-panel">
+        <div class="field-header">
+          <label for="restoredText">Zurückgesetzte Antwort</label>
+        </div>
+        <textarea id="restoredText" readonly spellcheck="false"></textarea>
+      </section>
+    </main>
+
+    <script src="/demo/assets/app.js"></script>
+  </body>
+</html>

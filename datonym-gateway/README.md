@@ -12,6 +12,8 @@ The MVP supports text-only chat completion requests:
 - `POST /v1/chat/completions`
 - `POST /v1/anonymize`
 - `GET /healthz`
+- `GET /demo`
+- `POST /demo/anonymize`
 
 Streaming, tool calls, images, files, structured data, and persistent mapping
 storage are intentionally out of scope for the first version.
@@ -36,8 +38,13 @@ $env:LLM_MODEL_DEFAULT = "gpt-4.1-mini"
 .\.venv\Scripts\python -m uvicorn datonym_gateway.app:app --app-dir .\datonym-gateway --host 127.0.0.1 --port 8080
 ```
 
+Open the local test app at http://127.0.0.1:8080/demo.
+
 ## Privacy Defaults
 
 Original values are kept only in memory for the duration of a request. The
 gateway does not persist mappings and does not include original values in logs
 or error responses.
+
+The demo endpoint intentionally returns original values so the local UI can show
+the request mapping. Keep `/demo` for local inspection only.
