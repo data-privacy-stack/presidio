@@ -7,7 +7,6 @@ const entityList = document.querySelector("#entityList");
 const mappingCount = document.querySelector("#mappingCount");
 const entityCount = document.querySelector("#entityCount");
 const statusEl = document.querySelector("#status");
-const promptDragHandle = document.querySelector("#promptDragHandle");
 const responseDropZone = document.querySelector("#responseDropZone");
 
 let currentMapping = [];
@@ -413,8 +412,8 @@ function runAnonymize() {
     currentMapping = result.mapping;
     currentEntities = result.entities;
     anonymizedOutput.value = result.text;
-    llmResponseInput.value = result.text;
-    personalizedOutput.value = personalizeText(result.text);
+    llmResponseInput.value = "";
+    personalizedOutput.value = "";
     renderMapping(currentMapping);
     renderEntities(currentEntities);
     setStatus(`${currentMapping.length} Tokens`);
@@ -454,15 +453,6 @@ document.querySelector("#copyPromptButton").addEventListener("click", () => {
 });
 document.querySelector("#copyResponseButton").addEventListener("click", () => {
   copyText(personalizedOutput.value, "Antwort kopiert");
-});
-document.querySelector("#pasteDemoButton").addEventListener("click", () => {
-  llmResponseInput.value =
-    "Gerne. Ich formuliere eine Antwort an #DATONYM_PERSON_0001# von #DATONYM_ORGANIZATION_0001#.";
-});
-
-promptDragHandle.addEventListener("dragstart", (event) => {
-  event.dataTransfer.effectAllowed = "copy";
-  event.dataTransfer.setData("text/plain", anonymizedOutput.value);
 });
 
 responseDropZone.addEventListener("dragover", (event) => {

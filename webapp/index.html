@@ -34,16 +34,6 @@
           <button type="button" class="ghost" id="copyPromptButton">Kopieren</button>
         </div>
         <textarea id="anonymizedOutput" readonly spellcheck="false"></textarea>
-        <div
-          class="drag-card"
-          id="promptDragHandle"
-          draggable="true"
-          tabindex="0"
-          role="button"
-          aria-label="Anonymisierten Prompt ziehen"
-        >
-          Prompt ziehen
-        </div>
       </section>
 
       <section class="pane mapping-pane">
@@ -65,7 +55,6 @@
       <section class="pane response-pane">
         <div class="pane-header">
           <label for="llmResponseInput">LLM-Antwort</label>
-          <button type="button" class="ghost" id="pasteDemoButton">Demo-Antwort</button>
         </div>
         <textarea id="llmResponseInput" spellcheck="false"></textarea>
         <div class="drop-zone" id="responseDropZone">Antwort hier ablegen</div>

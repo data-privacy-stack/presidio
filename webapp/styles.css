@@ -149,8 +149,7 @@ textarea:focus {
   margin-top: 12px;
 }
 
-button,
-.drag-card {
+button {
   min-height: 38px;
   border: 1px solid var(--accent);
   border-radius: 8px;
@@ -162,13 +161,11 @@ button,
   cursor: pointer;
 }
 
-button:hover,
-.drag-card:hover {
+button:hover {
   background: var(--accent-dark);
 }
 
-button:focus-visible,
-.drag-card:focus-visible {
+button:focus-visible {
   outline: 3px solid rgba(15, 107, 99, 0.25);
   outline-offset: 2px;
 }
@@ -184,7 +181,6 @@ button.ghost:hover {
   color: var(--accent-dark);
 }
 
-.drag-card,
 .drop-zone {
   display: flex;
   align-items: center;
