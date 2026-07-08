@@ -82,7 +82,7 @@ const recognizers = [
   {
     entityType: "PERSON",
     pattern:
-      /\b(?:Herr|Frau|Dr\.|Prof\.|Name ist|ich bin|an)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b/gu,
+      /\b(?:Herr|Herrn|Frau|Dr\.|Prof\.|Name\s*:|Name ist|ich bin)[ \t]+([A-ZÄÖÜ][a-zäöüß]+(?:[ \t]+[A-ZÄÖÜ][a-zäöüß]+){1,2})\b/gu,
     useGroup: 1,
   },
   {
