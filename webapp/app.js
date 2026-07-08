@@ -8,6 +8,8 @@ const mappingCount = document.querySelector("#mappingCount");
 const entityCount = document.querySelector("#entityCount");
 const statusEl = document.querySelector("#status");
 const versionLabel = document.querySelector("#versionLabel");
+const footerEntityCount = document.querySelector("#footerEntityCount");
+const anonymizationRate = document.querySelector("#anonymizationRate");
 const responseDropZone = document.querySelector("#responseDropZone");
 
 let currentMapping = [];
@@ -414,6 +416,16 @@ function renderEntities(entities) {
     .join("");
 }
 
+function updateStats(sourceText, entities) {
+  footerEntityCount.textContent = String(entities.length);
+  const detectedChars = entities.reduce(
+    (total, entity) => total + Math.max(0, entity.end - entity.start),
+    0,
+  );
+  const rate = sourceText.length ? Math.round((detectedChars / sourceText.length) * 100) : 0;
+  anonymizationRate.textContent = `${Math.min(rate, 100)}%`;
+}
+
 function runAnonymize() {
   try {
     const result = anonymizeText(promptInput.value);
@@ -424,6 +436,7 @@ function runAnonymize() {
     personalizedOutput.value = "";
     renderMapping(currentMapping);
     renderEntities(currentEntities);
+    updateStats(promptInput.value, currentEntities);
     setStatus(`${currentMapping.length} Tokens`);
   } catch (error) {
     setStatus(error.message, true);
@@ -439,6 +452,7 @@ function clearAll() {
   currentEntities = [];
   renderMapping([]);
   renderEntities([]);
+  updateStats("", []);
   setStatus("Bereit");
 }
 
@@ -485,3 +499,4 @@ promptInput.value = samplePrompt;
 initializeAppInfo();
 renderMapping([]);
 renderEntities([]);
+updateStats("", []);

@@ -8,20 +8,31 @@
   </head>
   <body>
     <header class="app-header">
-      <div>
-        <div class="brand-line">
-          <h1>datOnym</h1>
-          <span class="version" id="versionLabel">Version 0.5</span>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <div class="shield-person"></div>
         </div>
-        <p>Prompt-Anonymisierung im Browser</p>
+        <div>
+          <div class="brand-line">
+            <h1>Dat<span>o</span>nym</h1>
+            <span class="version" id="versionLabel">Version 0.5</span>
+          </div>
+          <p>Daten sicher anonymisiert</p>
+        </div>
       </div>
-      <div class="status" id="status">Bereit</div>
+      <div class="app-badges">
+        <div class="trust-pill">On-Premise · DSGVO</div>
+        <div class="status" id="status">Bereit</div>
+      </div>
     </header>
 
     <main class="shell">
       <section class="pane input-pane">
         <div class="pane-header">
-          <label for="promptInput">Prompt</label>
+          <div>
+            <label for="promptInput">Eingang</label>
+            <p class="pane-note">Originaltext vor der Anonymisierung</p>
+          </div>
           <button type="button" class="ghost" id="sampleButton">Beispiel</button>
         </div>
         <textarea id="promptInput" spellcheck="false"></textarea>
@@ -33,7 +44,10 @@
 
       <section class="pane output-pane">
         <div class="pane-header">
-          <label for="anonymizedOutput">Anonymisierter Prompt</label>
+          <div>
+            <label for="anonymizedOutput">Anonymisiert</label>
+            <p class="pane-note">Tokenisierte Fassung fuer den LLM-Chat</p>
+          </div>
           <button type="button" class="ghost" id="copyPromptButton">Kopieren</button>
         </div>
         <textarea id="anonymizedOutput" readonly spellcheck="false"></textarea>
@@ -41,7 +55,10 @@
 
       <section class="pane mapping-pane">
         <div class="pane-header">
-          <h2>Mapping</h2>
+          <div>
+            <h2>Mapping</h2>
+            <p class="pane-note">Gruene Tokens ersetzen erkannte Daten</p>
+          </div>
           <span id="mappingCount">0 Tokens</span>
         </div>
         <div class="mapping-list empty" id="mappingList">Keine Tokens</div>
@@ -49,7 +66,10 @@
 
       <section class="pane detector-pane">
         <div class="pane-header">
-          <h2>Erkennung</h2>
+          <div>
+            <h2>Erkennung</h2>
+            <p class="pane-note">Rohdaten vor der Anonymisierung</p>
+          </div>
           <span id="entityCount">0 Treffer</span>
         </div>
         <div class="entity-list empty" id="entityList">Keine Treffer</div>
@@ -57,7 +77,10 @@
 
       <section class="pane response-pane">
         <div class="pane-header">
-          <label for="llmResponseInput">LLM-Antwort</label>
+          <div>
+            <label for="llmResponseInput">LLM-Antwort</label>
+            <p class="pane-note">Antwort mit DatOnym-Tokens einfuegen</p>
+          </div>
         </div>
         <textarea id="llmResponseInput" spellcheck="false"></textarea>
         <div class="drop-zone" id="responseDropZone">Antwort hier ablegen</div>
@@ -68,10 +91,28 @@
 
       <section class="pane personalized-pane">
         <div class="pane-header">
-          <label for="personalizedOutput">Personalisierte Antwort</label>
+          <div>
+            <label for="personalizedOutput">Personalisiert</label>
+            <p class="pane-note">Bekannte Tokens werden lokal ersetzt</p>
+          </div>
           <button type="button" class="ghost" id="copyResponseButton">Kopieren</button>
         </div>
         <textarea id="personalizedOutput" readonly spellcheck="false"></textarea>
+      </section>
+
+      <section class="stats-bar" aria-label="Datonym Statistik">
+        <div>
+          <strong id="footerEntityCount">0</strong>
+          <span>erkannte Entitaeten</span>
+        </div>
+        <div>
+          <strong id="anonymizationRate">0%</strong>
+          <span>Anonymisierungsquote</span>
+        </div>
+        <div>
+          <strong>0</strong>
+          <span>Daten verlassen das System</span>
+        </div>
       </section>
     </main>
 
