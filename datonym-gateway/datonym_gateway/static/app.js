@@ -14,9 +14,14 @@ const copyButton = document.querySelector("#copyButton");
 let currentMapping = [];
 
 const sample = [
-  "Hallo, ich bin Max Mustermann von der DatOnym GmbH in Berlin.",
-  "Bitte schreibe an max.mustermann@example.de oder rufe +49 30 1234567 an.",
-  "Meine IBAN ist DE89370400440532013000 und meine Steuer-ID ist 12 345 678 901.",
+  "Bitte erstelle mir eine eMail an Herrn Peter Mustermann.",
+  "Ich möchte seine Persönlichen Daten mit Ihm abgleichen",
+  "",
+  "Name: Peter Mustermann",
+  "Geburtstag: 12.12.2012",
+  "IBAN: DE999999000099990000",
+  "Telefonnummer: 0777/889988",
+  "Ihre IP-Adresse Lautet: 172.172.8.1",
 ].join("\n");
 
 function setStatus(text, isError = false) {

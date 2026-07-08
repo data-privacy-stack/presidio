@@ -13,13 +13,14 @@ let currentMapping = [];
 let currentEntities = [];
 
 const samplePrompt = [
-  "UVZ-Nr. 14-23 / 2025-sr",
-  "Am ersten August 2025 sind vor mir Dr. Maria Sommer, Notarin in Krumbach (Schwaben),",
-  "in meinen Amtsraeumen in 86381 Krumbach, Nassauer Strasse 8 gleichzeitig anwesend:",
-  "1. Herr Max Mustermann, geboren am 01.08.1975,",
-  "wohnhaft in 86473 Ziemetshausen-Hellersberg,",
-  "Kapellenstrasse 2,",
-  "E-Mail: max.mustermann@example.de, Telefon: +49 30 1234567.",
+  "Bitte erstelle mir eine eMail an Herrn Peter Mustermann.",
+  "Ich möchte seine Persönlichen Daten mit Ihm abgleichen",
+  "",
+  "Name: Peter Mustermann",
+  "Geburtstag: 12.12.2012",
+  "IBAN: DE999999000099990000",
+  "Telefonnummer: 0777/889988",
+  "Ihre IP-Adresse Lautet: 172.172.8.1",
 ].join("\n");
 
 const TOKEN_PATTERN = /#DATONYM_([A-Z0-9_]+)_(\d{4})#/gu;
