@@ -371,21 +371,21 @@ Name: #DATONYM_PERSON_0001#
 Erkannte Beispiele:
 
 ```text
-86381 Krumbach, Nassauer Strasse 8
+12345 Musterstadt, Beispielstrasse 1
 ```
 
 und mehrzeilig:
 
 ```text
-86473 Ziemetshausen-Hellersberg,
-Kapellenstrasse 2
+54321 Beispielort-Musterteil,
+Musterweg 2
 ```
 
 Ebenfalls beruecksichtigt:
 
-- Ortsnamen mit Klammerzusatz, z. B. `Krumbach (Schwaben)`
+- Ortsnamen mit Klammerzusatz, z. B. `Musterstadt (Region)`
 - Ortsteile mit Bindestrich
-- Schreibweisen wie `Pfaffenhofen a. d. Roth-Roth`
+- Schreibweisen wie `Musterort a. d. Beispiel`
 
 ### Bereits vorhandene DatOnym-Tokens
 
@@ -590,4 +590,3 @@ Aktive Pages-Konfiguration:
 | UI | Presidio-Demos/Dokus | DatOnym Testwebapp und lokale Demo |
 | LLM-Flow | nicht als zentrales Gateway im Core | OpenAI-kompatibles `/v1/chat/completions` Gateway |
 | Oeffentliche Demo | nicht vorhanden | GitHub Pages Webapp |
-

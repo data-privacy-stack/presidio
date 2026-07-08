@@ -95,7 +95,7 @@ const recognizers = [
   {
     entityType: "LOCATION",
     pattern:
-      /\b(?:Berlin|Hamburg|Muenchen|München|Koeln|Köln|Frankfurt|Stuttgart|Duesseldorf|Düsseldorf|Dortmund|Essen|Leipzig|Bremen|Dresden|Hannover|Nuernberg|Nürnberg|Wien|Zuerich|Zürich|Basel|Bern|Luxemburg|Krumbach|Ziemetshausen-Hellersberg|Pfaffenhofen a\. d\. Roth-Roth)\b/gu,
+      /\b(?:Berlin|Hamburg|Muenchen|München|Koeln|Köln|Frankfurt|Stuttgart|Duesseldorf|Düsseldorf|Dortmund|Essen|Leipzig|Bremen|Dresden|Hannover|Nuernberg|Nürnberg|Wien|Zuerich|Zürich|Basel|Bern|Luxemburg)\b/gu,
   },
   {
     entityType: "DE_PLZ_LOCATION",
