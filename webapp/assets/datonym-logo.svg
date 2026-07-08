@@ -1,0 +1,17 @@
+<svg width="620" height="180" viewBox="0 0 620 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .wm { font-family: Archivo, Arial, sans-serif; font-size: 74px; font-weight: 800; }
+      .tag { font-family: Archivo, Arial, sans-serif; font-size: 22px; font-weight: 600; letter-spacing: 0; }
+    </style>
+  </defs>
+  
+  <g transform="translate(20,28)">
+    <path d="M50 4 L90 19 V54 C90 83 71 102 50 111 C29 102 10 83 10 54 V19 Z" fill="#0F2D4A"></path>
+    <circle cx="50" cy="46" r="14" fill="none" stroke="#3FBF9C" stroke-width="8"></circle>
+    <rect x="46" y="58" width="8" height="26" rx="4" fill="#3FBF9C"></rect>
+  </g>
+  
+  <text x="150" y="92" class="wm" fill="#0F2D4A">Dat<tspan fill="#2A7DE1">o</tspan>nym</text>
+  <text x="152" y="128" class="tag" fill="#6B7B8D">DATEN SICHER ANONYMISIERT</text>
+</svg>

@@ -56,40 +56,20 @@ body {
   min-width: 0;
 }
 
-.brand-mark {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 50px;
-  flex: 0 0 auto;
-  border: 2px solid rgba(255, 255, 255, 0.92);
-  border-radius: 16px 16px 22px 22px;
-}
-
-.brand-mark::before {
-  content: "";
-  position: absolute;
-  top: 9px;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--success);
-}
-
-.shield-person {
-  width: 22px;
-  height: 10px;
-  margin-top: 18px;
-  border-radius: 999px 999px 8px 8px;
-  background: var(--success);
-}
-
-.brand-line {
+.brand-logo-panel {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 10px;
+  align-items: center;
+  width: min(300px, 58vw);
+  min-height: 64px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+}
+
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 h1,
@@ -105,8 +85,13 @@ h1 {
   letter-spacing: 0;
 }
 
-h1 span {
-  color: var(--signal);
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .version {
@@ -431,6 +416,17 @@ button.ghost:hover {
     align-items: flex-start;
     flex-direction: column;
     padding: 16px;
+  }
+
+  .brand {
+    align-items: flex-start;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .brand-logo-panel {
+    width: 100%;
+    max-width: 340px;
   }
 
   .status {
