@@ -8,14 +8,12 @@ const mappingCount = document.querySelector("#mappingCount");
 const entityCount = document.querySelector("#entityCount");
 const statusEl = document.querySelector("#status");
 const versionLabel = document.querySelector("#versionLabel");
-const pageViewCount = document.querySelector("#pageViewCount");
 const responseDropZone = document.querySelector("#responseDropZone");
 
 let currentMapping = [];
 let currentEntities = [];
 
 const APP_VERSION = "0.5";
-const PAGE_VIEW_KEY = "datonym.pageViews";
 
 const samplePrompt = [
   "Bitte erstelle mir eine eMail an Herrn Peter Mustermann.",
@@ -112,14 +110,6 @@ function setStatus(text, isError = false) {
 
 function initializeAppInfo() {
   versionLabel.textContent = `Version ${APP_VERSION}`;
-
-  try {
-    const views = Number.parseInt(localStorage.getItem(PAGE_VIEW_KEY) || "0", 10) + 1;
-    localStorage.setItem(PAGE_VIEW_KEY, String(views));
-    pageViewCount.textContent = `Aufrufe: ${views}`;
-  } catch (_error) {
-    pageViewCount.textContent = "Aufrufe: lokal nicht verfügbar";
-  }
 }
 
 function escapeHtml(value) {

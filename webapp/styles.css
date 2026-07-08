@@ -89,26 +89,6 @@ p {
   font-size: 14px;
 }
 
-.header-meta {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.counter {
-  min-width: 116px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 12px;
-  color: var(--muted);
-  background: #fbfcfe;
-  font-size: 14px;
-  font-weight: 700;
-  text-align: center;
-}
-
 .status {
   min-width: 116px;
   max-width: 260px;
@@ -322,8 +302,6 @@ button.ghost:hover {
     padding: 16px;
   }
 
-  .header-meta,
-  .counter,
   .status {
     width: 100%;
   }
