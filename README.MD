@@ -1,3 +1,14 @@
+# DatOnym Fork Note
+
+This fork extends Presidio with a German prompt anonymization gateway and a
+static browser test app. See
+[`docs/datonym-aenderungen.md`](docs/datonym-aenderungen.md) for the detailed
+change documentation against the original Presidio project.
+
+Public test app: https://thomas-lauer.github.io/DatOnym/
+
+---
+
 # Presidio - Data Protection and De-identification SDK
 ## :mega: Presidio is moving to a new home! [Read more here](docs/project_transition.md) :mega:
 **Context aware, pluggable and customizable PII de-identification service for text and images.**
