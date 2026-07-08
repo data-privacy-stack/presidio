@@ -9,10 +9,16 @@
   <body>
     <header class="app-header">
       <div>
-        <h1>datOnym</h1>
+        <div class="brand-line">
+          <h1>datOnym</h1>
+          <span class="version" id="versionLabel">Version 0.5</span>
+        </div>
         <p>Prompt-Anonymisierung im Browser</p>
       </div>
-      <div class="status" id="status">Bereit</div>
+      <div class="header-meta">
+        <div class="counter" id="pageViewCount">Aufrufe: 0</div>
+        <div class="status" id="status">Bereit</div>
+      </div>
     </header>
 
     <main class="shell">
@@ -71,6 +77,17 @@
         <textarea id="personalizedOutput" readonly spellcheck="false"></textarea>
       </section>
     </main>
+
+    <footer class="app-footer">
+      <div>
+        Diese Webseite speichert keine eingegebenen Prompt-, Antwort- oder
+        Mappingdaten.
+      </div>
+      <div>
+        Verantwortlich:
+        <a href="https://www.lauer.io" rel="noreferrer" target="_blank">www.lauer.io</a>
+      </div>
+    </footer>
 
     <script src="./app.js"></script>
   </body>

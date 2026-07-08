@@ -47,6 +47,13 @@ body {
   background: var(--surface);
 }
 
+.brand-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 h1,
 h2,
 p {
@@ -57,6 +64,16 @@ h1 {
   font-size: 28px;
   line-height: 1.1;
   font-weight: 780;
+}
+
+.version {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  color: var(--accent-dark);
+  background: var(--surface-muted);
+  font-size: 13px;
+  font-weight: 760;
 }
 
 h2,
@@ -70,6 +87,26 @@ p {
   margin-top: 4px;
   color: var(--muted);
   font-size: 14px;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.counter {
+  min-width: 116px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--muted);
+  background: #fbfcfe;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .status {
@@ -255,15 +292,51 @@ button.ghost:hover {
   min-height: 180px;
 }
 
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+  padding: 0 28px 28px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.app-footer a {
+  color: var(--accent-dark);
+  font-weight: 760;
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 900px) {
   .app-header {
     align-items: flex-start;
+    flex-direction: column;
     padding: 16px;
+  }
+
+  .header-meta,
+  .counter,
+  .status {
+    width: 100%;
   }
 
   .shell {
     grid-template-columns: 1fr;
     padding: 16px;
+  }
+
+  .app-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0 16px 24px;
   }
 
   .mapping-row,
