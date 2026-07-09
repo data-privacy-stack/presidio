@@ -38,6 +38,8 @@ class ConfigurationValidator:
 
         :param threshold: score threshold to validate.
         """
+        if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+            raise ValueError(f"Score threshold must be numeric, got: {threshold}")
         if not 0.0 <= threshold <= 1.0:
             raise ValueError(
                 f"Score threshold must be between 0.0 and 1.0, got: {threshold}"
@@ -221,8 +223,8 @@ class ConfigurationValidator:
         if "recognizer_score_thresholds" in config:
             config["recognizer_score_thresholds"] = (
                 ConfigurationValidator.validate_recognizer_score_thresholds(
-                config["recognizer_score_thresholds"]
-            )
+                    config["recognizer_score_thresholds"]
+                )
             )
 
         # Validate nested configurations

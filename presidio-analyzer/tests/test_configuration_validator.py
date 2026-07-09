@@ -106,6 +106,14 @@ def test_validate_score_threshold_way_above():
     assert "must be between 0.0 and 1.0" in str(exc_info.value)
 
 
+@pytest.mark.parametrize("threshold", [True, False, "0.5", None, [], {}])
+def test_validate_score_threshold_non_numeric(threshold):
+    """Test score threshold rejects booleans and non-numeric values."""
+    with pytest.raises(ValueError) as exc_info:
+        ConfigurationValidator.validate_score_threshold(threshold)
+    assert "must be numeric" in str(exc_info.value)
+
+
 # ========== NLP Configuration Validation Tests ==========
 
 def test_configuration_validator_nlp_config_valid():
@@ -442,6 +450,20 @@ def test_configuration_validator_analyzer_config_invalid_threshold():
         ConfigurationValidator.validate_analyzer_configuration(invalid_config)
 
     assert "must be between 0.0 and 1.0" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("threshold", [True, "0.5"])
+def test_configuration_validator_analyzer_config_non_numeric_threshold(threshold):
+    """Test ConfigurationValidator rejects non-numeric score thresholds."""
+    invalid_config = {
+        "supported_languages": ["en"],
+        "default_score_threshold": threshold,
+    }
+
+    with pytest.raises(ValueError) as exc_info:
+        ConfigurationValidator.validate_analyzer_configuration(invalid_config)
+
+    assert "must be numeric" in str(exc_info.value)
 
 
 def test_analyzer_config_not_dict():
