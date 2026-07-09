@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### Analyzer
+#### Fixed
+- `BasicLangExtractRecognizer` now honours values under `langextract.model.provider.language_model_params` (including `timeout` and `num_ctx`). Previously these were silently dropped because `langextract.extract()` ignores its `language_model_params` argument when a pre-built `ModelConfig` is passed via `config=`, causing Ollama-backed recognizers to fall back to langextract's 120s default regardless of the configured timeout. The recognizer now merges `language_model_params` into `ModelConfig.provider_kwargs`, which is the path that reaches the provider constructor. Explicit entries under `provider.kwargs:` still take precedence. Also fixed a `TypeError` when `kwargs:` or `language_model_params:` is `null` in the YAML. (#1943, Thanks @lsternlicht)
+
 ### Anonymizer
 ### General
 #### Fixed
