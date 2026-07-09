@@ -6,6 +6,41 @@
 {% endblock %}
 
 {% block analytics %}
+<!-- Microsoft Clarity with Consent Mode -->
+<script type="text/javascript">
+    (function () {
+        // Determine the current consent state before loading Clarity
+        var storedConsent = null;
+        try {
+            storedConsent = window.localStorage && window.localStorage.getItem("clarity_consent");
+        } catch (e) {
+            // If localStorage is unavailable (e.g., privacy mode), fall back to denied
+            storedConsent = null;
+        }
+
+        // Default to "denied" when there is no prior explicit "granted" choice
+        var defaultConsent = storedConsent === "granted" ? "granted" : "denied";
+
+        (function (c, l, a, r, i, t, y) {
+            c[a] = c[a] || function () {
+                (c[a].q = c[a].q || []).push(arguments);
+            };
+
+            // Set consentv2 state before loading the Clarity script so it honors consent immediately
+            c[a]("consentv2", {
+                ad_Storage: defaultConsent,
+                analytics_Storage: defaultConsent
+            });
+
+            t = l.createElement(r);
+            t.async = 1;
+            t.src = "https://www.clarity.ms/tag/" + i;
+            y = l.getElementsByTagName(r)[0];
+            y.parentNode.insertBefore(t, y);
+        })(window, document, "clarity", "script", "5pd40fk720");
+    })();
+</script>
+
 <!-- Cookie consent banner -->
 <style>
     #cookie-consent-banner {
@@ -57,68 +92,7 @@
 </style>
 <script type="text/javascript">
     (function() {
-        var CONSENT_KEY = "clarity_consent";
-        var CLARITY_PROJECT_ID = "5pd40fk720";
-
-        function getStoredConsent() {
-            try {
-                var value = window.localStorage && window.localStorage.getItem(CONSENT_KEY);
-                return value === "granted" || value === "denied" ? value : null;
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function setStoredConsent(value) {
-            try {
-                if (window.localStorage) {
-                    window.localStorage.setItem(CONSENT_KEY, value);
-                }
-            } catch (e) {}
-        }
-
-        function deleteCookie(name) {
-            document.cookie = name + "=; Max-Age=0; path=/";
-            document.cookie = name + "=; Max-Age=0; path=/; domain=" + window.location.hostname;
-        }
-
-        function clearClarityCookies() {
-            deleteCookie("_clck");
-            deleteCookie("_clsk");
-        }
-
-        function loadClarity() {
-            window.clarity = window.clarity || function() {
-                (window.clarity.q = window.clarity.q || []).push(arguments);
-            };
-
-            window.clarity("consentv2", {
-                ad_Storage: "granted",
-                analytics_Storage: "granted"
-            });
-
-            if (window.__clarityScriptLoaded) {
-                return;
-            }
-            window.__clarityScriptLoaded = true;
-
-            var script = document.createElement("script");
-            script.async = true;
-            script.src = "https://www.clarity.ms/tag/" + CLARITY_PROJECT_ID;
-            var firstScript = document.getElementsByTagName("script")[0];
-            firstScript.parentNode.insertBefore(script, firstScript);
-        }
-
-        var storedConsent = getStoredConsent();
-        if (storedConsent === "granted") {
-            loadClarity();
-            return;
-        }
-
-        if (storedConsent === "denied") {
-            clearClarityCookies();
-            return;
-        }
+        if (localStorage.getItem("clarity_consent")) return;
 
         var banner = document.createElement("div");
         banner.id = "cookie-consent-banner";
@@ -137,14 +111,20 @@
             document.body.appendChild(banner);
 
             document.getElementById("cookie-consent-accept").addEventListener("click", function() {
-                setStoredConsent("granted");
-                loadClarity();
+                localStorage.setItem("clarity_consent", "granted");
+                window.clarity("consentv2", {
+                    ad_Storage: "granted",
+                    analytics_Storage: "granted"
+                });
                 banner.remove();
             });
 
             document.getElementById("cookie-consent-decline").addEventListener("click", function() {
-                setStoredConsent("denied");
-                clearClarityCookies();
+                localStorage.setItem("clarity_consent", "denied");
+                window.clarity("consentv2", {
+                    ad_Storage: "denied",
+                    analytics_Storage: "denied"
+                });
                 banner.remove();
             });
         });
