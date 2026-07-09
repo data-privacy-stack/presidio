@@ -71,7 +71,7 @@
     "variables": {
         "AzureBlobStorage_connectionString": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('AzureBlobStorage_accountName'), ';EndpointSuffix=core.windows.net')]",
         "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]",
-        "Dataset_url": "https://raw.githubusercontent.com/microsoft/presidio-research/master/tests/data/generated_large.txt",
+        "Dataset_url": "https://raw.githubusercontent.com/data-privacy-stack/presidio-research/master/tests/data/generated_large.txt",
         "Analyzer_url": "[concat('https://', parameters('Analyzer_appName'), '.azurewebsites.net/analyze')]",
         "Anonymizer_url": "[concat('https://', parameters('Anonymizer_appName'), '.azurewebsites.net/anonymize')]",
         "AzureKeyVault_baseUrl": "[concat('https://', parameters('AzureKeyVault_name'), '.vault.azure.net/')]"
@@ -84,7 +84,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/microsoft/presidio/main/docs/samples/deployments/app-service/presidio-services.json",
+                    "uri": "https://raw.githubusercontent.com/data-privacy-stack/presidio/main/docs/samples/deployments/app-service/presidio-services.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {

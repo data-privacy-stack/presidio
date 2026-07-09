@@ -30,6 +30,14 @@ def entities():
         ("4567890123459", 1, ((0, 13),), ((0.5, 1.0),),),
         ("5678901234560", 1, ((0, 13),), ((0.5, 1.0),),),
 
+        # Regression: valid TNINs whose province code (N2N3) is 22, 52 or 58.
+        # These are real, assigned provinces (Chanthaburi/Lampang/Mae Hong Son)
+        # and are NOT in the forbidden list, but an over-narrow regex class
+        # ([25][0134567]) dropped N3=2 and N3=8, rejecting them.
+        ("1220000000007", 1, ((0, 13),), ((0.5, 1.0),),),  # province 22
+        ("1520000000004", 1, ((0, 13),), ((0.5, 1.0),),),  # province 52
+        ("1580000000004", 1, ((0, 13),), ((0.5, 1.0),),),  # province 58
+
         # Valid TNINs in sentences
         ("My Thai ID is 1234567890121", 1, ((14, 27),), ((0.5, 1.0),),),
         ("TNIN: 2345678901234", 1, ((6, 19),), ((0.5, 1.0),),),

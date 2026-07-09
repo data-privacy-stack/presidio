@@ -4,9 +4,9 @@ requires = ["poetry-core"]
 
 [project]
 name = "presidio-image-redactor"
-version = "0.0.58"
+version = "0.0.59"
 description = "Presidio image redactor package"
-authors = [{name = "Presidio", email = "presidio@microsoft.com"}]
+authors = [{name = "Presidio", email = "presidio@dataprivacystack.org"}]
 license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 keywords = ["presidio_image_redactor"]
-urls = {Homepage = "https://github.com/Microsoft/presidio"}
+urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 

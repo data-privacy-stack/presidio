@@ -1,2 +1,2 @@
 # Package dependencies and version changes should be approved by a member of 'presidio-administrators' team
-**/pyproject.toml @microsoft/presidio-administrators
+**/pyproject.toml @data-privacy-stack/presidio-administrators

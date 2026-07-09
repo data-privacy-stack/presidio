@@ -48,7 +48,7 @@ recognizer_registry:
     # - If only a recognizer name is provided, a predefined recognizer with this name and default parameters will be loaded.
     # - If a parameter isn't provided, the default one would be loaded.
     # For custom:
-    # - See an example configuration here: https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/example_recognizers.yaml
+    # - See an example configuration here: https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/example_recognizers.yaml
     # - Custom pattern recognizers with this configuration can be added to this file, with type: custom
     #  For recognizers supporting more than one language, an instance of the recognizer for each language will be created.
     # For example, see the CreditCardRecognizer definition below:

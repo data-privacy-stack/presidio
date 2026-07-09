@@ -1,4 +1,4 @@
-"""A Python CLI for analyzing PII Entities with Microsoft Presidio framework."""
+"""A Python CLI for analyzing PII Entities with the Presidio framework."""
 
 import importlib.metadata
 
