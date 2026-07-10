@@ -36,6 +36,9 @@ recognizers:
     - language: it
     - language: pl
     type: predefined
+    # score_thresholds:
+    #   default: 0.4
+    #   CREDIT_CARD: 0.7
 
   - name: UsBankRecognizer
     supported_languages: 

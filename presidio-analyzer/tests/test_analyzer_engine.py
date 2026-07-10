@@ -62,7 +62,7 @@ def unit_test_guid():
 class ThresholdRecognizer(EntityRecognizer, ABC):
     """Static recognizer used to exercise score threshold precedence."""
 
-    def __init__(self):
+    def __init__(self, score_thresholds=None, name="ThresholdRecognizer"):
         """Seed fixed results for threshold precedence assertions."""
         self._results = [
             RecognizerResult("PERSON", 0, 4, 0.55),
@@ -72,7 +72,8 @@ class ThresholdRecognizer(EntityRecognizer, ABC):
         ]
         super().__init__(
             supported_entities=["PERSON", "CREDIT_CARD", "URL", "DATE_TIME"],
-            name="ThresholdRecognizer",
+            name=name,
+            score_thresholds=score_thresholds,
         )
 
     def load(self):
@@ -117,9 +118,13 @@ class FallbackRecognizer(EntityRecognizer, ABC):
 class DuplicateThresholdRecognizer(EntityRecognizer, ABC):
     """Recognizer that emits a duplicate span for threshold ordering tests."""
 
-    def __init__(self, name):
+    def __init__(self, name, score_thresholds):
         """Use the recognizer name as the threshold lookup key."""
-        super().__init__(supported_entities=["PERSON"], name=name)
+        super().__init__(
+            supported_entities=["PERSON"],
+            name=name,
+            score_thresholds=score_thresholds,
+        )
 
     def load(self):
         """Keep the test recognizer lightweight."""
@@ -130,18 +135,44 @@ class DuplicateThresholdRecognizer(EntityRecognizer, ABC):
         return [RecognizerResult("PERSON", 0, 4, 0.5)]
 
 
-def _build_threshold_analyzer(
-    recognizer_score_thresholds=None, default_score_threshold=0.8
-):
+class ContextThresholdRecognizer(DuplicateThresholdRecognizer):
+    """Recognizer which raises its result score during context enhancement."""
+
+    def enhance_using_context(self, *args, **kwargs):
+        """Raise the score above the configured cutoff."""
+        results = kwargs["raw_recognizer_results"]
+        results[0].score = 0.8
+        return results
+
+
+class MissingIdentifierRecognizer(DuplicateThresholdRecognizer):
+    """Recognizer which replaces producer metadata during context enhancement."""
+
+    def __init__(self, identifier):
+        """Choose whether the final producer identifier is missing or unmatched."""
+        self.identifier = identifier
+        super().__init__("MissingIdentifierRecognizer", {"PERSON": 0.1})
+
+    def enhance_using_context(self, *args, **kwargs):
+        """Replace the identifier after recognizer execution."""
+        results = kwargs["raw_recognizer_results"]
+        results[0].recognition_metadata = (
+            {}
+            if self.identifier is None
+            else {RecognizerResult.RECOGNIZER_IDENTIFIER_KEY: self.identifier}
+        )
+        return results
+
+
+def _build_threshold_analyzer(score_thresholds=None, default_score_threshold=0.8):
     """Create an analyzer with deterministic recognizers for threshold tests."""
     registry = RecognizerRegistry()
-    registry.add_recognizer(ThresholdRecognizer())
+    registry.add_recognizer(ThresholdRecognizer(score_thresholds))
     registry.add_recognizer(FallbackRecognizer())
     return AnalyzerEngine(
         registry=registry,
         nlp_engine=NlpEngineMock(),
         default_score_threshold=default_score_threshold,
-        recognizer_score_thresholds=recognizer_score_thresholds,
     )
 
 
@@ -649,13 +680,7 @@ def test_when_default_threshold_is_zero_then_all_results_pass(
 def test_recognizer_threshold_precedence():
     """Recognizer-specific and entity-specific thresholds should win."""
     analyzer_engine = _build_threshold_analyzer(
-        recognizer_score_thresholds={
-            "ThresholdRecognizer": {
-                "default": 0.4,
-                "PERSON": 0.6,
-                "CREDIT_CARD": 0.7,
-            }
-        }
+        {"default": 0.4, "PERSON": 0.6, "CREDIT_CARD": 0.7}
     )
 
     results = analyzer_engine.analyze(
@@ -672,13 +697,7 @@ def test_recognizer_threshold_precedence():
 def test_explicit_score_threshold_overrides_config():
     """A request-level score threshold should override config thresholds."""
     analyzer_engine = _build_threshold_analyzer(
-        recognizer_score_thresholds={
-            "ThresholdRecognizer": {
-                "default": 0.4,
-                "PERSON": 0.6,
-                "CREDIT_CARD": 0.7,
-            }
-        }
+        {"default": 0.4, "PERSON": 0.6, "CREDIT_CARD": 0.7}
     )
 
     results = analyzer_engine.analyze(
@@ -693,84 +712,18 @@ def test_explicit_score_threshold_overrides_config():
     assert scores == {"DATE_TIME": 0.9}
 
 
-def test_numeric_threshold_shorthand_applies():
-    """Numeric shorthand should behave like a recognizer default threshold."""
-    class NumericThresholdRecognizer(EntityRecognizer, ABC):
-        """Recognizer with a single score below the global default."""
-
-        def __init__(self):
-            """Set up the recognizer metadata for threshold lookup."""
-            super().__init__(
-                supported_entities=["URL"],
-                name="NumericThresholdRecognizer",
-            )
-
-        def load(self):
-            """Keep the test recognizer lightweight."""
-            return None
-
-        def analyze(
-            self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts
-        ):
-            """Return a single deterministic result."""
-            return [RecognizerResult("URL", 0, 8, 0.75)]
-
-    registry = RecognizerRegistry()
-    registry.add_recognizer(NumericThresholdRecognizer())
-
-    analyzer_engine = AnalyzerEngine(
-        registry=registry,
-        nlp_engine=NlpEngineMock(),
-        default_score_threshold=0.8,
-        recognizer_score_thresholds={"NumericThresholdRecognizer": 0.4},
-    )
-
-    results = analyzer_engine.analyze(
-        text="bing.com",
-        language="en",
-        entities=["URL"],
-    )
-
-    assert len(results) == 1
-    assert results[0].entity_type == "URL"
-
-
-def test_direct_threshold_config_rejects_boolean_values():
-    """Direct constructor config should reject boolean threshold values."""
-    with pytest.raises(ValueError, match="values must be numeric"):
-        _build_threshold_analyzer(
-            recognizer_score_thresholds={"ThresholdRecognizer": {"PERSON": True}}
-        )
-
-
-def test_direct_threshold_config_rejects_out_of_range_values():
-    """Direct constructor config should reject out-of-range threshold values."""
-    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
-        _build_threshold_analyzer(
-            recognizer_score_thresholds={"ThresholdRecognizer": {"PERSON": 1.5}}
-        )
-
-
-def test_direct_threshold_config_rejects_non_dict_top_level_values():
-    """Direct constructor config should reject non-dictionary threshold payloads."""
-    with pytest.raises(ValueError, match="must be a dictionary"):
-        _build_threshold_analyzer(recognizer_score_thresholds=0.4)
-
-
 def test_duplicate_results_keep_recognizers_that_meet_their_thresholds():
     """Threshold filtering should run before duplicate collapse."""
     registry = RecognizerRegistry()
-    registry.add_recognizer(DuplicateThresholdRecognizer("StrictRecognizer"))
-    registry.add_recognizer(DuplicateThresholdRecognizer("LenientRecognizer"))
+    strict = DuplicateThresholdRecognizer("SameRecognizer", {"PERSON": 0.9})
+    lenient = DuplicateThresholdRecognizer("SameRecognizer", {"PERSON": 0.4})
+    registry.add_recognizer(strict)
+    registry.add_recognizer(lenient)
 
     analyzer_engine = AnalyzerEngine(
         registry=registry,
         nlp_engine=NlpEngineMock(),
         default_score_threshold=0.0,
-        recognizer_score_thresholds={
-            "StrictRecognizer": {"PERSON": 0.9},
-            "LenientRecognizer": {"PERSON": 0.4},
-        },
     )
 
     results = analyzer_engine.analyze(
@@ -780,15 +733,15 @@ def test_duplicate_results_keep_recognizers_that_meet_their_thresholds():
     )
 
     assert len(results) == 1
-    assert (
-        results[0].recognition_metadata[RecognizerResult.RECOGNIZER_NAME_KEY]
-        == "LenientRecognizer"
-    )
+    assert strict.id != lenient.id
+    assert results[0].recognition_metadata[
+        RecognizerResult.RECOGNIZER_IDENTIFIER_KEY
+    ] == lenient.id
 
 
 def test_empty_recognizer_thresholds_use_default():
     """An empty threshold map should keep the global default behavior."""
-    analyzer_engine = _build_threshold_analyzer(recognizer_score_thresholds={})
+    analyzer_engine = _build_threshold_analyzer(score_thresholds={})
 
     results = analyzer_engine.analyze(
         text="Threshold config",
@@ -799,6 +752,62 @@ def test_empty_recognizer_thresholds_use_default():
     scores = {result.entity_type: result.score for result in results}
 
     assert scores == {"DATE_TIME": 0.9}
+
+
+def test_context_enhancement_runs_before_recognizer_threshold_filtering():
+    """A context-enhanced score should be compared with the final score."""
+    registry = RecognizerRegistry()
+    registry.add_recognizer(
+        ContextThresholdRecognizer("ContextThresholdRecognizer", {"PERSON": 0.7})
+    )
+    analyzer = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NlpEngineMock(),
+        default_score_threshold=0.9,
+    )
+
+    results = analyzer.analyze("John", "en", entities=["PERSON"])
+
+    assert [result.score for result in results] == [0.8]
+
+
+@pytest.mark.parametrize("identifier", [None, "not-a-selected-recognizer"])
+def test_missing_or_unmatched_recognizer_identifier_uses_engine_default(identifier):
+    """Unknown producer provenance should use the engine fallback."""
+    registry = RecognizerRegistry()
+    registry.add_recognizer(MissingIdentifierRecognizer(identifier))
+    analyzer = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NlpEngineMock(),
+        default_score_threshold=0.8,
+    )
+
+    assert analyzer.analyze("John", "en", entities=["PERSON"]) == []
+
+
+def test_ad_hoc_recognizer_uses_its_score_thresholds():
+    """Request-local recognizers should participate in identifier lookup."""
+    ad_hoc = PatternRecognizer(
+        supported_entity="ROCKET",
+        patterns=[Pattern("rocket", "rocket", 0.5)],
+    )
+    ad_hoc.score_thresholds = {"default": 0.4}
+    registry = RecognizerRegistry()
+    registry.add_recognizer(FallbackRecognizer())
+    analyzer = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NlpEngineMock(),
+        default_score_threshold=0.8,
+    )
+
+    results = analyzer.analyze(
+        "rocket",
+        "en",
+        entities=["ROCKET"],
+        ad_hoc_recognizers=[ad_hoc],
+    )
+
+    assert [result.entity_type for result in results] == ["ROCKET"]
 
 
 def test_when_get_supported_fields_then_return_all_languages(

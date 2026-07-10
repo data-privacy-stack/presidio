@@ -20,6 +20,7 @@ from typing import (
 import yaml
 
 from presidio_analyzer import EntityRecognizer, PatternRecognizer
+from presidio_analyzer.score_thresholds import normalize_score_thresholds
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -393,9 +394,13 @@ class RecognizerListLoader:
             "supported_languages",
             "class_name",
             "country_code",
+            "score_thresholds",
         }
-        custom_to_exclude = {"enabled", "type", "class_name"}
+        custom_to_exclude = {"enabled", "type", "class_name", "score_thresholds"}
         for recognizer_conf in predefined:
+            score_thresholds = normalize_score_thresholds(
+                recognizer_conf.get("score_thresholds")
+            )
             for language_conf in RecognizerListLoader._get_recognizer_languages(
                 recognizer_conf=recognizer_conf, supported_languages=supported_languages
             ):
@@ -421,19 +426,25 @@ class RecognizerListLoader:
                         new_conf, language_conf, recognizer_cls
                     )
 
-                    recognizer_instances.append(recognizer_cls(**kwargs))
+                    recognizer = recognizer_cls(**kwargs)
+                    recognizer.score_thresholds = score_thresholds
+                    recognizer_instances.append(recognizer)
 
         for recognizer_conf in custom:
             if RecognizerListLoader.is_recognizer_enabled(recognizer_conf):
+                score_thresholds = normalize_score_thresholds(
+                    recognizer_conf.get("score_thresholds")
+                )
                 new_conf = RecognizerListLoader._filter_recognizer_fields(
                     recognizer_conf, to_exclude=custom_to_exclude
                 )
-                recognizer_instances.extend(
-                    RecognizerListLoader._create_custom_recognizers(
-                        recognizer_conf=new_conf,
-                        supported_languages=supported_languages,
-                    )
+                custom_recognizers = RecognizerListLoader._create_custom_recognizers(
+                    recognizer_conf=new_conf,
+                    supported_languages=supported_languages,
                 )
+                for recognizer in custom_recognizers:
+                    recognizer.score_thresholds = score_thresholds
+                recognizer_instances.extend(custom_recognizers)
 
         for recognizer_conf in recognizer_instances:
             if isinstance(recognizer_conf, PatternRecognizer):

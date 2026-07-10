@@ -39,16 +39,8 @@ supported_languages:
   - en
   - es
 default_score_threshold: 0.4
-recognizer_score_thresholds:
-  CreditCardRecognizer:
-    default: 0.4
-    CREDIT_CARD: 0.7
-  SpacyRecognizer:
-    PERSON: 0.6
 """
 ```
-
-Use this when a recognizer needs a lower or higher cutoff than the global `default_score_threshold`, with entity-specific overrides taking priority over the recognizer default.
 
 ### Recognizer Registry parameters
 
@@ -71,6 +63,9 @@ recognizer_registry:
     - language: es
       context: [tarjeta, credito, visa, mastercard, cc, amex, discover, jcb, diners, maestro, instapayment]
     type: predefined
+    score_thresholds:
+      default: 0.4
+      CREDIT_CARD: 0.7
     
   - name: DateRecognizer
     supported_languages:
@@ -126,6 +121,8 @@ recognizer_registry:
       - Profesora
 """
 ```
+
+Each recognizer can set a `default` cutoff and entity-specific overrides in `score_thresholds`. An explicit request threshold takes priority, followed by an entity override, the recognizer default, and the analyzer's `default_score_threshold`.
 
 ### NLP Engine parameters
 

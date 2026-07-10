@@ -1,12 +1,6 @@
 supported_languages: 
   - en
 default_score_threshold: 0
-# recognizer_score_thresholds:
-#   CreditCardRecognizer:
-#     default: 0.4
-#     CREDIT_CARD: 0.7
-#   SpacyRecognizer:
-#     PERSON: 0.6
 nlp_configuration:
   nlp_engine_name: spacy
   models:
@@ -63,6 +57,9 @@ recognizer_registry:
       - language: en
         context: [credit, card, visa, mastercard, cc, amex, discover, jcb, diners, maestro, instapayment]
       type: predefined
+      # score_thresholds:
+      #   default: 0.4
+      #   CREDIT_CARD: 0.7
 
     - name: UsBankRecognizer
       type: predefined

@@ -1,5 +1,5 @@
 """Tests for the Pydantic-based validation system using existing adapted classes."""
-# ruff: noqa: E501
+# ruff: noqa: D103,E501
 
 import pytest
 from presidio_analyzer.input_validation import ConfigurationValidator
@@ -326,88 +326,58 @@ def test_configuration_validator_analyzer_config_valid():
     assert validated == valid_config
 
 
-def test_configuration_validator_analyzer_config_valid_with_recognizer_score_thresholds():
-    """Validator should accept numeric shorthand and nested overrides."""
+def test_analyzer_config_rejects_removed_recognizer_score_thresholds_key():
+    with pytest.raises(ValueError, match="Unknown configuration key"):
+        ConfigurationValidator.validate_analyzer_configuration(
+            {
+                "supported_languages": ["en"],
+                "recognizer_score_thresholds": {"CreditCardRecognizer": 0.4},
+            }
+        )
+
+
+def test_registry_config_preserves_valid_score_thresholds():
     valid_config = {
         "supported_languages": ["en"],
-        "default_score_threshold": 0.5,
-        "recognizer_score_thresholds": {
-            "CreditCardRecognizer": 0.4,
-            "SpacyRecognizer": {
-                "PERSON": 0.6,
-            },
-        },
+        "recognizers": [
+            {
+                "name": "CreditCardRecognizer",
+                "type": "predefined",
+                "score_thresholds": {"default": 0.4, "CREDIT_CARD": 0.7},
+            }
+        ],
     }
 
-    validated = ConfigurationValidator.validate_analyzer_configuration(valid_config)
-    assert validated == {
-        "supported_languages": ["en"],
-        "default_score_threshold": 0.5,
-        "recognizer_score_thresholds": {
-            "CreditCardRecognizer": {"default": 0.4},
-            "SpacyRecognizer": {"PERSON": 0.6},
-        },
+    validated = ConfigurationValidator.validate_recognizer_registry_configuration(
+        valid_config
+    )
+
+    assert validated["recognizers"][0]["score_thresholds"] == {
+        "default": 0.4,
+        "CREDIT_CARD": 0.7,
     }
 
 
 @pytest.mark.parametrize(
-    "invalid_config,expected_message",
-    [
-        (
-            {
-                "supported_languages": ["en"],
-                "recognizer_score_thresholds": {
-                    123: {"default": 0.4},
-                },
-            },
-            "non-empty strings",
-        ),
-        (
-            {
-                "supported_languages": ["en"],
-                "recognizer_score_thresholds": {
-                    "CreditCardRecognizer": ["default", 0.4],
-                },
-            },
-            "recognizer_score_thresholds",
-        ),
-        (
-            {
-                "supported_languages": ["en"],
-                "recognizer_score_thresholds": {
-                    "CreditCardRecognizer": {"": 0.4},
-                },
-            },
-            "nested keys must be non-empty strings",
-        ),
-        (
-            {
-                "supported_languages": ["en"],
-                "recognizer_score_thresholds": {
-                    "CreditCardRecognizer": {"default": 1.5},
-                },
-            },
-            "recognizer_score_thresholds",
-        ),
-        (
-            {
-                "supported_languages": ["en"],
-                "recognizer_score_thresholds": {
-                    "CreditCardRecognizer": {"default": True},
-                },
-            },
-            "values must be numeric",
-        ),
-    ],
+    "score_thresholds",
+    [False, 0, "", [], {"default": True}, {"default": "0.4"}],
 )
-def test_configuration_validator_analyzer_config_invalid_recognizer_score_thresholds(
-    invalid_config, expected_message
+def test_registry_config_rejects_uncoerced_invalid_score_thresholds(
+    score_thresholds,
 ):
-    """Validator should reject malformed threshold overrides."""
-    with pytest.raises(ValueError) as exc_info:
-        ConfigurationValidator.validate_analyzer_configuration(invalid_config)
+    config = {
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "name": "CreditCardRecognizer",
+                "type": "predefined",
+                "score_thresholds": score_thresholds,
+            }
+        ],
+    }
 
-    assert expected_message in str(exc_info.value)
+    with pytest.raises(ValueError):
+        ConfigurationValidator.validate_recognizer_registry_configuration(config)
 
 
 def test_analyzer_config_minimal():
