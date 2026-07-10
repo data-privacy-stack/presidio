@@ -120,8 +120,7 @@ class PandasDataProcessor(DataProcessorBase):
 
         for key, operator_callable in key_to_operator_mapping.items():
             self.logger.debug(f"Operating on column {key}")
-            for index in data.index:
-                text_to_operate_on = data.at[index, key]
+            for index, text_to_operate_on in data[key].items():
                 operated_text = self._operate_on_text(
                     text_to_operate_on, operator_callable
                 )

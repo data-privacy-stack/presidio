@@ -27,9 +27,9 @@ class TestPandasDataProcessor:
 
     def test_process_column_name_not_an_identifier(self, operators):
         # Column names holding PII are often not valid Python identifiers
-        # ("Full Name", "e-mail", ...). itertuples renames those to positional
-        # fields, so a name-based getattr lookup skips them and the PII is left
-        # in place.
+        # ("Full Name", "e-mail", ...). itertuples renamed those to positional
+        # fields, so the name-based getattr lookup raised AttributeError,
+        # aborting the run with any later PII columns left unredacted.
         processor = PandasDataProcessor()
         df = DataFrame(
             {
