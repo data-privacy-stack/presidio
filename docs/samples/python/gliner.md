@@ -75,6 +75,35 @@ results = analyzer_engine.analyze(
 print(results)
 ```
 
+## Scoping Labels per Recognizer
+
+By default, requested Presidio entities not covered by `entity_mapping` are also
+sent to GLiNER as labels. When using multiple GLiNER recognizers with different
+mappings or thresholds, set `include_requested_entities_as_labels` to `false` so
+each recognizer sends only its configured labels to the model. In a unified
+analyzer configuration, set the option on each recognizer that should be
+restricted:
+
+```yaml
+recognizer_registry:
+  recognizers:
+    - name: OrganizationGLiNER
+      class_name: GLiNERRecognizer
+      type: predefined
+      entity_mapping:
+        organization: ORGANIZATION
+      threshold: 0.8
+      include_requested_entities_as_labels: false
+
+    - name: AddressGLiNER
+      class_name: GLiNERRecognizer
+      type: predefined
+      entity_mapping:
+        address: ADDRESS
+      threshold: 0.65
+      include_requested_entities_as_labels: false
+```
+
 ## ONNX Runtime Support
 
 GLiNERRecognizer supports using ONNX Runtime as a backend, which provides better CPU compatibility and can prevent crashes on older CPUs without AVX2 instruction set support (e.g., Intel Sandy Bridge).
@@ -101,4 +130,3 @@ gliner_recognizer = GLiNERRecognizer(
 - Can provide better performance on certain CPU architectures
 
 **Note:** Make sure `onnxruntime` is installed when using this feature. It's included in the `gliner` extra dependencies.
-

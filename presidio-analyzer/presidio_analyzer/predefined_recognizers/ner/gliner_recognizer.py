@@ -42,6 +42,7 @@ class GLiNERRecognizer(LocalRecognizer):
         text_chunker: Optional[BaseTextChunker] = None,
         load_onnx_model: bool = False,
         onnx_model_file: str = "model.onnx",
+        include_requested_entities_as_labels: bool = True,
         **model_kwargs,
     ):
         """GLiNER model based entity recognizer.
@@ -73,6 +74,10 @@ class GLiNERRecognizer(LocalRecognizer):
             Only used when load_onnx_model is True. This is passed directly to
             GLiNER.from_pretrained(). GLiNER looks for this file in the model
             directory (downloaded or cached model path). Default is "model.onnx".
+        :param include_requested_entities_as_labels: Whether requested Presidio
+            entities not covered by entity_mapping should be added as ad-hoc GLiNER
+            labels. Defaults to True to preserve existing behavior. If False, only
+            configured GLiNER labels are sent to the model.
         :param model_kwargs: Additional keyword arguments to pass to
             GLiNER.from_pretrained(). This allows passing future parameters
             to the GLiNER model without explicit support in this recognizer.
@@ -114,6 +119,7 @@ class GLiNERRecognizer(LocalRecognizer):
         self.flat_ner = flat_ner
         self.multi_label = multi_label
         self.threshold = threshold
+        self.include_requested_entities_as_labels = include_requested_entities_as_labels
         self.load_onnx_model = load_onnx_model
         self.onnx_model_file = onnx_model_file
         self.model_kwargs = model_kwargs
@@ -167,7 +173,6 @@ class GLiNERRecognizer(LocalRecognizer):
         :param nlp_artifacts: N/A for this recognizer
         """
 
-        # combine the input labels as this model allows for ad-hoc labels
         labels = self.__create_input_labels(entities)
 
         # Process text with automatic chunking
@@ -216,9 +221,12 @@ class GLiNERRecognizer(LocalRecognizer):
 
         return predictions
 
-    def __create_input_labels(self, entities):
-        """Append the entities requested by the user to the list of labels if it's not there."""  # noqa: E501
+    def __create_input_labels(self, entities: List[str]) -> List[str]:
+        """Build model labels from the mapping and, when enabled, the request."""
         labels = list(self.gliner_labels)
+        if not self.include_requested_entities_as_labels:
+            return labels
+
         for entity in entities:
             if (
                 entity not in self.model_to_presidio_entity_mapping.values()

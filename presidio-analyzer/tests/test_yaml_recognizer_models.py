@@ -301,6 +301,7 @@ def test_configuration_validator_uses_recognizer_specific_dump_rules():
     assert gliner_recognizer["model_name"] == "custom/gliner-model"
     assert "threshold" not in gliner_recognizer
     assert "flat_ner" not in gliner_recognizer
+    assert "include_requested_entities_as_labels" not in gliner_recognizer
     assert "entity_mapping" not in gliner_recognizer
     assert predefined_recognizer["name"] == "CreditCardRecognizer"
     assert predefined_recognizer["supported_language"] is None
@@ -757,6 +758,7 @@ def test_gliner_recognizer_config_model_name():
                 "threshold": 0.5,
                 "flat_ner": False,
                 "multi_label": True,
+                "include_requested_entities_as_labels": False,
             }
         ]
     }
@@ -769,6 +771,7 @@ def test_gliner_recognizer_config_model_name():
     assert recognizer.threshold == 0.5
     assert recognizer.flat_ner is False
     assert recognizer.multi_label is True
+    assert recognizer.include_requested_entities_as_labels is False
 
 
 def test_gliner_recognizer_config_model_dump_excludes_none():
@@ -788,6 +791,7 @@ def test_gliner_recognizer_config_model_dump_excludes_none():
     # Fields not provided should be excluded, not set to None
     assert "flat_ner" not in dumped
     assert "threshold" not in dumped
+    assert "include_requested_entities_as_labels" not in dumped
     assert "entity_mapping" not in dumped
 
 
