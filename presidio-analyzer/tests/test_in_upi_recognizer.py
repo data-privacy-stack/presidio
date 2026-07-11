@@ -22,13 +22,17 @@ def entities():
         ("9876543210@paytm", 1, (0, 16), 0.7),
         ("john.doe@okhdfcbank", 1, (0, 19), 0.7),
         ("user123@ybl", 1, (0, 11), 0.7),
+        # Invalid UPI IDs
+        ("notaupiid", 0, (), ()),
+        ("@okicici", 0, (), ()),
+        ("john.doe@gmail.com", 0, (), ()),
+        ("admin@localhost", 0, (), ()),
+        ("user@company.com", 0, (), ()),
 
         # Valid UPI IDs with unknown handles (Medium confidence)
         ("myname@somebank", 1, (0, 15), 0.4),
 
-        # Invalid UPI IDs
-        ("notaupiid", 0, (), ()),
-        ("@okicici", 0, (), ()),
+        
 
         # UPI in sentence
         ("Please pay to shaurya@okicici for the order", 1, (14, 29), 0.7),
@@ -44,7 +48,6 @@ def test_when_upi_in_text_then_all_upis_found(
     entities,
 ):
     results = recognizer.analyze(text, entities)
-    print(results)
     assert len(results) == expected_len
     if results:
         assert_result(
