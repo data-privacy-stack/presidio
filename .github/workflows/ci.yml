@@ -132,9 +132,10 @@ jobs:
           # optional-dependencies tree. `uv sync` builds the project's .venv;
           # subsequent steps run inside it via `uv run --no-sync`. Test tooling
           # from the Poetry dev group is installed explicitly since uv does not
-          # read it.
+          # read it, plus `pip` because spaCy's model download shells out to
+          # `python -m pip install` and uv venvs ship without pip.
           uv sync ${{ matrix.component.extras }} --python ${{ matrix.python-version }}
-          uv pip install pytest pytest-cov pytest-mock diff-cover python-dotenv
+          uv pip install pip pytest pytest-cov pytest-mock diff-cover python-dotenv
 
       - name: Install presidio-analyzer for Image Redactor
         if: matrix.component.name == 'Image Redactor'
