@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Anonymizer
 ### General
 #### Fixed
+- Switched the test CI jobs from Poetry to [uv](https://github.com/astral-sh/uv) for dependency installation, and added a job-level `timeout-minutes` safety net. Poetry's lockless universal resolve backtracked for many minutes (effectively hanging) on the analyzer's large `--all-extras` / `optional-dependencies` graph; uv resolves and installs the same set in seconds. No package metadata changed — only the CI install tooling.
 - Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
 
 ## [2.2.363] - 2026-06-28
