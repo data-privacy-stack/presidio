@@ -597,8 +597,8 @@ uv run pytest -xvv  # Stop on first failure with verbose output
 uv run pytest tests/test_us_ssn_recognizer.py -k "test_valid"  # Specific test
 
 # Lint
-ruff check .  # From repo root
-ruff format .  # Auto-format
+uv run ruff check .
+uv run ruff format .
 ```
 
 > **Dependency changes:** whenever you edit a package's `pyproject.toml`
