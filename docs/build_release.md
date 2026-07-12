@@ -1,75 +1,61 @@
 # Build and release process
 
-Presidio leverages Azure DevOps YAML pipelines to validate, build, release and deliver presidio.
-The pipelines make use of [templates](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=azure-devops)
-for code reuse using [YAML Schema](https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema?view=azure-devops&tabs=schema).
+Presidio uses GitHub Actions workflows to validate, build, release, and deliver official artifacts.
 
-## Description
+## Workflows
 
-The following pipelines are provided and maintained as part of presidio development process:
+The following workflows are maintained as part of the Presidio development process:
 
--   [PR Validation](https://github.com/microsoft/presidio/blob/main/azure-pipelines.yml) - used to validate pull requests.
-    -   Linting
-    -   Security and compliance analysis
-    -   Unit tests
-    -   E2E tests
--   [CI](https://github.com/microsoft/presidio/blob/main/azure-pipelines-ci.yml) - triggered on merge to main branch.
-    -   Linting
-    -   Security and compliance analysis
-    -   Unit tests
-    -   E2E tests
-    -   deploys the artifacts to an internal dev environment.
--   [Release](https://github.com/microsoft/presidio/blob/main/azure-pipelines.yml) - manually triggered.
-    -   releases presidio official artifacts
-        -   pypi
-        -   Microsoft container registry (and docker hub)
-        -   GitHub
-    -   updates the official demo environment.
+- [CI](https://github.com/data-privacy-stack/presidio/blob/main/.github/workflows/ci.yml) - triggered for pull requests and merges to the main branch.
+    - Linting
+    - Dependency review
+    - Unit tests
+    - Package builds
+    - Container builds and E2E tests
+- [Release](https://github.com/data-privacy-stack/presidio/blob/main/.github/workflows/release.yml) - manually triggered for official releases.
+    - Publishes Python packages to [PyPI](https://pypi.org/search/?q=presidio)
+    - Publishes container images to [GitHub Container Registry](https://github.com/orgs/data-privacy-stack/packages)
+    - Creates a draft GitHub release
 
-### Variables used by the pipelines
+## Container image publishing
 
-#### CI Pipeline
+Official Presidio container images are now published to GitHub Container Registry (GHCR) under the Data Privacy Stack organization:
 
--   **_ACR_AZURE_SUBSCRIPTION_** - Service connection to Azure subscription where Azure Container Registry is.
--   **_ACR_REGISTRY_NAME_** - Name of Azure Container Registry.
--   **_ANALYZER_DEV_APP_NAME_** - Name of existing App Service for Analyzer (development environment).
--   **_ANONYMIZER_DEV_APP_NAME_** - Name of existing App Service for Anonymizer (development environment).
--   **_IMAGE_REDACTOR_DEV_APP_NAME_** - Name of existing App Service for Image Redactor (development environment).
--   **_DEV_AZURE_SUBSCRIPTION_** - Service connection to Azure subscription where App Services are (development environment).
--   **_DEV_RESOURCE_GROUP_NAME_** - Name of resource group where App Services are (development environment).
+- [`ghcr.io/data-privacy-stack/presidio-analyzer`](https://github.com/orgs/data-privacy-stack/packages/container/package/presidio-analyzer)
+- [`ghcr.io/data-privacy-stack/presidio-anonymizer`](https://github.com/orgs/data-privacy-stack/packages/container/package/presidio-anonymizer)
+- [`ghcr.io/data-privacy-stack/presidio-image-redactor`](https://github.com/orgs/data-privacy-stack/packages/container/package/presidio-image-redactor)
 
-#### Release Pipeline
+The legacy Microsoft Container Registry images at `mcr.microsoft.com/presidio-*` are no longer updated. Existing MCR tags can still be pulled for older deployments, but users should update image references to GHCR before upgrading. For example:
 
--   **_ACR_AZURE_SUBSCRIPTION_** - Service connection to Azure subscription where Azure Container Registry is.
--   **_ACR_REGISTRY_NAME_** - Name of Azure Container Registry.
--   **_ANALYZER_PROD_APP_NAME_** - Name of existing App Service for Analyzer (production environment).
--   **_ANONYMIZER_PROD_APP_NAME_** - Name of existing App Service for Anonymizer (production environment).
--   **_PROD_AZURE_SUBSCRIPTION_** - Service connection to Azure subscription where App Services are (production environment).
--   **_PROD_RESOURCE_GROUP_NAME_** - Name of resource group where App Services are (production environment).
+```sh
+docker pull ghcr.io/data-privacy-stack/presidio-analyzer:latest
+```
 
-### Import a pipeline to Azure Devops
+For production deployments, avoid relying on the moving `latest` tag. Pin the release tag shown on the relevant [GitHub Packages page](https://github.com/orgs/data-privacy-stack/packages), for example:
 
--   Sign in to your Azure DevOps organization and navigate to your project.
--   In your project, navigate to the Pipelines page. Then choose the action to create a new pipeline.
--   Walk through the steps of the wizard by first selecting 'Use the classic editor, and select GitHub as the location of your source code.
--   You might be redirected to GitHub to sign in. If so, enter your GitHub credentials.
--   When the list of repositories appears, select presidio repository.
--   Point Azure Pipelines to the relevant yaml definition you'd like to import.
-    Set the pipeline's name, the required triggers and variables and Select Save and run.
--   A new run is started. Wait for the run to finish.
+```sh
+docker pull ghcr.io/data-privacy-stack/presidio-analyzer:<release-version>
+```
 
-### PyPI Publishing with OIDC
+If an existing deployment uses `mcr.microsoft.com/presidio-analyzer:latest`, treat it as a legacy reference and replace it with either `ghcr.io/data-privacy-stack/presidio-analyzer:latest` for quick testing or a pinned GHCR release tag for production.
 
-The GitHub Actions release workflow uses OIDC (OpenID Connect) trusted publishing to PyPI, which provides enhanced security by eliminating the need to manage PyPI API tokens. This requires:
+Docker registries do not provide a portable way to redirect `docker pull mcr.microsoft.com/presidio-analyzer:latest` to GHCR or show a deprecation warning during `docker pull`. To reduce confusion, each GitHub release includes the GHCR image names, the GHCR images include OCI metadata labels pointing to the source repository, package page, and installation guide, and the MCR tags are documented as legacy references.
 
-1. **PyPI Configuration**: Each package (presidio_analyzer, presidio_anonymizer, etc.) must be configured on PyPI to trust the GitHub repository and workflow.
-2. **GitHub Workflow**: The workflow uses `pypa/gh-action-pypi-publish@release/v1` with `id-token: write` permissions.
-3. **No Secrets Required**: No PyPI API tokens need to be stored as GitHub secrets.
+## PyPI publishing with OIDC
+
+The release workflow uses OIDC (OpenID Connect) trusted publishing to PyPI, which eliminates the need to manage PyPI API tokens. This requires:
+
+1. **PyPI configuration**: Each package (`presidio-analyzer`, `presidio-anonymizer`, and the other Presidio packages) must be configured on PyPI to trust the GitHub repository and workflow.
+2. **GitHub workflow permissions**: The workflow uses `pypa/gh-action-pypi-publish@release/v1` with `id-token: write`.
+3. **No PyPI secrets**: No PyPI API tokens need to be stored as GitHub secrets.
 
 Benefits of OIDC:
+
 - Enhanced security through short-lived tokens
 - No manual token management
 - Automatic token rotation
 - Audit trail of publishing activities
 
-Note: The Azure DevOps pipeline continues to use traditional PyPI authentication with service connections.
+## GHCR publishing permissions
+
+The container publishing jobs authenticate to GHCR with the workflow `GITHUB_TOKEN` by default and require `packages: write` permissions. If the workflow is run from a repository outside the `data-privacy-stack` organization during the transition, set the `GHCR_TOKEN` secret and optional `GHCR_USERNAME` variable to credentials that can publish packages to the Data Privacy Stack organization, or run the release from the migrated repository.

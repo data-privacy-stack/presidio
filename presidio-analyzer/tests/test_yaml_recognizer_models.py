@@ -254,6 +254,58 @@ def test_recognizer_registry_config_preserves_custom_country_code_on_dump():
     assert config.model_dump()["recognizers"][0]["country_code"] == "am"
 
 
+def test_configuration_validator_uses_recognizer_specific_dump_rules():
+    """Validated YAML should preserve recognizer-specific model_dump behavior."""
+    from presidio_analyzer.input_validation.schemas import ConfigurationValidator
+
+    raw_config = {
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "name": "HuggingFaceNerRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "supported_entities": ["PERSON"],
+                "model_name": "custom/ner-model",
+                "aggregation_strategy": "simple",
+                "device": "cpu",
+            },
+            {
+                "name": "GLiNERRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "model_name": "custom/gliner-model",
+            },
+            {
+                "name": "CreditCardRecognizer",
+                "type": "predefined",
+            },
+        ],
+    }
+
+    validated = ConfigurationValidator.validate_recognizer_registry_configuration(
+        raw_config
+    )
+    hf_recognizer = validated["recognizers"][0]
+    gliner_recognizer = validated["recognizers"][1]
+    predefined_recognizer = validated["recognizers"][2]
+
+    assert validated["global_regex_flags"] == 26
+    assert hf_recognizer["enabled"] is True
+    assert hf_recognizer["model_name"] == "custom/ner-model"
+    assert "threshold" not in hf_recognizer
+    assert "chunk_size" not in hf_recognizer
+    assert "chunk_overlap" not in hf_recognizer
+    assert "tokenizer_name" not in hf_recognizer
+    assert gliner_recognizer["enabled"] is True
+    assert gliner_recognizer["model_name"] == "custom/gliner-model"
+    assert "threshold" not in gliner_recognizer
+    assert "flat_ner" not in gliner_recognizer
+    assert "entity_mapping" not in gliner_recognizer
+    assert predefined_recognizer["name"] == "CreditCardRecognizer"
+    assert predefined_recognizer["supported_language"] is None
+
+
 def test_custom_recognizer_config_with_deny_list():
     """Test custom recognizer with deny list only."""
     config = CustomRecognizerConfig(

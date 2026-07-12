@@ -32,7 +32,7 @@ class Custom(Operator):
         return-type contract is enforced in operate() when the lambda runs on
         real data, raising InvalidParamError if it does not return a str.
 
-        See: https://github.com/microsoft/presidio/issues/2024
+        See: https://github.com/data-privacy-stack/presidio/issues/2024
         """
         new_val = params.get(self.LAMBDA)
         if not callable(new_val):

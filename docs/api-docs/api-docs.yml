@@ -5,16 +5,18 @@ info:
   title: Presidio
   contact:
     name: Presidio support
-    email: presidio@microsoft.com
-    url: https://github.com/microsoft/presidio
+    email: presidio@dataprivacystack.org
+    url: https://github.com/data-privacy-stack/presidio
   x-logo:
-    url: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg"
+    url: "logo.svg"
+    altText: "Presidio"
+    backgroundColor: "#ffffff"
   license:
     name: MIT
-    url: 'https://github.com/microsoft/presidio/blob/main/LICENSE'
+    url: 'https://github.com/data-privacy-stack/presidio/blob/main/LICENSE'
 externalDocs:
   description: Presidio documentation.
-  url: 'https://microsoft.github.io/presidio/'
+  url: 'https://data-privacy-stack.github.io/presidio/'
 tags:
   - name: Analyzer
     description: Detecting PII entities in text

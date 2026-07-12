@@ -24,8 +24,15 @@ def entities():
         ("1111111-G", 1, ((0, 9),),),
         ("1111111G", 1, ((0, 8),),),
         ("01111111G", 1, ((0, 9),),),
+        # valid NIF in lowercase (control letter is upper-cased before checksum)
+        ("55555555k", 1, ((0, 9),),),
+        ("12345678z", 1, ((0, 9),),),
+        # uppercase still detected
+        ("12345678Z", 1, ((0, 9),),),
         # invalid NIF scores
         ("401-023-2138", 0, ()),
+        # invalid checksum stays rejected regardless of case
+        ("12345678a", 0, ()),
         # fmt: on
     ],
 )

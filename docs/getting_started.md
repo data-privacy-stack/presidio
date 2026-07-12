@@ -1,4 +1,4 @@
-# Getting started with Microsoft Presidio
+# Getting started with Presidio
 
 The core functionality in Presidio is to detect PII in text. Presidio further contains a set of tools that build on top of text PII detection, for example in images, structured data, JSON and more.
 

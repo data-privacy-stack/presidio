@@ -1,6 +1,6 @@
-# Microsoft Presidio Development Instructions
+# Presidio Development Instructions
 
-Microsoft Presidio is a Python-based data protection and de-identification SDK with multiple components for detecting and anonymizing PII (Personally Identifiable Information) in text and images.
+Presidio is a Python-based data protection and de-identification SDK with multiple components for detecting and anonymizing PII (Personally Identifiable Information) in text and images.
 
 ## Core Philosophy
 
@@ -573,7 +573,7 @@ Use atomic grouping: (?>a+)b or possessive quantifier a++b"
 - **Poetry** - Package manager, not pip
 - **Ruff** - Linting and formatting (replaces flake8, black, isort)
 - **spaCy** - Default NLP engine (en_core_web_lg for production), although one can use other NLP engines via provider pattern
-- **Docker** - Deployment via mcr.microsoft.com registry
+- **Docker** - Deployment via GitHub Container Registry (`ghcr.io/data-privacy-stack`)
 
 
 ### Critical Files for Cross-Component Changes
@@ -604,8 +604,8 @@ ruff format .  # Auto-format
 ### Docker Testing
 ```bash
 # Quick test with pre-built images
-docker pull mcr.microsoft.com/presidio-analyzer:latest
-docker run -d -p 5002:3000 --name analyzer mcr.microsoft.com/presidio-analyzer:latest
+docker pull ghcr.io/data-privacy-stack/presidio-analyzer:latest
+docker run -d -p 5002:3000 --name analyzer ghcr.io/data-privacy-stack/presidio-analyzer:latest
 curl http://localhost:5002/health
 
 # Full build from source (takes 15+ minutes)

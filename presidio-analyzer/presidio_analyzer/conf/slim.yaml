@@ -73,6 +73,10 @@ recognizer_registry:
       type: predefined
       enabled: false
 
+    - name: PhTinRecognizer
+      type: predefined
+      enabled: false
+
     - name: InAadhaarRecognizer
       supported_languages:
       - en

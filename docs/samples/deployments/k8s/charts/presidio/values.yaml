@@ -1,4 +1,4 @@
-registry: mcr.microsoft.com
+registry: ghcr.io/data-privacy-stack
  
 # Image pull secret
 # privateRegistry: acr-auth
@@ -11,7 +11,7 @@ ingress:
 
 # For any of the services below, a service mesh like Linkerd or Istio
 # is needed to properly balance traffic to more than 1 replica.
-# https://github.com/microsoft/presidio/issues/304
+# https://github.com/data-privacy-stack/presidio/issues/304
 
 analyzer:
   name: presidio-analyzer

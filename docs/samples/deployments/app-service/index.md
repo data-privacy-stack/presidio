@@ -7,7 +7,7 @@ Azure App Service provides a managed production environment, which supports dock
 
 Use the following button to deploy presidio services to your Azure subscription.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2Fpresidio%2Fmain%2Fdocs%2Fsamples%2Fdeployments%2Fapp-service%2Fpresidio-services.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fdata-privacy-stack%2Fpresidio%2Fmain%2Fdocs%2Fsamples%2Fdeployments%2Fapp-service%2Fpresidio-services.json)
 
 ## Deploy using command-line script
 
@@ -21,7 +21,7 @@ APP_SERVICE_NAME=<name of app service>
 LOCATION=<location>
 APP_SERVICE_SKU=<sku>
 
-IMAGE_NAME=mcr.microsoft.com/presidio-analyzer
+IMAGE_NAME=ghcr.io/data-privacy-stack/presidio-analyzer:latest
 # the following parameters are only required if you build and deploy your own containers from a private registry
 ACR_USER_NAME=<user name>
 ACR_USER_PASSWORD=<password>

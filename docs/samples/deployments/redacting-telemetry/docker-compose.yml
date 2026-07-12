@@ -1,7 +1,7 @@
 services:
   # Presidio Analyzer - detects PII in text
   presidio-analyzer:
-    image: mcr.microsoft.com/presidio-analyzer:latest
+    image: ghcr.io/data-privacy-stack/presidio-analyzer:latest
     ports:
       - "5002:3000"
     networks:
@@ -9,7 +9,7 @@ services:
 
   # Presidio Anonymizer - masks/redacts PII
   presidio-anonymizer:
-    image: mcr.microsoft.com/presidio-anonymizer:latest
+    image: ghcr.io/data-privacy-stack/presidio-anonymizer:latest
     ports:
       - "5001:3000"
     networks:

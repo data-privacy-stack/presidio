@@ -1,7 +1,9 @@
+import argparse
 import os
 import pytest
 from io import StringIO
 from presidio_cli import cli
+from presidio_cli.config import PresidioCLIConfig as RealPresidioCLIConfig
 
 
 @pytest.fixture()
@@ -23,6 +25,27 @@ def problems(mocker):
         recognizer_result={},
     )
     return [problem1, problem2]
+
+
+def make_args(**overrides):
+    args = {
+        "stdin": False,
+        "config_data": None,
+        "config_file": None,
+        "files": ("tests/",),
+        "format": "auto",
+        "no_warnings": False,
+        "threshold": None,
+    }
+    args.update(overrides)
+    return args
+
+
+def make_conf(mocker, threshold=0.25):
+    conf = mocker.Mock()
+    conf.threshold = threshold
+    conf.locale = None
+    return conf
 
 
 def test_find_files_recursively(temp_workspace, config):
@@ -89,10 +112,104 @@ def test_run_with_config(temp_workspace, mocker):
     ec.assert_called_once_with(0)
 
 
-def test_run_with_stdin(mocker):
-    mocked_args = mocker.Mock(stdin=True, config_data=None, config_file=None, files="")
+def test_run_preserves_config_threshold_when_flag_is_omitted(mocker):
+    mocked_args = mocker.Mock(**make_args())
+    conf = make_conf(mocker)
+    config = mocker.patch("presidio_cli.cli.PresidioCLIConfig", return_value=conf)
+    mocker.patch("presidio_cli.cli.find_files_recursively", return_value=[])
+    mocker.patch("os.path.isfile", return_value=False)
+    mocker.patch("argparse.ArgumentParser.parse_args", return_value=mocked_args)
     ec = mocker.patch("sys.exit")
-    with mocker.patch("argparse.ArgumentParser.parse_args", return_value=mocked_args):
-        with mocker.patch("sys.stdin", StringIO("Example input")):
-            cli.run()
+
+    cli.run()
+
+    config.assert_called_once_with(content="extends: default")
+    assert conf.threshold == 0.25
+    ec.assert_called_once_with(0)
+
+
+def test_run_overrides_loaded_config_threshold(mocker, tmp_path):
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("threshold: 0.25\n")
+
+    mocked_args = mocker.Mock(**make_args(config_file=str(config_file), threshold=0.7))
+    loaded_thresholds = []
+    captured = {}
+
+    def build_config(*args, **kwargs):
+        conf = RealPresidioCLIConfig(*args, **kwargs)
+        loaded_thresholds.append(conf.threshold)
+        captured["conf"] = conf
+        return conf
+
+    mocker.patch("presidio_cli.cli.PresidioCLIConfig", side_effect=build_config)
+    mocker.patch("presidio_cli.cli.find_files_recursively", return_value=[])
+    mocker.patch("argparse.ArgumentParser.parse_args", return_value=mocked_args)
+    ec = mocker.patch("sys.exit")
+
+    cli.run()
+
+    assert loaded_thresholds == [0.25]
+    assert captured["conf"].threshold == 0.7
+    ec.assert_called_once_with(0)
+
+
+def test_run_respects_config_selection_before_threshold_override(mocker):
+    mocked_args = mocker.Mock(
+        **make_args(config_data="extends: limited", config_file="custom.yaml")
+    )
+    conf = make_conf(mocker)
+    config = mocker.patch("presidio_cli.cli.PresidioCLIConfig", return_value=conf)
+    mocker.patch("presidio_cli.cli.find_files_recursively", return_value=[])
+    mocker.patch("os.path.isfile", return_value=False)
+    mocker.patch("argparse.ArgumentParser.parse_args", return_value=mocked_args)
+    ec = mocker.patch("sys.exit")
+
+    cli.run()
+
+    config.assert_called_once_with(content="extends: limited")
+    assert conf.threshold == 0.25
+    ec.assert_called_once_with(0)
+
+
+def test_run_accepts_explicit_zero_threshold(mocker):
+    mocked_args = mocker.Mock(**make_args(threshold=0.0))
+    conf = make_conf(mocker)
+    config = mocker.patch("presidio_cli.cli.PresidioCLIConfig", return_value=conf)
+    mocker.patch("presidio_cli.cli.find_files_recursively", return_value=[])
+    mocker.patch("os.path.isfile", return_value=False)
+    mocker.patch("argparse.ArgumentParser.parse_args", return_value=mocked_args)
+    ec = mocker.patch("sys.exit")
+
+    cli.run()
+
+    config.assert_called_once_with(content="extends: default")
+    assert conf.threshold == 0.0
+    ec.assert_called_once_with(0)
+
+
+@pytest.mark.parametrize("value", ["-0.1", "1.1", "not-a-number"])
+def test_threshold_value_rejects_invalid_values(value):
+    with pytest.raises(argparse.ArgumentTypeError):
+        cli.threshold_value(value)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("0", 0.0), ("0.7", 0.7), ("1", 1.0)],
+)
+def test_threshold_value_accepts_valid_values(value, expected):
+    assert cli.threshold_value(value) == expected
+
+
+def test_run_with_stdin(mocker):
+    mocked_args = mocker.Mock(**make_args(stdin=True, files=()))
+    conf = make_conf(mocker)
+    mocker.patch("presidio_cli.cli.PresidioCLIConfig", return_value=conf)
+    mocker.patch("presidio_cli.cli.find_files_recursively", return_value=[])
+    mocker.patch("presidio_cli.cli.analyze", return_value=[])
+    mocker.patch("argparse.ArgumentParser.parse_args", return_value=mocked_args)
+    mocker.patch("sys.stdin", StringIO("Example input"))
+    ec = mocker.patch("sys.exit")
+    cli.run()
     ec.assert_called_once_with(0)

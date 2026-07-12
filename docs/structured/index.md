@@ -108,7 +108,7 @@ print(anonymized_complex_json)
 
 A more detailed sample can be found here:
 
-- <https://github.com/microsoft/presidio/blob/main/docs/samples/python/example_structured.ipynb>
+- <https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_structured.ipynb>
 
 #### Selection Strategy for Entity Detection in Tabular Data
 
@@ -138,11 +138,11 @@ tabular_analysis = PandasAnalysisBuilder().generate_analysis(sample_df, selectio
 - PySpark implementation
 - Integration of additional anonymization techniques such as K-Anonymity and Differential Privacy.
 
-Contributions are welcome! Please refer to the [Contributing Guide](https://github.com/microsoft/presidio/blob/main/CONTRIBUTING.md).
+Contributions are welcome! Please refer to the [Contributing Guide](https://github.com/data-privacy-stack/presidio/blob/main/CONTRIBUTING.md).
 
 #### More information
 
 - [API documentation](../api/structured_python.md)
 - [Sample code](../samples/python/example_structured.ipynb)
-- [Join the discussion](https://github.com/microsoft/presidio/discussions?discussions_q=structured)
-- [Relevant issues on Github](https://github.com/microsoft/presidio/issues?q=is%3Aissue+label%3Astructured-data)
+- [Join the discussion](https://github.com/data-privacy-stack/presidio/discussions?discussions_q=structured)
+- [Relevant issues on GitHub](https://github.com/data-privacy-stack/presidio/issues?q=is%3Aissue+label%3Astructured-data)

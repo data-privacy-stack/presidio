@@ -84,5 +84,8 @@ class AuAcnRecognizer(PatternRecognizer):
         for i in range(8):
             sum_product += acn_list[i] * weight[i]
         remainder = sum_product % 10
-        complement = 10 - remainder
+        # The complement must be reduced mod 10: when the weighted sum is a
+        # multiple of 10 the check digit is 0, not 10. Without the outer "% 10"
+        # every valid ACN whose check digit is 0 (e.g. 000000180) is rejected.
+        complement = (10 - remainder) % 10
         return complement == acn_list[-1]

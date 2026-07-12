@@ -117,3 +117,11 @@ my PAN number is DJPMS1234Z
 #Verify IN PASSPORT context words
 IN_PASSPORT
 my passport number is T1234567. Indian Passport number is of 8 characters long, always starting with a capital letter.
+
+#Verify PH TIN context words
+PH_TIN
+my tin is 000-123-456-000
+
+#Verify PH TIN context words with bir
+PH_TIN
+my bir taxpayer identification number is 000123456
