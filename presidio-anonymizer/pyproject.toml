@@ -36,15 +36,17 @@ ahds = [
     "azure-health-deidentification (>=1.1.0b1,<2.0.0)"
 ]
 
-[tool.poetry.group.dev.dependencies]
-pip = "*"
-ruff = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-python-dotenv = "*"
-pre_commit = "*"
-diff-cover = "*"
+[dependency-groups]
+dev = [
+    "pip",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "python-dotenv",
+    "pre-commit",
+    "diff-cover",
+]
 
 [tool.coverage.run]
 relative_files = true
