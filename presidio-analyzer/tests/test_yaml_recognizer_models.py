@@ -4,6 +4,7 @@ import pytest
 from presidio_analyzer.input_validation.yaml_recognizer_models import (
     BaseRecognizerConfig,
     CustomRecognizerConfig,
+    LangExtractRecognizerConfig,
     LanguageContextConfig,
     PredefinedRecognizerConfig,
     RecognizerRegistryConfig,
@@ -304,6 +305,69 @@ def test_configuration_validator_uses_recognizer_specific_dump_rules():
     assert "entity_mapping" not in gliner_recognizer
     assert predefined_recognizer["name"] == "CreditCardRecognizer"
     assert predefined_recognizer["supported_language"] is None
+
+
+def test_langextract_config_preserves_config_path():
+    """A BasicLangExtractRecognizer YAML entry must keep ``config_path``.
+
+    Regression: without a dedicated config model (extra="allow"), the strict
+    ``PredefinedRecognizerConfig`` schema drops ``config_path``, so the recognizer
+    silently falls back to its bundled default model config.
+    """
+    config = LangExtractRecognizerConfig(
+        name="SmLlama32_3b",
+        class_name="BasicLangExtractRecognizer",
+        supported_languages=["en"],
+        config_path="/path/to/langextract_config.yml",
+    )
+    assert config.config_path == "/path/to/langextract_config.yml"
+    assert config.model_dump()["config_path"] == "/path/to/langextract_config.yml"
+
+
+def test_langextract_config_selected_via_class_name():
+    """``class_name: BasicLangExtractRecognizer`` selects the LangExtract model
+    and preserves ``config_path`` (plus arbitrary extra kwargs) through the full
+    registry validation used by AnalyzerEngineProvider."""
+    from presidio_analyzer.input_validation.schemas import ConfigurationValidator
+
+    raw_config = {
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "name": "SmLlama32_3b",
+                "type": "predefined",
+                "class_name": "BasicLangExtractRecognizer",
+                "enabled": True,
+                "supported_languages": ["en"],
+                "config_path": "/path/to/langextract_config.yml",
+            }
+        ],
+    }
+
+    validated = ConfigurationValidator.validate_recognizer_registry_configuration(
+        raw_config
+    )
+    lm_recognizer = validated["recognizers"][0]
+    assert lm_recognizer["class_name"] == "BasicLangExtractRecognizer"
+    assert lm_recognizer["config_path"] == "/path/to/langextract_config.yml"
+
+
+def test_langextract_config_azure_variant_selected():
+    """AzureOpenAILangExtractRecognizer also maps to the LangExtract config model."""
+    config = RecognizerRegistryConfig(
+        supported_languages=["en"],
+        recognizers=[
+            {
+                "name": "AzureLM",
+                "type": "predefined",
+                "class_name": "AzureOpenAILangExtractRecognizer",
+                "config_path": "/path/to/azure_config.yml",
+            }
+        ],
+    )
+    recognizer = config.recognizers[0]
+    assert isinstance(recognizer, LangExtractRecognizerConfig)
+    assert recognizer.config_path == "/path/to/azure_config.yml"
 
 
 def test_custom_recognizer_config_with_deny_list():
