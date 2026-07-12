@@ -144,9 +144,11 @@ jobs:
           # analyzer --all-extras graph in seconds, where Poetry's lockless
           # universal resolve backtracks for many minutes on the
           # optional-dependencies tree. `uv sync` builds the project's .venv;
-          # subsequent steps run inside it via `uv run --no-sync`. Test tooling
-          # from the Poetry dev group is installed explicitly since uv does not
-          # read it, plus `pip` because spaCy's model download shells out to
+          # the test/spaCy/diff-cover steps then run inside it via
+          # `uv run --no-sync` (the later wheel-build step deliberately uses the
+          # system interpreter, as it did under Poetry). Test tooling from the
+          # Poetry dev group is installed explicitly since uv does not read it,
+          # plus `pip` because spaCy's model download shells out to
           # `python -m pip install` and uv venvs ship without pip.
           uv sync ${{ matrix.component.extras }} --python ${{ matrix.python-version }}
           uv pip install pip pytest pytest-cov pytest-mock diff-cover python-dotenv
