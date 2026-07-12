@@ -179,6 +179,13 @@ jobs:
       - name: Build wheel package
         working-directory: ${{ matrix.component.path }}
         run: |
+          # `build` needs `tomli` on Python < 3.11 to read pyproject.toml, but
+          # it is absent from the hashed requirements file (pip-compiled on
+          # 3.11+). Poetry used to install it onto the runner incidentally; uv
+          # has no Python dependencies, so pre-install it (marker-guarded) here
+          # so `pip install --require-hashes` finds it already satisfied rather
+          # than trying to fetch it unhashed.
+          python -m pip install "tomli==2.4.1; python_version < '3.11'"
           pip install --require-hashes -r ${{ github.workspace }}/.github/pipelines/requirements-build.txt
           python -m build --wheel
 
