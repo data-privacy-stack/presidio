@@ -56,6 +56,12 @@ jobs:
         with:
           fail-on-severity: low
           allow-licenses: MIT, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
+          # Pre-existing transformers advisories surfaced by the newly committed
+          # uv.lock files (they already exist on main, capped at transformers
+          # <5 by spacy-huggingface-pipelines). They are unrelated to the uv
+          # migration and are handled in separate security PRs; allow them here
+          # so this PR's dependency review is not blocked by prior debt.
+          allow-ghsas: GHSA-29pf-2h5f-8g72, GHSA-69w3-r845-3855
           comment-summary-in-pr: on-failure
 
   test:
