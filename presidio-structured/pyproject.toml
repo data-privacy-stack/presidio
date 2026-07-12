@@ -43,3 +43,9 @@ dev = [
 [tool.coverage.run]
 relative_files = true
 source = ["."]
+
+[tool.uv]
+# cryptography is pulled in transitively (via presidio-anonymizer). Constrain it
+# to the patched line to avoid GHSA-537c-gmf6-5ccf (vulnerable OpenSSL bundled in
+# older cryptography wheels) without adding it as a direct dependency.
+constraint-dependencies = ["cryptography>=48.0.1"]
