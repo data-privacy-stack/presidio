@@ -101,9 +101,10 @@ jobs:
       PRIMARY_PYTHON: '3.13'
       # Keep uv's (potentially large) wheel cache on the runner's roomy
       # ephemeral disk (/mnt, ~65 GB) rather than the smaller root volume, as
-      # the previous Poetry setup did via POETRY_CACHE_DIR. UV_LINK_MODE=copy
-      # avoids the cross-filesystem hardlink warning since the project venv
-      # lives on the root volume under the checkout.
+      # the previous Poetry setup did via POETRY_CACHE_DIR. The cache is
+      # persisted across runs by the "Cache uv downloads" step below, keyed on
+      # the committed uv.lock. UV_LINK_MODE=copy avoids the cross-filesystem
+      # hardlink warning since the project venv lives on the root volume.
       UV_CACHE_DIR: /mnt/uv-cache
       UV_LINK_MODE: copy
     steps:
@@ -126,9 +127,18 @@ jobs:
       - name: Prepare uv cache directory on /mnt
         run: |
           # /mnt is root-owned, so create the cache dir and hand it to the
-          # runner user before uv writes to it.
+          # runner user before uv (or the cache restore) writes to it.
           sudo mkdir -p "$UV_CACHE_DIR"
           sudo chown -R "$(id -u):$(id -g)" "$UV_CACHE_DIR"
+
+      - name: Cache uv downloads
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
+        with:
+          path: /mnt/uv-cache
+          key: uv-${{ runner.os }}-${{ matrix.component.path }}-py${{ matrix.python-version }}-${{ hashFiles(format('{0}/uv.lock', matrix.component.path)) }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ matrix.component.path }}-py${{ matrix.python-version }}-
+            uv-${{ runner.os }}-${{ matrix.component.path }}-
 
       - name: Install system dependencies for Image Redactor
         if: matrix.component.name == 'Image Redactor'
@@ -140,23 +150,26 @@ jobs:
         timeout-minutes: 30
         working-directory: ${{ matrix.component.path }}
         run: |
-          # Use uv for dependency installation: its resolver handles the large
-          # analyzer --all-extras graph in seconds, where Poetry's lockless
-          # universal resolve backtracks for many minutes on the
-          # optional-dependencies tree. `uv sync` builds the project's .venv;
-          # the test/spaCy/diff-cover steps then run inside it via
-          # `uv run --no-sync` (the later wheel-build step deliberately uses the
-          # system interpreter, as it did under Poetry). Test tooling from the
-          # Poetry dev group is installed explicitly since uv does not read it,
-          # plus `pip` because spaCy's model download shells out to
-          # `python -m pip install` and uv venvs ship without pip.
-          uv sync ${{ matrix.component.extras }} --python ${{ matrix.python-version }}
-          uv pip install pip pytest pytest-cov pytest-mock diff-cover python-dotenv
+          # Install from the committed uv.lock with `uv sync --locked`: uv
+          # errors if pyproject.toml and uv.lock disagree instead of silently
+          # resolving new versions, so CI installs exactly the locked graph and
+          # never mutates the lockfile. (This also cured the Poetry hang, whose
+          # lockless universal resolve backtracked for minutes on the analyzer's
+          # --all-extras graph.) The `dev` dependency group supplies the test
+          # tooling (pytest, diff-cover, ...) plus `pip`, which spaCy's model
+          # download shells out to via `python -m pip install`. Later steps run
+          # inside the synced venv with `uv run --no-sync` (the wheel-build step
+          # deliberately uses the system interpreter, as it did under Poetry).
+          uv sync --locked ${{ matrix.component.extras }} --group dev --python ${{ matrix.python-version }}
 
       - name: Install presidio-analyzer for Image Redactor
         if: matrix.component.name == 'Image Redactor'
         working-directory: ${{ matrix.component.path }}
         run: |
+          # Override the locked PyPI presidio-analyzer with the in-repo copy so
+          # the image-redactor tests run against local analyzer changes. This
+          # editable sibling install isn't expressible in a single-package lock;
+          # the following steps use `uv run --no-sync` so uv won't revert it.
           uv pip install -e ../presidio-analyzer/.
 
       - name: Download spaCy models
@@ -204,6 +217,13 @@ jobs:
           python -m pip install "tomli==2.4.1; python_version < '3.11'"
           pip install --require-hashes -r ${{ github.workspace }}/.github/pipelines/requirements-build.txt
           python -m build --wheel
+
+      - name: Minimize uv cache
+        if: always()
+        run: |
+          # Drop pre-built wheels that uv can cheaply rebuild, keeping the
+          # persisted /mnt cache small (recommended for CI by the uv docs).
+          uv cache prune --ci
 
   build-platform-images:
     name: Build ${{ matrix.image }} (${{ matrix.platform }})
