@@ -54,6 +54,23 @@ class RecognizerRegistry:
             supported_languages if supported_languages else ["en"]
         )
 
+    def validate_nlp_engine_compatibility(
+        self, nlp_engine: Optional[NlpEngine]
+    ) -> None:
+        """Validate that registered recognizers can use the selected NLP engine."""
+        if not isinstance(nlp_engine, NoOpNlpEngine):
+            return
+
+        nlp_recognizers = [
+            rec for rec in self.recognizers if isinstance(rec, SpacyRecognizer)
+        ]
+        if nlp_recognizers:
+            names = sorted({rec.__class__.__name__ for rec in nlp_recognizers})
+            raise ValueError(
+                "NoOpNlpEngine cannot be used with NLP engine recognizers. "
+                f"Remove or disable these recognizers: {names}."
+            )
+
     def _create_nlp_recognizer(
         self,
         nlp_engine: Optional[NlpEngine] = None,
@@ -78,6 +95,7 @@ class RecognizerRegistry:
         """
 
         if isinstance(nlp_engine, NoOpNlpEngine):
+            self.validate_nlp_engine_compatibility(nlp_engine)
             logger.info("Skipping NLP recognizer registration for no-op NLP engine.")
             return
 

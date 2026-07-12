@@ -15,6 +15,9 @@ class NoOpNlpEngine(NlpEngine):
     This engine is intended for AnalyzerEngine configurations where all active
     recognizers are self-contained and do not require NLP artifacts. It loads no
     external model and returns empty artifacts for each analyzed text.
+    The default LemmaContextAwareEnhancer can use context passed explicitly to
+    ``AnalyzerEngine.analyze()``, but cannot use context words from the analyzed
+    text because this engine produces no tokens or lemmas.
     """
 
     engine_name = "no_op"
@@ -94,9 +97,9 @@ class NoOpNlpEngine(NlpEngine):
     ) -> Iterator[Union[Tuple[str, NlpArtifacts], Tuple[str, NlpArtifacts, Any]]]:
         """Return empty NLP artifacts for each text in a batch."""
         if kwargs:
-            raise ValueError(
-                "NoOpNlpEngine.process_batch does not support additional "
-                f"keyword arguments: {sorted(kwargs.keys())}"
+            logger.warning(
+                "Ignoring unsupported kwargs in NoOpNlpEngine.process_batch: %s",
+                sorted(kwargs.keys()),
             )
         self._validate_loaded_language(language)
 

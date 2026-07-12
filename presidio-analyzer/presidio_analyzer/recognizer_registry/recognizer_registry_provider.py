@@ -86,6 +86,7 @@ class RecognizerRegistryProvider:
             supported_languages=supported_languages,
             global_regex_flags=global_regex_flags,
         )
+        registry.validate_nlp_engine_compatibility(self.nlp_engine)
 
         return registry
 
@@ -120,15 +121,6 @@ class RecognizerRegistryProvider:
             return
 
         if isinstance(nlp_engine, NoOpNlpEngine):
-            nlp_recognizers = [
-                rec for rec in recognizers if isinstance(rec, SpacyRecognizer)
-            ]
-            if nlp_recognizers:
-                names = sorted({rec.__class__.__name__ for rec in nlp_recognizers})
-                raise ValueError(
-                    "NoOpNlpEngine cannot be used with NLP engine recognizers. "
-                    f"Remove or disable these recognizers: {names}."
-                )
             logger.info(
                 "Skipping NLP recognizer configuration updates for no-op NLP engine."
             )

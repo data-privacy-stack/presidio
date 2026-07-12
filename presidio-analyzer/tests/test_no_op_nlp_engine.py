@@ -7,6 +7,7 @@ from presidio_analyzer import (
     AnalyzerEngine,
     AnalyzerEngineProvider,
     BatchAnalyzerEngine,
+    LemmaContextAwareEnhancer,
     Pattern,
     PatternRecognizer,
 )
@@ -199,15 +200,18 @@ class TestNoOpNlpEngine:
         assert artifacts.entities == []
         assert context == {"id": 1}
 
-    def test_when_process_batch_with_unsupported_kwarg_then_raises(
-        self, no_op_nlp_engine
+    def test_when_process_batch_with_unsupported_kwarg_then_warns(
+        self, no_op_nlp_engine, caplog
     ):
-        with pytest.raises(ValueError, match="additional keyword arguments"):
-            list(
+        with caplog.at_level("WARNING", logger="presidio-analyzer"):
+            results = list(
                 no_op_nlp_engine.process_batch(
                     ["one"], language="en", unsupported_option=True
                 )
             )
+
+        assert results[0][0] == "one"
+        assert "Ignoring unsupported kwargs" in caplog.text
 
     def test_when_get_supported_entities_then_empty(self, no_op_nlp_engine):
         assert no_op_nlp_engine.get_supported_entities() == []
@@ -274,6 +278,16 @@ class TestNoOpNlpEngineAnalyzerIntegration:
         ]
         assert nlp_recognizers == []
 
+    def test_when_analyzer_uses_no_op_with_registered_nlp_recognizer_then_raises(
+        self, no_op_nlp_engine
+    ):
+        registry = RecognizerRegistry(
+            recognizers=[SpacyRecognizer()], supported_languages=["en"]
+        )
+
+        with pytest.raises(ValueError, match="NoOpNlpEngine cannot be used"):
+            AnalyzerEngine(registry=registry, nlp_engine=no_op_nlp_engine)
+
     def test_when_get_nlp_recognizer_with_no_op_then_raises(self, no_op_nlp_engine):
         with pytest.raises(ValueError, match="does not have an NLP recognizer"):
             RecognizerRegistry.get_nlp_recognizer(no_op_nlp_engine)
@@ -308,7 +322,7 @@ class TestNoOpNlpEngineAnalyzerIntegration:
         assert len(results[0]) == 1
         assert results[0][0].entity_type == "CREDIT_CARD"
 
-    def test_when_analyzer_uses_no_op_then_context_enhancer_handles_empty_artifacts(
+    def test_when_analyzer_uses_no_op_then_explicit_context_enhances_score(
         self, no_op_nlp_engine
     ):
         zip_recognizer = PatternRecognizer(
@@ -330,6 +344,35 @@ class TestNoOpNlpEngineAnalyzerIntegration:
         assert len(results) == 1
         assert results[0].score > 0.3
         assert results[0].analysis_explanation.supportive_context_word == "zip"
+
+    def test_when_analyzer_uses_no_op_then_in_text_context_does_not_enhance_score(
+        self, no_op_nlp_engine
+    ):
+        zip_recognizer = PatternRecognizer(
+            supported_entity="ZIP",
+            patterns=[Pattern(name="zip", regex=r"\b\d{5}\b", score=0.3)],
+            context=["zip"],
+        )
+        analyzer = AnalyzerEngine(nlp_engine=no_op_nlp_engine)
+
+        results = analyzer.analyze(
+            text="my zip code is 10023",
+            language="en",
+            entities=["ZIP"],
+            ad_hoc_recognizers=[zip_recognizer],
+        )
+
+        assert len(results) == 1
+        assert results[0].score == 0.3
+
+    def test_when_analyzer_uses_no_op_with_lemma_context_enhancer_then_warns(
+        self, no_op_nlp_engine
+    ):
+        with pytest.warns(UserWarning, match="cannot use context words"):
+            AnalyzerEngine(
+                nlp_engine=no_op_nlp_engine,
+                context_aware_enhancer=LemmaContextAwareEnhancer(),
+            )
 
     def test_when_provider_uses_no_op_then_spacy_recognizer_is_not_added(
         self, tmp_path
