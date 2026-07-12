@@ -99,7 +99,8 @@ class TwNationalIdRecognizer(PatternRecognizer):
         """
         Validate the pattern logic by running Taiwan ID checksum verification.
 
-        :param pattern_text: The text to validate (only the substring detected by the regex engine).
+        :param pattern_text: The text to validate
+            (only the substring detected by the regex engine).
         :return: A bool or None, indicating whether the validation was successful.
         """
         sanitized_value = EntityRecognizer.sanitize_value(
