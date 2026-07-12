@@ -570,7 +570,7 @@ Use atomic grouping: (?>a+)b or possessive quantifier a++b"
 
 ### Technology Stack
 - **Python** - Must support all versions
-- **Poetry** - Package manager, not pip
+- **uv** - Dependency management and installation (not pip or Poetry). Each package commits a `uv.lock`; `poetry-core` is retained only as the build backend for now.
 - **Ruff** - Linting and formatting (replaces flake8, black, isort)
 - **spaCy** - Default NLP engine (en_core_web_lg for production), although one can use other NLP engines via provider pattern
 - **Docker** - Deployment via GitHub Container Registry (`ghcr.io/data-privacy-stack`)

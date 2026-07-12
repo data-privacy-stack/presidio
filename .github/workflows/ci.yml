@@ -140,7 +140,7 @@ jobs:
       - name: Cache uv downloads
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
         with:
-          path: /mnt/uv-cache
+          path: ${{ env.UV_CACHE_DIR }}
           key: uv-${{ runner.os }}-${{ matrix.component.path }}-py${{ matrix.python-version }}-${{ hashFiles(format('{0}/uv.lock', matrix.component.path)) }}
           restore-keys: |
             uv-${{ runner.os }}-${{ matrix.component.path }}-py${{ matrix.python-version }}-
