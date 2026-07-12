@@ -12,7 +12,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 30        # ~5 minutes total
-      start_period: 60s  
+      start_period: 60s
   presidio-anonymizer:
     image: ${REGISTRY_NAME}/${IMAGE_PREFIX}presidio-anonymizer${TAG}
     build:

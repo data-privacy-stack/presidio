@@ -44,9 +44,9 @@ with at least one NLP engine (`spaCy`, `transformers` or `stanza`):
     ```
 
     !!! note "Note"
-        
+
         When using a transformers NLP engine, Presidio would still use spaCy for other capabilities,
-        therefore a small spaCy model (such as en_core_web_sm) is required. 
+        therefore a small spaCy model (such as en_core_web_sm) is required.
         Transformers models would be loaded lazily. To pre-load them, see: [Downloading a pre-trained model](./analyzer/nlp_engines/transformers.md#downloading-a-pre-trained-model)
 
 === "Stanza"
@@ -58,7 +58,7 @@ with at least one NLP engine (`spaCy`, `transformers` or `stanza`):
 
 
     !!! note "Note"
-        
+
         Stanza models would be loaded lazily. To pre-load them, see: [Downloading a pre-trained model](./analyzer/nlp_engines/spacy_stanza.md#download-the-pre-trained-model).
 
 ### GPU acceleration (optional)
@@ -78,7 +78,7 @@ For PII redaction in images
 
     ```sh
     pip install presidio_image_redactor
-    
+
     # Presidio image redactor uses the presidio-analyzer
     # which requires a spaCy language model:
     python -m spacy download en_core_web_lg

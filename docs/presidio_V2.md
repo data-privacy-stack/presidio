@@ -14,12 +14,12 @@ The main changes introduced in **V2** are:
 
 3. Improved documentation, sample code, and build workflows.
 
-4. Format-Preserving Encryption replaced with Advanced Encryption Standard (AES) 
+4. Format-Preserving Encryption replaced with Advanced Encryption Standard (AES)
 
 ## V1 Availability
 
 Version V1 (legacy) is still available for download. To continue using the previous version:
--	For docker containers, use tag=v1 
+-	For docker containers, use tag=v1
 -	For python packages, download version < 2 (e.g. pip install presidio-analyzer==0.95)
 
 !!! note "Note"
@@ -33,7 +33,7 @@ The move from gRPC to HTTP-based APIs included changes to the API requests.
 1. Changed payload format – moving from structured objects to JSON.
 
 2. Removed templates from the API, including flattening the JSON structure.
-   
+
 3. Using snake_case instead of camelCase .
 
 Below is a detailed outline of all changes made to the Analyzer and Anonymizer.

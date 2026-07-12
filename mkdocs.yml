@@ -8,11 +8,11 @@ repo_url: https://github.com/data-privacy-stack/presidio/
 edit_uri: ""
 
 nav:
-  - Presidio: 
+  - Presidio:
     - Home: index.md
     - Installation: installation.md
     - FAQ: faq.md
-  - Quick start: 
+  - Quick start:
     - Home: getting_started.md
     - Text: getting_started/getting_started_text.md
     - Images: getting_started/getting_started_images.md
@@ -20,7 +20,7 @@ nav:
   - Learn Presidio:
       - Home: learn_presidio/index.md
       - Concepts: learn_presidio/concepts.md
-      - Tutorial: 
+      - Tutorial:
         - Home: tutorial/index.md
         - Getting started: tutorial/00_getting_started.md
         - Deny-list recognizers: tutorial/01_deny_list.md
@@ -241,7 +241,7 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.pathconverter
   - pymdownx.tabbed:
-      alternate_style: true 
+      alternate_style: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid

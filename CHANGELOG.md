@@ -262,13 +262,13 @@ All notable changes to this project will be documented in this file.
       ```py
       from presidio_analyzer import AnalyzerEngine
       from presidio_analyzer.predefined_recognizers import AuAbnRecognizer
-      
+
       # Initialize an analyzer engine with the recognizer registry
       analyzer = AnalyzerEngine()
-      
+
       # Create an instance of the AuAbnRecognizer
       au_abn_recognizer = AuAbnRecognizer()
-      
+
       # Add the recognizer to the registry
       analyzer.registry.add_recognizer(au_abn_recognizer)
       ```
@@ -310,14 +310,14 @@ All notable changes to this project will be documented in this file.
 - Drop dependency of spacy_stanza package, and add supporting code to stanza_nlp_engine, to support recent stanza versions
 - Add parameters to allow users to define the number of processes and batch size when running BatchAnalyzerEngine.
 - Fix InPassportRecognizer regex recognizer
-  
+
 ### Anonymizer
 - Changed: Deprecate `MD5` hash type option, defaulting into `sha256`.
-- Replace crypto package dependency from pycryptodom to cryptography 
+- Replace crypto package dependency from pycryptodom to cryptography
 - Remove azure-core dependency from anonymizer
-  
+
 ### Image Redactor
-- Changed: Updated the return type annotation of `ocr_bboxes` in `verify_dicom_instance()` from `dict` to `list`.  
+- Changed: Updated the return type annotation of `ocr_bboxes` in `verify_dicom_instance()` from `dict` to `list`.
 
 ### Presidio Structured
 
@@ -383,7 +383,7 @@ All notable changes to this project will be documented in this file.
  * Add a link to HashiCorp vault operator resource ([#1468](https://github.com/data-privacy-stack/presidio/pull/1468)) (Thanks [Akshay Karle](https://github.com/akshaykarle))
 ### Changed
 #### Analyzer
- * Updates to the transformers conf docs and yaml file ([#1467](https://github.com/data-privacy-stack/presidio/pull/1467)) 
+ * Updates to the transformers conf docs and yaml file ([#1467](https://github.com/data-privacy-stack/presidio/pull/1467))
 
 #### Docs
  * docs: clarify the docs on deploying presidio to k8s ([#1453](https://github.com/data-privacy-stack/presidio/pull/1453)) (Thanks [Roel Fauconnier](https://github.com/roel4ez))
@@ -391,7 +391,7 @@ All notable changes to this project will be documented in this file.
 
 ## [2.2.355] - July 9th 2024
 
-> Note: A new YAML based mechanism has been added to support no-code customization and creation of recognizers. 
+> Note: A new YAML based mechanism has been added to support no-code customization and creation of recognizers.
 The default recognizers are now automatically loaded from file.
 
 
@@ -422,7 +422,7 @@ The default recognizers are now automatically loaded from file.
 * Add Ruff linter + Apply Ruff fix (#1379)
 * Auto-formatting, fix D rules (#1381)
 * Fix N818, E721 (#1382)
-* Migrate Python Packaging to pyproject.toml (#1383) 
+* Migrate Python Packaging to pyproject.toml (#1383)
 * From Pipenv to Poetry (#1391)
 * Fix ports in docs (#1408)
 
@@ -445,7 +445,7 @@ The default recognizers are now automatically loaded from file.
 
 #### Image redactor
 * Added tesseract to installation (#1312)
-  
+
 #### Structured
 * Analysis builder improvements (#1295) (Thanks @ebotiab)
 * Implement user-defined entity selection strategies in Presidio Structured (#1319) (Thanks @miltonsim)
@@ -541,10 +541,10 @@ The default recognizers are now automatically loaded from file.
 ### Added
 #### Analyzer
 * New Predefined Recognizer: IN_PAN (#1100)
-  
+
 #### Anonymizer
 * Anonymizer - Pass bytes key to Encrypt / Decrypt (#1147)
-  
+
 #### Image redactor
 * DICOM redactor improvement: Enabling more photometric interpretations (#1103)
 * DICOM redactor improvement: Adding exceptions for when DICOM file does not have pixel data (#1104)
@@ -563,27 +563,27 @@ The default recognizers are now automatically loaded from file.
 * Updating verification engines and enable plotting of custom bboxes (#1164)
 * Added image processing class to preprocess the image before running OCR (#1166)
 * Added support for Microsoft's document intelligence OCR
-  
+
 ### Changed
 #### Analyzer
 * Refactored the `NlpEngine` and Ner recognizers (`SpacyRecognizer`, `TransformersRecognizer`, `StanzaRecognizer`) to allow simpler integration of huggingface and transformers models (#1159). This includes:
     - Changes in how NER results flow through Presidio (see docs)
     - NER/model definition is now defined using a conf file or a `NerModelConfiguration` object.
-    - Integrated `spacy-huggingface-pipelines` for a more robust integration of huggingface models.        
+    - Integrated `spacy-huggingface-pipelines` for a more robust integration of huggingface models.
 * As a result, `SpacyRecognizer` logic has changed, please see #1159. Some fields within the class are now deprecated.
 * Updated type checks (#1175)
 * Enabled regex flags manipulation (#1193)
-  
+
 #### Anonymizer
 * Initial logic check for merging 2 entities (#1092)
 * Fix Sphinx warning in OperatorConfig (#1143)
 * Fix type mismatch in check_label_groups parameter in spacy_recognizer (#1130)
 * anonymize_list return type hint fix (#1178)
-* 
+*
 #### General
 * We no longer use Pipenv.lock. Locking happens as part of the CI. (#1152)
 * Changed the ACR instance (#1089)
-* Updated to Cred Scan V3 (#1154) 
+* Updated to Cred Scan V3 (#1154)
 
 ## [2.2.33] - June 1st 2023
 ### Added
@@ -723,7 +723,7 @@ Bug fix in context support
 
 * Added a URL recognizer
 * Added a new capability for creating new logic for context detection. See [ContextAwareEnhancer](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/context_aware_enhancers/context_aware_enhancer.py) and [LemmaContextAwareEnhancer](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/context_aware_enhancers/lemma_context_aware_enhancer.py). Documentation would be added on a future release.
-Furthermore, it is now possible to pass context words thruogh the `analyze` method (or via API) and those would be taken into account for context enhancement. 
+Furthermore, it is now possible to pass context words thruogh the `analyze` method (or via API) and those would be taken into account for context enhancement.
 
 
 
@@ -808,7 +808,7 @@ Upgrade Analyzer spacy version to 3.0.5
     - In OperatorConfig: anonymizer_name -> operator_name
 2. Response entity AnonymizerResult renamed to EngineResult
     - In EngineResult: List[AnonymizedEntity] -> List[OperatorResult]
-    - In OperatorResult: 
+    - In OperatorResult:
         - anonymizer -> operator
         - anonymized_text -> text
 
@@ -817,7 +817,7 @@ Upgrade Analyzer spacy version to 3.0.5
 2. Response entity anonymizer_text renamed to text.
 
 #### Deanonymize:
-New endpoint for deanonymizing encrypted entities by the anonymizer.  
+New endpoint for deanonymizing encrypted entities by the anonymizer.
 
 
 [unreleased]: https://github.com/data-privacy-stack/presidio/compare/2.2.363...HEAD
