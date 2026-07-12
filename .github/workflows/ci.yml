@@ -71,7 +71,7 @@ jobs:
         component: 
           - name: 'Analyzer'
             path: 'presidio-analyzer'
-            extras: '[server,transformers,stanza,azure-ai-language,ahds,gliner,langextract]'
+            extras: '--all-extras'
             spacy-models: 'en_core_web_lg en_core_web_sm'
           - name: 'Anonymizer'
             path: 'presidio-anonymizer'
@@ -94,7 +94,7 @@ jobs:
             component:
               name: 'Analyzer'
               path: 'presidio-analyzer'
-              extras: '[server,transformers,stanza,azure-ai-language,ahds,gliner,langextract]'
+              extras: '--all-extras'
               spacy-models: 'en_core_web_lg en_core_web_sm'
     env:
       COVERAGE_THRESHOLD: 90
@@ -131,15 +131,12 @@ jobs:
           # Use uv for dependency installation: its resolver handles the large
           # analyzer --all-extras graph in seconds, where Poetry's lockless
           # universal resolve backtracks for many minutes on the
-          # optional-dependencies tree. Create a project venv (--seed provides
-          # pip for the later wheel-build step) and expose it to subsequent
-          # steps via $GITHUB_PATH / $VIRTUAL_ENV. Test tooling from the Poetry
-          # dev group is installed explicitly since uv does not read it.
-          uv venv --seed --python ${{ matrix.python-version }}
-          echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
-          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          uv pip install -e ".${{ matrix.component.extras }}" \
-            pytest pytest-cov pytest-mock diff-cover python-dotenv
+          # optional-dependencies tree. `uv sync` builds the project's .venv;
+          # subsequent steps run inside it via `uv run --no-sync`. Test tooling
+          # from the Poetry dev group is installed explicitly since uv does not
+          # read it.
+          uv sync ${{ matrix.component.extras }} --python ${{ matrix.python-version }}
+          uv pip install pytest pytest-cov pytest-mock diff-cover python-dotenv
 
       - name: Install presidio-analyzer for Image Redactor
         if: matrix.component.name == 'Image Redactor'
@@ -152,18 +149,18 @@ jobs:
         working-directory: ${{ matrix.component.path }}
         run: |
           for model in ${{ matrix.component.spacy-models }}; do
-            python -m spacy download $model
+            uv run --no-sync python -m spacy download $model
           done
 
       - name: Run tests with coverage
         working-directory: ${{ matrix.component.path }}
         run: |
           PACKAGE_NAME=$(echo "${{ matrix.component.path }}" | sed 's/-/_/g')
-          pytest --cov=$PACKAGE_NAME --cov-report=xml:coverage.xml --cov-report=term --cov-report=html -vv --tb=short
+          uv run --no-sync pytest --cov=$PACKAGE_NAME --cov-report=xml:coverage.xml --cov-report=term --cov-report=html -vv --tb=short
           
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Checking PR difference coverage (>= ${{ env.COVERAGE_THRESHOLD }}%) with diff-cover..."
-            diff-cover coverage.xml \
+            uv run --no-sync diff-cover coverage.xml \
               --compare-branch=origin/${{ github.base_ref }} \
               --fail-under=${{ env.COVERAGE_THRESHOLD }} \
               --show-uncovered
