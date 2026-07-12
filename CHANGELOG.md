@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### Analyzer
+#### Added
+- Added a disabled-by-default US health insurance member ID (`US_HEALTH_INSURANCE_MEMBER_ID`) recognizer requiring healthcare or insurance context.
+- Added disabled-by-default US healthcare administrative ID recognizers for claim numbers, prior authorization numbers, prescription numbers, provider tax IDs, and referral numbers.
+
 ### Anonymizer
 ### General
 #### Fixed
