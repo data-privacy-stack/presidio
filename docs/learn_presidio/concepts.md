@@ -1,4 +1,4 @@
-# Concepts in Microsoft Presidio
+# Concepts in Presidio
 
 ## High-level concepts
 

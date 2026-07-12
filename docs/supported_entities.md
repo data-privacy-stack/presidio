@@ -17,12 +17,12 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |DATE_TIME|Absolute or relative dates or periods or times smaller than a day.|Pattern match and context|
 |EMAIL_ADDRESS|An email address identifies an email box to which email messages are delivered|Pattern match, context and RFC-822 validation|
 |IBAN_CODE|The International Bank Account Number (IBAN) is an internationally agreed system of identifying bank accounts across national borders to facilitate the communication and processing of cross border transactions with a reduced risk of transcription errors.|Pattern match, context and checksum|
-|IP_ADDRESS|An Internet Protocol (IP) address (either IPv4 or IPv6).|Pattern match, context and checksum|
+|IP_ADDRESS|An Internet Protocol (IP) address (either IPv4 or IPv6).|Pattern match and context|
 |MAC_ADDRESS| A Media Access Control (MAC) address is a unique identifier assigned to network interfaces for communications on the physical network segment.|Pattern match and context|
 |NRP|A person’s Nationality, religious or political group.|Custom logic and context|
 |LOCATION|Name of politically or geographically defined location (cities, provinces, countries, international regions, bodies of water, mountains|Custom logic and context|
 |PERSON|A full person name, which can include first names, middle names or initials, and last names.|Custom logic and context|
-|PHONE_NUMBER|A telephone number|Custom logic, pattern match and context|
+|PHONE_NUMBER|A telephone number. The `PhoneRecognizer` can be extended programmatically for country-specific detection by configuring `supported_regions` and `supported_entity` (e.g. Philippines: `PhoneRecognizer(supported_regions=["PH"], supported_entity="PH_MOBILE_NUMBER")`, Turkey: `PhoneRecognizer(supported_regions=["TR"], supported_entity="TR_PHONE_NUMBER")`)|Custom logic, pattern match and context|
 |MEDICAL_LICENSE|Common medical license numbers.|Pattern match, context and checksum|
 |URL|A URL (Uniform Resource Locator), unique identifier used to locate a resource on the Internet|Pattern match, context and top level url validation|
 
@@ -124,6 +124,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
 | PH_PASSPORT | Philippine Passport Number. Alphanumeric format, usually 1 letter followed by 7 digits and 1 letter, or 2 letters followed by 7 digits (e.g., P1234567A, EB1234567). | Pattern match and context |
+| PH_TIN     | Philippines Taxpayer Identification Number (TIN). 9 or 12-digit number issued by the Bureau of Internal Revenue (BIR). | Pattern match, context, and checksum |
 
 ### Canada
 
@@ -137,6 +138,11 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | SE_ORGANISATIONSNUMMER    | The Swedish Organisations ID Number is a unique 10-digit number issued to all Swedish organisations. | Pattern match, context, and checksum. |
 | SE_PERSONNUMMER    | The Swedish Personal ID Number is a unique 10/12-digit number issued to all Swedish residents. The recognizer also supports Samordningsnummer (coordination numbers) issued to individuals who are not (yet) registered residents but need a Swedish identifier (e.g., temporary workers, students). | Pattern match, context, and checksum. |
 
+### South Africa
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| ZA_ID_NUMBER | The South African identity number is a 13-digit identifier in the `YYMMDDSSSSCAZ` format, where the trailing digit is validated with the Luhn algorithm. | Pattern match, context, and checksum. |
+
 ### Thai
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
@@ -147,7 +153,6 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
 | TR_NATIONAL_ID    | The Turkish National Identification Number (TCKN) is a unique 11-digit number issued to all Turkish citizens. | Pattern match, context and checksum. |
-| TR_PHONE_NUMBER   | Turkish phone numbers: 10-digit numbers starting with 5 (mobile) or 2/3/4 (geographic). Supports international (+90), national (0), and local formats. Includes mobile (MNP-compliant) and geographic numbers. Reference: ITU-T E.164. Enabled programmatically via `PhoneRecognizer(supported_regions=["TR"], supported_entity="TR_PHONE_NUMBER")`. | `phonenumbers` library, context and format validation. |
 | TR_LICENSE_PLATE  | Turkish vehicle license plate (plaka): 2-digit province code (01–81), 1–3 letters (A–Z, excluding Q, W, X), and 2–4 digits. Standard civilian format only. Legal basis: KTK Madde 23. | Pattern match, context and province code validation. |
 
 ### Germany

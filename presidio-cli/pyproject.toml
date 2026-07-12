@@ -6,7 +6,7 @@ requires = ["poetry-core"]
 name = "presidio-cli"
 version = "0.0.9"
 description = "CLI tool that analyzes text for PII Entities using Presidio Analyzer."
-authors = [{name = "Presidio", email = "presidio@microsoft.com"}]
+authors = [{name = "Presidio", email = "presidio@dataprivacystack.org"}]
 license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 keywords = ["pii", "checker", "presidio_cli"]
-urls = {Homepage = "https://github.com/microsoft/presidio"}
+urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 include = ["conf/*", ".presidiocli"]
 requires-python = ">=3.10,<3.14"
@@ -25,7 +25,8 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
     "presidio-analyzer (>=2.2.0,<3.0.0)",
     "pyyaml (>=6.0.0,<7.0.0)",
-    "pathspec (>=0.9.0,<2.0.0)"
+    "pathspec (>=0.9.0,<2.0.0)",
+    "click (>=8.1.0,<9.0.0)"
 ]
 
 [project.scripts]

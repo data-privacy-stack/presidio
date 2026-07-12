@@ -22,7 +22,7 @@ for instructions. The key and endpoint, generated once the resource is created,
 will be used when integrating with Text Analytics, using a Presidio Text Analytics recognizer.
 
 ## Azure AI Language Recognizer
-[The implementation of a `AzureAILanguage` recognizer can be found here](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/third_party/azure_ai_language.py).
+[The implementation of a `AzureAILanguage` recognizer can be found here](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/third_party/azure_ai_language.py).
 
 ## How to integrate Azure AI Language into Presidio
 

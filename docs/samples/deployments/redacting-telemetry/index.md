@@ -1,6 +1,6 @@
 # Redacting Telemetry with Presidio
 
-**A practical example of redacting PII in logs using Microsoft Presidio.**
+**A practical example of redacting PII in logs using Presidio.**
 
 > ⚠️ This is a proof-of-concept demonstration, not a production-ready solution.
 

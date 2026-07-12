@@ -28,4 +28,4 @@ print("Result:")
 print(numbers_result)
 ```
 
-It's important to mention that recognizers are likely to have errors, both false-positive and false-negative, which would impact the entire performance of Presidio. Consider testing each recognizer on a representative dataset prior to integrating it into Presidio. For more info, see the [best practices for developing recognizers documentation](https://microsoft.github.io/presidio/analyzer/developing_recognizers/).
+It's important to mention that recognizers are likely to have errors, both false-positive and false-negative, which would impact the entire performance of Presidio. Consider testing each recognizer on a representative dataset prior to integrating it into Presidio. For more info, see the [best practices for developing recognizers documentation](https://data-privacy-stack.github.io/presidio/analyzer/developing_recognizers/).

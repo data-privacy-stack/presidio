@@ -366,6 +366,9 @@ class AnalyzerEngine:
         """
         new_results = []
         if allow_list_match == "regex":
+            allow_list = [term for term in allow_list if term]
+            if not allow_list:
+                return list(results)
             pattern = "|".join(allow_list)
             re_compiled = re.compile(pattern, flags=regex_flags)
 

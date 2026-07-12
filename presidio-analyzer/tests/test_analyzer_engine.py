@@ -958,3 +958,39 @@ def test_when_regex_allow_list_times_out_then_result_is_kept(loaded_analyzer_eng
     # Result should be kept on timeout (not filtered out)
     assert any(r.entity_type == "URL" for r in results)
 
+
+def test_when_regex_allow_list_has_empty_entry_then_results_are_kept():
+    text = "My name is David and his number is 4095-2609-9393-4932"
+    results = [
+        RecognizerResult("PERSON", 11, 16, 0.85),
+        RecognizerResult("CREDIT_CARD", 35, 54, 0.95),
+    ]
+
+    filtered = AnalyzerEngine._remove_allow_list(
+        results=results,
+        allow_list=["unrelated", ""],
+        text=text,
+        regex_flags=re.DOTALL | re.MULTILINE | re.IGNORECASE,
+        allow_list_match="regex",
+    )
+
+    assert filtered == results
+
+
+def test_when_regex_allow_list_is_all_empty_entries_then_results_are_kept():
+    text = "My name is David and his number is 4095-2609-9393-4932"
+    results = [
+        RecognizerResult("PERSON", 11, 16, 0.85),
+        RecognizerResult("CREDIT_CARD", 35, 54, 0.95),
+    ]
+
+    filtered = AnalyzerEngine._remove_allow_list(
+        results=results,
+        allow_list=["", ""],
+        text=text,
+        regex_flags=re.DOTALL | re.MULTILINE | re.IGNORECASE,
+        allow_list_match="regex",
+    )
+
+    assert filtered == results
+

@@ -4,6 +4,10 @@
 
 The following is a set of guidelines for contributing to Presidio.
 
+## Code of Conduct
+
+This project has adopted the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to <presidio@dataprivacystack.org>.
+
 ## What do I need to know before I get started?
 
 ### Project Presidio
@@ -11,6 +15,10 @@ The following is a set of guidelines for contributing to Presidio.
 Presidio is a community project aimed at helping everyone handle their private data and make the world a safer place.
 Presidio is both a framework and a system. It's a framework in a sense that you could take code parts from it, extend, customize and plug somewhere. It's also a system you could take as a whole or in parts and deploy locally, on-prem on in the cloud.
 When contributing to presidio, it's important to keep this in mind, as some "framework" contributions might not be suitable for a deployment, or vice-versa.
+
+### Rights of contribution
+
+By submitting a contribution, you represent that you have the legal right to contribute the code and that it may be distributed under the project's MIT license. Furthermore, you confirm that you have the right to submit this contribution and that it does not knowingly contain proprietary or confidential information/code.
 
 ### PR guidelines
 
@@ -21,11 +29,6 @@ Update CHANGELOG.md:
 Under Unreleased section, use the category which is most suitable for your change (changed/removed/deprecated).
 Document the change with simple readable text and push it as part of the commit.
 Next release, the change will be documented under the new version.
-
-### Build and Release process
-
-The project currently supports [Azure Pipelines](https://azure.microsoft.com/en-us/services/devops/pipelines/) using YAML pipelines which can be easily imported to any Azure Pipelines instance.
-For more details follow the [Build and Release documentation](docs/build_release.md).
 
 ## Getting started with the code
 
@@ -86,7 +89,7 @@ To contribute a new predefined recognizer to Presidio Analyzer:
 
 ### Fixing Bugs and improving the code
 
-Please review the open [issues on Github](https://github.com/microsoft/presidio/issues) for known bugs and feature requests. We sometimes add 'good first issue' labels on those we believe are simpler, and 'advanced' labels on those which require more work or multiple changes across the solution.
+Please review the open [issues on Github](https://github.com/data-privacy-stack/presidio/issues) for known bugs and feature requests. We sometimes add 'good first issue' labels on those we believe are simpler, and 'advanced' labels on those which require more work or multiple changes across the solution.
 
 ### Adding samples
 
@@ -96,12 +99,4 @@ When contributing a sample, make sure it is self contained (e.g. external depend
 
 ## Contacting Us
 
-For any questions, please email <presidio@microsoft.com>.
-
-## Contribution guidelines
-
-This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit <https://cla.microsoft.com>.
-
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the Microsoft Open Source Code of Conduct. For more information see the Code of Conduct FAQ or contact <opencode@microsoft.com> with any additional questions or comments.
+For any questions, please email <presidio@dataprivacystack.org>.

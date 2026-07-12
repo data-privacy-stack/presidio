@@ -50,7 +50,7 @@ Configuration can be done in two ways:
     print(results_english)
     ```
 
-- **Via configuration**: Set up the models which should be used in the [default `conf` file](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml).
+- **Via configuration**: Set up the models which should be used in the [default `conf` file](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml).
 
     An example Conf file:
 
@@ -86,7 +86,7 @@ Configuration can be done in two ways:
   - `low_confidence_score_multiplier`: A multiplier to apply to the score of entities with low confidence.
   - `low_score_entity_names`: A list of entity types to apply the low confidence score multiplier to.
 
-    The [default conf file](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml) is read during the default initialization of the `AnalyzerEngine`. Alternatively, the path to a custom configuration file can be passed to the `NlpEngineProvider`:
+    The [default conf file](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml) is read during the default initialization of the `AnalyzerEngine`. Alternatively, the path to a custom configuration file can be passed to the `NlpEngineProvider`:
 
     ```python
     from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
@@ -119,7 +119,7 @@ Configuration can be done in two ways:
 
     !!! note "Note"
         Presidio can currently use one NER model per language via the `NlpEngine`. If multiple are required,
-        consider wrapping NER models as additional recognizers ([see sample here](https://github.com/microsoft/presidio/blob/main/docs/samples/python/example_remote_recognizer.py)).
+        consider wrapping NER models as additional recognizers ([see sample here](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_remote_recognizer.py)).
 
 ## Leverage frameworks other than spaCy, Stanza and transformers for ML based PII detection
 

@@ -390,45 +390,50 @@ class ImageAnalyzerEngine:
         image_r = 70
         fig.set_size_inches(image_x / image_r, image_y / image_r)
 
-        if len(bboxes) == 0:
-            ax.imshow(image_custom)
-            return image_custom
-        else:
-            for box in bboxes:
-                try:
-                    entity_type = box["entity_type"]
-                except KeyError:
-                    entity_type = "UNKNOWN"
+        for box in bboxes:
+            try:
+                entity_type = box["entity_type"]
+            except KeyError:
+                entity_type = "UNKNOWN"
 
-                try:
-                    if box["is_PII"]:
-                        bbox_color = "r"
-                    else:
-                        bbox_color = "b"
-                except KeyError:
+            try:
+                if box["is_PII"]:
+                    bbox_color = "r"
+                else:
                     bbox_color = "b"
+            except KeyError:
+                bbox_color = "b"
 
-                # Get coordinates and dimensions
-                x0 = box["left"]
-                y0 = box["top"]
-                x1 = x0 + box["width"]
-                y1 = y0 + box["height"]
-                rect = matplotlib.patches.Rectangle(
-                    (x0, y0), x1 - x0, y1 - y0, edgecolor=bbox_color, facecolor="none"
+            # Get coordinates and dimensions
+            x0 = box["left"]
+            y0 = box["top"]
+            x1 = x0 + box["width"]
+            y1 = y0 + box["height"]
+            rect = matplotlib.patches.Rectangle(
+                (x0, y0), x1 - x0, y1 - y0, edgecolor=bbox_color, facecolor="none"
+            )
+            ax.add_patch(rect)
+            if show_text_annotation:
+                ax.annotate(
+                    entity_type,
+                    xy=(x0 - 3, y0 - 3),
+                    xycoords="data",
+                    bbox=dict(boxstyle="round4,pad=.5", fc="0.9"),
                 )
-                ax.add_patch(rect)
-                if show_text_annotation:
-                    ax.annotate(
-                        entity_type,
-                        xy=(x0 - 3, y0 - 3),
-                        xycoords="data",
-                        bbox=dict(boxstyle="round4,pad=.5", fc="0.9"),
-                    )
-            if use_greyscale_cmap:
-                ax.imshow(image_custom, cmap="gray")
-            else:
-                ax.imshow(image_custom)
-            im_from_fig = cls.fig2img(fig)
-            im_resized = im_from_fig.resize((image_x, image_y))
+
+        # When there are no bboxes and no greyscale colormap is needed, return the
+        # image directly to avoid unnecessary matplotlib rendering overhead and to
+        # preserve the original image fidelity (e.g. for RGB verification images).
+        if not bboxes and not use_greyscale_cmap:
+            plt.close(fig)
+            return image_custom
+
+        if use_greyscale_cmap:
+            ax.imshow(image_custom, cmap="gray")
+        else:
+            ax.imshow(image_custom)
+        im_from_fig = cls.fig2img(fig)
+        im_resized = im_from_fig.resize((image_x, image_y))
+        plt.close(fig)
 
         return im_resized

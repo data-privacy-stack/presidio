@@ -23,7 +23,7 @@ Version V1 (legacy) is still available for download. To continue using the previ
 -	For python packages, download version < 2 (e.g. pip install presidio-analyzer==0.95)
 
 !!! note "Note"
-	The legacy V1 code base will continue to be available under branch [V1](https://github.com/microsoft/presidio/tree/V1) but will no longer be officially supported.
+	The legacy V1 code base will continue to be available under branch [V1](https://github.com/data-privacy-stack/presidio/tree/V1) but will no longer be officially supported.
 
 
 ## API Changes
@@ -188,4 +188,4 @@ Below is a detailed outline of all changes made to the Analyzer and Anonymizer.
 | FPE (now Encrypt)  | <pre>string key = 3t6w9z$C&F)J@NcR;<br>int32 tweak = D8E7920AFA330A73</pre>             | <pre>{"key": "3t6w9z$C&F)J@NcR"}</pre>                                                          |
 
 !!! note "Note"
-	The V2 API is continuously evolving. please [follow the change log](https://github.com/microsoft/presidio/blob/main/CHANGELOG.md) for updates.
+	The V2 API is continuously evolving. please [follow the change log](https://github.com/data-privacy-stack/presidio/blob/main/CHANGELOG.md) for updates.

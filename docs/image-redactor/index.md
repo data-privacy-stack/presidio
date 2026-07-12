@@ -44,11 +44,11 @@ Pre-requisites:
         This requires Docker to be installed. [Download Docker](https://docs.docker.com/get-docker/).
     
     ```sh
-    # Download image from Dockerhub
-    docker pull mcr.microsoft.com/presidio-image-redactor
-    
+    # Download image from GitHub Container Registry
+    docker pull ghcr.io/data-privacy-stack/presidio-image-redactor
+
     # Run the container with the default port
-    docker run -d -p 5003:3000 mcr.microsoft.com/presidio-image-redactor:latest
+    docker run -d -p 5003:3000 ghcr.io/data-privacy-stack/presidio-image-redactor:latest
     ```
 
 === "From source"
@@ -161,6 +161,19 @@ The most basic usage of the engine can be setup like the following in python
 diOCR = DocumentIntelligenceOCR(endpoint="<your_endpoint>", key="<your_key>")
 ```
 
+If your environment uses Azure Identity instead of API keys, pass an Azure SDK
+credential that implements `TokenCredential`, such as `DefaultAzureCredential`.
+For example, install `azure-identity` and use `DefaultAzureCredential`:
+
+```
+from azure.identity import DefaultAzureCredential
+
+diOCR = DocumentIntelligenceOCR(
+    endpoint="<your_endpoint>",
+    credential=DefaultAzureCredential(),
+)
+```
+
 The DocumentIntelligenceOCR can also attempt to pull your endpoint and key values from environment variables.  
 
 ```
@@ -178,7 +191,7 @@ Additional metadata can be sent to the Document Intelligence API call, such as p
 
 ```
 diOCR = DocumentIntelligenceOCR()
-ia_engine = ImageAnalyzerEngine(ocr=di_ocr)
+ia_engine = ImageAnalyzerEngine(ocr=diOCR)
 my_engine = ImageRedactorEngine(image_analyzer_engine=ia_engine)
 ```
 
@@ -212,6 +225,6 @@ The DICOM data used for unit and integration testing for `DicomImageRedactorEngi
 
 ## API reference
 
-the [API Spec](https://microsoft.github.io/presidio/api-docs/api-docs.html#tag/Image-redactor)
+the [API Spec](https://data-privacy-stack.github.io/presidio/api-docs/api-docs.html#tag/Image-redactor)
 for the Image Redactor REST API reference details
 and [Image Redactor Python API](../api/image_redactor_python.md) for Python API reference

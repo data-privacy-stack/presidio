@@ -23,7 +23,7 @@ class SgUenRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "UEN (low)",
-            r"\b\d{8}[A-Z]\b|\b\d{9}[A-Z]\b|\b(T|S)\d{2}[A-Z]{2}\d{4}[A-Z]\b",
+            r"\b\d{8}[A-Z]\b|\b\d{9}[A-Z]\b|\b[TSR]\d{2}[A-Z]{2}\d{4}[A-Z]\b",
             0.3,
         )
     ]
