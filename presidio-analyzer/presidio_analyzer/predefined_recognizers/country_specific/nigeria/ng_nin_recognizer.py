@@ -64,15 +64,19 @@ class NgNinRecognizer(PatternRecognizer):
         return (
             len(value) == 11
             and value.isnumeric()
-            and self._is_verhoeff_number(int(value))
+            and self._is_verhoeff_number(value)
         )
 
     @staticmethod
-    def _is_verhoeff_number(input_number: int) -> bool:
+    def _is_verhoeff_number(value: str) -> bool:
         """
-        Check if the input number is a true Verhoeff number.
+        Check if the digits pass the Verhoeff checksum.
 
-        :param input_number: Number to validate
+        The digit string is used directly (not ``int(value)``) so a leading
+        zero is preserved — an 11-digit NIN such as ``00000000005`` must not be
+        shortened before the checksum is computed.
+
+        :param value: Numeric NIN string to validate
         :return: True if the number passes the Verhoeff checksum
         """
         __d__ = [
@@ -100,7 +104,7 @@ class NgNinRecognizer(PatternRecognizer):
         __inv__ = [0, 4, 3, 2, 1, 5, 6, 7, 8, 9]
 
         c = 0
-        inverted_number = list(map(int, reversed(str(input_number))))
+        inverted_number = list(map(int, reversed(value)))
         for i in range(len(inverted_number)):
             c = __d__[c][__p__[i % 8][inverted_number[i]]]
         return __inv__[c] == 0

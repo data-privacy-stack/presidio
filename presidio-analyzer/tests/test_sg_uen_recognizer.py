@@ -27,6 +27,8 @@ def entities():
         ("T16RF0037C", 1, [(0, 10)],),
         # # Test with valid UEN Format C starting with S
         ("S57TU0392K", 1, [(0, 10)],),
+        # # Test with valid UEN Format C starting with R
+        ("R16RF0037F", 1, [(0, 10)],),
         # Test with multiple valid UENs
         ("53125226D 201434292D S57TU0392K", 3, [(0, 9), (10, 20), (21, 31)],),
         # Test with valid UEN in a sentence

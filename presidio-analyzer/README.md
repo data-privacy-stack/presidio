@@ -60,7 +60,7 @@ recognizer = AzureOpenAILangExtractRecognizer(
 
 **Note:** LangExtract recognizers do not validate connectivity during initialization. Connection errors or missing models will be reported when `analyze()` is first called.
 
-See the [Language Model-based PII/PHI Detection guide](https://microsoft.github.io/presidio/samples/python/langextract/) for complete setup and usage instructions.
+See the [Language Model-based PII/PHI Detection guide](https://presidio.dataprivacystack.org/samples/python/langextract/) for complete setup and usage instructions.
 
 ## Deploy Presidio analyzer to Azure
 
@@ -93,4 +93,4 @@ For GPU acceleration, install the appropriate dependencies for your hardware:
 
 ## Documentation
 
-Additional documentation on installation, usage and extending the Analyzer can be found under the [Analyzer](https://microsoft.github.io/presidio/analyzer/) section of [Presidio Documentation](https://microsoft.github.io/presidio)
+Additional documentation on installation, usage and extending the Analyzer can be found under the [Analyzer](https://presidio.dataprivacystack.org/analyzer/) section of [Presidio Documentation](https://presidio.dataprivacystack.org)

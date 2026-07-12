@@ -66,13 +66,13 @@ Presidio provides a Docker containers that you can use to de-identify image data
 1. Download Docker image
 
 ```sh
-docker pull mcr.microsoft.com/presidio-image-redactor
+docker pull ghcr.io/data-privacy-stack/presidio-image-redactor
 ```
 
 2. Run container
 
 ```sh
-docker run -d -p 5003:3000 mcr.microsoft.com/presidio-image-redactor
+docker run -d -p 5003:3000 ghcr.io/data-privacy-stack/presidio-image-redactor:latest
 ```
 
 3. Use the API

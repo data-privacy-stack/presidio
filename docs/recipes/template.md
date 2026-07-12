@@ -57,15 +57,15 @@ Describe your approach in a few sentences. What recognizers, models, or techniqu
 
 ### Recommended Approach: Follow Presidio Research Patterns
 
-Provide an end-to-end example following the patterns from [presidio-research](https://github.com/microsoft/presidio-research):
+Provide an end-to-end example following the patterns from [presidio-research](https://github.com/data-privacy-stack/presidio-research):
 
 **Reference notebooks:**
-- [Evaluate Presidio Analyzer](https://github.com/microsoft/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete evaluation workflow
-- [Generate Synthetic Data](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Using Presidio Evaluator data generator
+- [Evaluate Presidio Analyzer](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete evaluation workflow
+- [Generate Synthetic Data](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Using Presidio Evaluator data generator
 
 **Structure your example:**
 
-1. **Data Synthesis**: Generate synthetic data using [Presidio Evaluator](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) or your own method
+1. **Data Synthesis**: Generate synthetic data using [Presidio Evaluator](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) or your own method
 2. **Configuration**: Set up Presidio with your custom recognizers or models
 3. **Evaluation**: Measure precision, recall, and F₂ score
 4. **Analysis**: Discuss results and trade-offs

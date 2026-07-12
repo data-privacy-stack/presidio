@@ -17,10 +17,12 @@ def entities():
 @pytest.mark.parametrize(
     "text, expected_len, expected_positions, expected_score_ranges",
     [
-        # Valid formatting and valid ACNs 
+        # Valid formatting and valid ACNs
         ("000 000 019", 1, ((0, 11),), ((1.0, 1.0),), ),
         ("005 499 981", 1, ((0, 11),), ((1.0, 1.0),), ),
         ("006249976", 1, ((0, 9),), ((1.0, 1.0),), ),
+        # Valid ACN whose check digit is 0 (weighted sum is a multiple of 10)
+        ("000000180", 1, ((0, 9),), ((1.0, 1.0),), ),
         # Valid formatting but invalid ACNs 
         ("824 753 557", 0, (), (),),
         ("824753557", 0, (), (),),

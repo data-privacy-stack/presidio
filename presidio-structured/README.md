@@ -47,7 +47,7 @@ print(anonymized_df)
 
 ## More information
 
-- [Docs](https://microsoft.github.io/presidio/structured/)
-- [Samples](https://github.com/microsoft/presidio/blob/main/docs/samples/python/example_structured.ipynb)
-- [Join the discussion](https://github.com/microsoft/presidio/discussions?discussions_q=structured)
-- [Review issues on Github](https://github.com/microsoft/presidio/issues?q=is%3Aissue+label%3Astructured-data)
+- [Docs](https://presidio.dataprivacystack.org/structured/)
+- [Samples](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_structured.ipynb)
+- [Join the discussion](https://github.com/data-privacy-stack/presidio/discussions?discussions_q=structured)
+- [Review issues on Github](https://github.com/data-privacy-stack/presidio/issues?q=is%3Aissue+label%3Astructured-data)

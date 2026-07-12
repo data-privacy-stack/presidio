@@ -96,6 +96,10 @@ To download the Presidio Docker containers, run the following command:
 
     This requires Docker to be installed. [Download Docker](https://docs.docker.com/get-docker/).
 
+!!! important "Container registry moved to GitHub Packages"
+
+    New Presidio container releases are published to [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) under the [Data Privacy Stack packages organization](https://github.com/orgs/data-privacy-stack/packages). The legacy Microsoft Container Registry images at `mcr.microsoft.com/presidio-*` are no longer updated. If you previously used `mcr.microsoft.com/presidio-analyzer:latest`, switch to `ghcr.io/data-privacy-stack/presidio-analyzer:latest`; for production, prefer pinning an explicit release tag from the package page.
+
 ### For PII anonymization in text
 
 For PII detection and anonymization in text, the `presidio-analyzer`
@@ -103,13 +107,13 @@ and `presidio-anonymizer` modules are required.
 
 ```sh
 # Download Docker images
-docker pull mcr.microsoft.com/presidio-analyzer
-docker pull mcr.microsoft.com/presidio-anonymizer
+docker pull ghcr.io/data-privacy-stack/presidio-analyzer
+docker pull ghcr.io/data-privacy-stack/presidio-anonymizer
 
 # Run containers with default ports
-docker run -d -p 5002:3000 mcr.microsoft.com/presidio-analyzer:latest
+docker run -d -p 5002:3000 ghcr.io/data-privacy-stack/presidio-analyzer:latest
 
-docker run -d -p 5001:3000 mcr.microsoft.com/presidio-anonymizer:latest
+docker run -d -p 5001:3000 ghcr.io/data-privacy-stack/presidio-anonymizer:latest
 ```
 
 ### For PII redaction in images
@@ -118,10 +122,10 @@ For PII detection in images, the `presidio-image-redactor` is required.
 
 ```sh
 # Download Docker image
-docker pull mcr.microsoft.com/presidio-image-redactor
+docker pull ghcr.io/data-privacy-stack/presidio-image-redactor
 
 # Run container with the default port
-docker run -d -p 5003:3000 mcr.microsoft.com/presidio-image-redactor:latest
+docker run -d -p 5003:3000 ghcr.io/data-privacy-stack/presidio-image-redactor:latest
 ```
 
 Once the services are running, their APIs are available.
@@ -134,13 +138,13 @@ To install Presidio from source, first clone the repo:
 * using HTTPS
 
 ```sh
-git clone https://github.com/microsoft/presidio.git
+git clone https://github.com/data-privacy-stack/presidio.git
 ```
 
 * Using SSH
 
 ```sh
-git clone git@github.com:microsoft/presidio.git
+git clone git@github.com:data-privacy-stack/presidio.git
 ```
 
 Then, build the containers locally.

@@ -24,6 +24,6 @@ This section collects different resources developed with Presidio.
 | [DataOps for the Modern Data Warehouse](https://github.com/Azure-Samples/modern-data-warehouse-dataops) | Contains numerous code samples and artifacts on how to apply DevOps principles to data pipelines built according to the [Modern Data Warehouse (MDW)](https://azure.microsoft.com/en-au/solutions/architecture/modern-data-warehouse/) architectural pattern on [Microsoft Azure](https://azure.microsoft.com/en-au/). |
 | [Extending Power BI with Python and R](https://github.com/PacktPublishing/Extending-Power-BI-with-Python-and-R) | Code repository for [Extending Power BI with Python and R](https://www.packtpub.com/product/extending-power-bi-with-python-and-r/9781801078207), published by Packt. |
 | [HebSafeHarbor](https://github.com/8400TheHealthNetwork/HebSafeHarbor) | Clinical notes anonymization in Hebrew. |
-| [Presidio Github Action](https://github.com/marketplace/actions/presidio-action) | Github Action that analyzes text for PII entities with Microsoft's Presidio framework. |
+| [Presidio GitHub Action](https://github.com/marketplace/actions/presidio-action) | GitHub Action that analyzes text for PII entities with the Presidio framework. |
 
 * Please create a PR if you're interested in adding your tool to this list.

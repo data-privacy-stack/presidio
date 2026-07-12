@@ -102,7 +102,7 @@ The following traces will be written to log, with this format:
 
 When creating new PII recognizers, it is possible to add information about the recognizer's decision process. This information will be traced or returned to the user, depending on the configuration.
 
-For example, the [spacy_recognizer.py](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/nlp_engine_recognizers/spacy_recognizer.py) implements a custom trace as follows:
+For example, the [spacy_recognizer.py](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/nlp_engine_recognizers/spacy_recognizer.py) implements a custom trace as follows:
 
 ```python
 SPACY_DEFAULT_EXPLANATION = "Identified as {} by Spacy's Named Entity Recognition"
