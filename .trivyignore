@@ -1,0 +1,17 @@
+# Trivy vulnerability ignore list.
+#
+# These entries suppress advisories that cannot currently be remediated by a
+# version bump because a required dependency caps the vulnerable package below
+# the first patched release. They are tracked for a proper fix (removing/replacing
+# the capping dependency) in a follow-up PR and should be revisited then.
+#
+# transformers < 5.x (analyzer, optional `transformers` extra):
+#   The `spacy-huggingface-pipelines` package (all releases 0.0.1-0.0.4) pins
+#   `transformers <5.0.0`, while the fixes below require transformers
+#   >=5.0.0rc3 / >=5.3.0. No version satisfies both, so these are accepted until
+#   spacy-huggingface-pipelines is dropped or replaced.
+#   (Also allow-listed for the dependency-review job via allow-ghsas in ci.yml.)
+CVE-2026-4372   # transformers RCE — fixed in 5.3.0
+GHSA-29pf-2h5f-8g72
+CVE-2026-1839   # transformers arbitrary code execution via malicious checkpoint — fixed in 5.0.0rc3
+GHSA-69w3-r845-3855
