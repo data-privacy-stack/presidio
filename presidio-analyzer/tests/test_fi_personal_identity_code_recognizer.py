@@ -161,6 +161,10 @@ def entities():
         ("131052/308T", 0, ()),
         ("131052:308T", 0, ()),
         ("131052.308T", 0, ()),
+        # 29 Feb of a non-leap century. The "+" separator means the 1800s, and
+        # 1800 is not a leap year, so 29 Feb 1800 is not a real date. (strptime
+        # alone reads the year as 2000, which IS a leap year, and accepts it.)
+        ("290200+311B", 0, ()),
     ],
 )
 def test_when_all_finnish_personal_identity_code_then_succeed(

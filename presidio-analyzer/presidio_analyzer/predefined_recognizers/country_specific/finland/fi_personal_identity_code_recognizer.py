@@ -58,9 +58,26 @@ class FiPersonalIdentityCodeRecognizer(PatternRecognizer):
             return False
 
         date_part = pattern_text[0:6]
+        # The 7th character encodes the century, which is needed to validate the
+        # date: strptime only sees the 2-digit year (and maps it to the 2000s),
+        # so "290200+..." (29 Feb 1800) is wrongly accepted even though 1800 is
+        # not a leap year. Resolve the century from the separator and validate
+        # against the full year.
+        century_by_separator = {
+            "+": 1800,
+            "-": 1900, "Y": 1900, "X": 1900, "W": 1900, "V": 1900, "U": 1900,
+            "A": 2000, "B": 2000, "C": 2000, "D": 2000, "E": 2000, "F": 2000,
+        }
+        # The separator is constrained to the keys above by the pattern, so a
+        # default is only a safeguard for direct calls with other text.
+        century = century_by_separator.get(pattern_text[6], 2000)
         try:
             # Checking if we do not have invalid dates e.g. 310211.
-            datetime.strptime(date_part, "%d%m%y")
+            datetime(
+                century + int(date_part[4:6]),
+                int(date_part[2:4]),
+                int(date_part[0:2]),
+            )
         except ValueError:
             return False
         individual_number = pattern_text[7:10]
