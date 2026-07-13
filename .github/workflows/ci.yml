@@ -67,7 +67,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         component: 
           - name: 'Analyzer'
             path: 'presidio-analyzer'
@@ -89,13 +89,6 @@ jobs:
             path: 'presidio-structured'
             extras: ''
             spacy-models: ''
-        include:
-          - python-version: '3.14'
-            component:
-              name: 'Analyzer'
-              path: 'presidio-analyzer'
-              extras: '--all-extras'
-              spacy-models: 'en_core_web_lg en_core_web_sm'
     env:
       COVERAGE_THRESHOLD: 90
       PRIMARY_PYTHON: '3.13'
