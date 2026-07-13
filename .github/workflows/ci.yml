@@ -366,7 +366,7 @@ jobs:
         run: |
           docker compose -f docker-compose.yml down
 
-  # Build and test Docker images locally for non-main branches without publishing.
+  # Build and test Docker images locally for non-main branches without publishing
   local-build-and-test:
     name: Local Build and E2E Tests (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
