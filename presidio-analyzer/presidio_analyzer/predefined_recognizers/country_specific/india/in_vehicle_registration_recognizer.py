@@ -375,10 +375,16 @@ class InVehicleRegistrationRecognizer(PatternRecognizer):
                     registration_digits = sanitized_value[-4:]
                     if registration_digits.isnumeric():
                         if 0 < int(registration_digits) <= 9999:
-                            if (
-                                dist_code
-                                and dist_code
-                                in self.state_rto_district_map.get(first_two_char, "")
+                            district_set = self.state_rto_district_map.get(
+                                first_two_char, ""
+                            )
+                            # Some states store single-digit district codes
+                            # ("1".."9") while a modern plate zero-pads them
+                            # ("DL01"); normalise the leading zero so a valid
+                            # padded district still matches.
+                            if dist_code and (
+                                dist_code in district_set
+                                or str(int(dist_code)) in district_set
                             ):
                                 is_valid_registration = True
 

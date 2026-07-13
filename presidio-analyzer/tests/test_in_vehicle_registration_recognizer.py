@@ -24,6 +24,10 @@ def entities():
         ("MCX1243", 1, (0, 7), 0.2),
         ("I15432", 1, (0, 6), 0.01),
         ("DL3CJI0001", 1, (0, 10), 1),
+        # Zero-padded district codes for states whose district set is stored
+        # single-digit (DL-01..DL-09, GJ-01..GJ-09) — previously scored 0.5.
+        ("DL01CA1234", 1, (0, 10), 1),
+        ("GJ09AB1234", 1, (0, 10), 1),
         ("ABNE123456", 0, (), (),),
         ("My Bike's registration number is OD02BA2341 with a lot of text beyond",
          1, (33, 43), 1),

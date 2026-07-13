@@ -1,41 +1,22 @@
-<!-- BEGIN MICROSOFT SECURITY.MD V0.0.7 BLOCK -->
+# Security Policy
 
-## Security
+We take the security of this project seriously. If you believe you have found a security vulnerability, please report it to us responsibly using the instructions below.
 
-Microsoft takes the security of our software products and services seriously, which includes all source code repositories managed through our GitHub organizations, which include [Microsoft](https://github.com/Microsoft), [Azure](https://github.com/Azure), [DotNet](https://github.com/dotnet), [AspNet](https://github.com/aspnet), [Xamarin](https://github.com/xamarin), and [our GitHub organizations](https://opensource.microsoft.com/).
+## Reporting a Vulnerability
 
-If you believe you have found a security vulnerability in any Microsoft-owned repository that meets [Microsoft's definition of a security vulnerability](https://aka.ms/opensource/security/definition), please report it to us as described below.
+**Please do not open public GitHub issues for security vulnerabilities.**
 
-## Reporting Security Issues
+Instead, please use GitHub's **Private Vulnerability Reporting** feature:
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+1. Navigate to the main page of the repository.
+2. Under the repository name, click **Security**.
+3. In the left sidebar, click **Reporting**.
+4. Click **Report a vulnerability** to open the advisory form.
 
-Instead, please report them to the Microsoft Security Response Center (MSRC) at [https://msrc.microsoft.com/create-report](https://aka.ms/opensource/security/create-report).
+Alternatively, you can use this direct link: [Report a Security Vulnerability](https://github.com/data-privacy-stack/presidio/security/advisories/new)
 
-If you prefer to submit without logging in, send email to [secure@microsoft.com](mailto:secure@microsoft.com). If possible, encrypt your message with our PGP key; please download it from the [Microsoft Security Response Center PGP Key page](https://aka.ms/opensource/security/pgpkey).
+## Our Process
 
-You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Additional information can be found at [microsoft.com/msrc](https://aka.ms/opensource/security/msrc).
-
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
-
-- Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)
-- Full paths of source file(s) related to the manifestation of the issue
-- The location of the affected source code (tag/branch/commit or direct URL)
-- Any special configuration required to reproduce the issue
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code (if possible)
-- Impact of the issue, including how an attacker might exploit the issue
-
-This information will help us triage your report more quickly.
-
-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/opensource/security/bounty) page for more details about our active programs.
-
-## Preferred Languages
-
-We prefer all communications to be in English.
-
-## Policy
-
-Microsoft follows the principle of [Coordinated Vulnerability Disclosure](https://aka.ms/opensource/security/cvd).
-
-<!-- END MICROSOFT SECURITY.MD BLOCK -->
+* **Acknowledgment:** We will acknowledge receipt of your report within 48 hours.
+* **Evaluation:** We will investigate the issue and keep you updated via the private GitHub Advisory thread.
+* **Disclosure:** Once a fix is ready, we will coordinate the release and publish a Security Advisory to credit your work (if desired).

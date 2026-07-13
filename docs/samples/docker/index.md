@@ -2,7 +2,7 @@
 
 ## Description
 
-Presidio can expose REST endpoints for each service using Flask and Docker. Follow the [installation guide](https://github.com/microsoft/presidio/blob/V2/docs/installation.md#using-docker) to learn how to install and run presidio-analyzer and presidio-anonymizer using docker.
+Presidio can expose REST endpoints for each service using Flask and Docker. Follow the [installation guide](https://github.com/data-privacy-stack/presidio/blob/V2/docs/installation.md#using-docker) to learn how to install and run presidio-analyzer and presidio-anonymizer using docker.
 
 ## Postman collection
 
