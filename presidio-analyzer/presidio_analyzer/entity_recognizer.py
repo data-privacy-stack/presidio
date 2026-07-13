@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional, Tuple
 
 from presidio_analyzer import RecognizerResult
 from presidio_analyzer.score_thresholds import normalize_score_thresholds
@@ -55,7 +55,7 @@ class EntityRecognizer:
         version: str = "0.0.1",
         context: Optional[List[str]] = None,
         country_code: Optional[str] = None,
-        score_thresholds: Any = None,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         self.supported_entities = supported_entities
 
@@ -84,8 +84,11 @@ class EntityRecognizer:
         return self._score_thresholds.copy()
 
     @score_thresholds.setter
-    def score_thresholds(self, value: Any) -> None:
-        """Validate and store this recognizer's score thresholds."""
+    def score_thresholds(self, value: Optional[Dict[str, float]]) -> None:
+        """Validate and store this recognizer's score thresholds.
+
+        :param value: The default and entity-specific score thresholds.
+        """
         self._score_thresholds = normalize_score_thresholds(value)
 
     @classmethod

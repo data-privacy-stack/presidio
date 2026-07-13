@@ -83,9 +83,7 @@ class ThresholdRecognizer(EntityRecognizer, ABC):
     def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
         """Return deterministic results for threshold filtering tests."""
         return [
-            RecognizerResult(
-                result.entity_type, result.start, result.end, result.score
-            )
+            RecognizerResult(result.entity_type, result.start, result.end, result.score)
             for result in self._results
         ]
 
@@ -108,9 +106,7 @@ class FallbackRecognizer(EntityRecognizer, ABC):
     def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
         """Return deterministic results for threshold filtering tests."""
         return [
-            RecognizerResult(
-                result.entity_type, result.start, result.end, result.score
-            )
+            RecognizerResult(result.entity_type, result.start, result.end, result.score)
             for result in self._results
         ]
 
@@ -139,7 +135,7 @@ class ContextThresholdRecognizer(DuplicateThresholdRecognizer):
     """Recognizer which raises its result score during context enhancement."""
 
     def enhance_using_context(self, *args, **kwargs):
-        """Raise the score above the configured cutoff."""
+        """Raise the score above the configured threshold."""
         results = kwargs["raw_recognizer_results"]
         results[0].score = 0.8
         return results
@@ -204,6 +200,7 @@ def test_when_analyze_with_predefined_recognizers_then_return_results(
     assert len(results) == 1
     assert_result(results[0], "CREDIT_CARD", 14, 33, max_score)
 
+
 @pytest.mark.parametrize(
     "registry_config,analyzer_lang,expectation",
     [
@@ -212,21 +209,26 @@ def test_when_analyze_with_predefined_recognizers_then_return_results(
         ({"supported_languages": ["es", "de"]}, None, pytest.raises(ValueError)),
         ({"supported_languages": ["es", "de"]}, ["de", "es"], nullcontext()),
         (None, None, nullcontext()),
-    ]
+    ],
 )
-def test_when_analyze_with_unsupported_language_must_match(registry_config, analyzer_lang, expectation):
+def test_when_analyze_with_unsupported_language_must_match(
+    registry_config, analyzer_lang, expectation
+):
     with expectation:
-        registry = RecognizerRegistryProvider(registry_configuration=registry_config).create_recognizer_registry()
+        registry = RecognizerRegistryProvider(
+            registry_configuration=registry_config
+        ).create_recognizer_registry()
         AnalyzerEngine(
             registry=registry,
             supported_languages=analyzer_lang,
             nlp_engine=NlpEngineMock(),
         )
 
-def test_when_analyze_with_defaults_success(
-):
+
+def test_when_analyze_with_defaults_success():
     registry = RecognizerRegistryProvider().create_recognizer_registry()
     AnalyzerEngine(registry=registry)
+
 
 def test_when_analyze_with_multiple_predefined_recognizers_then_succeed(
     loaded_registry, unit_test_guid, spacy_nlp_engine, max_score
@@ -390,7 +392,7 @@ def test_when_regex_allow_list_specified(loaded_analyzer_engine):
     assert_result(results[0], "URL", 0, 8, 0.5)
 
     results = loaded_analyzer_engine.analyze(
-        text=text, language="en", allow_list=["bing"], allow_list_match = "regex"
+        text=text, language="en", allow_list=["bing"], allow_list_match="regex"
     )
     assert len(results) == 2
     assert text[results[0].start : results[0].end] == "microsoft.com"
@@ -408,13 +410,15 @@ def test_when_regex_allow_list_specified_but_none_in_file(loaded_analyzer_engine
     assert_result(results[0], "URL", 0, 8, 0.5)
 
     results = loaded_analyzer_engine.analyze(
-        text=text, language="en", allow_list=["microsoft"], allow_list_match = "regex"
+        text=text, language="en", allow_list=["microsoft"], allow_list_match="regex"
     )
     assert len(results) == 1
     assert_result(results[0], "URL", 0, 8, 0.5)
 
 
-def test_when_regex_allow_list_specified_multiple_items_with_missing_flags(loaded_analyzer_engine):
+def test_when_regex_allow_list_specified_multiple_items_with_missing_flags(
+    loaded_analyzer_engine,
+):
     text = "bing.com is his favorite website, microsoft.com is his second favorite, azure.com is his third favorite"
     results = loaded_analyzer_engine.analyze(
         text=text,
@@ -424,7 +428,10 @@ def test_when_regex_allow_list_specified_multiple_items_with_missing_flags(loade
     assert_result(results[0], "URL", 0, 8, 0.5)
 
     results = loaded_analyzer_engine.analyze(
-        text=text, language="en", allow_list=["bing", "microsoft"], allow_list_match = "regex", 
+        text=text,
+        language="en",
+        allow_list=["bing", "microsoft"],
+        allow_list_match="regex",
     )
     assert len(results) == 1
     assert text[results[0].start : results[0].end] == "azure.com"
@@ -440,12 +447,20 @@ def test_when_regex_allow_list_specified_with_regex_flags(loaded_analyzer_engine
     assert_result(results[0], "URL", 0, 8, 0.5)
 
     results = loaded_analyzer_engine.analyze(
-        text=text, language="en", allow_list=["BING", "MICROSOFT", "AZURE"], allow_list_match = "regex", regex_flags=0
+        text=text,
+        language="en",
+        allow_list=["BING", "MICROSOFT", "AZURE"],
+        allow_list_match="regex",
+        regex_flags=0,
     )
     assert len(results) == 3
 
     results = loaded_analyzer_engine.analyze(
-        text=text, language="en", allow_list=["BING", "MICROSOFT", "AZURE"], allow_list_match = "regex", regex_flags=re.IGNORECASE
+        text=text,
+        language="en",
+        allow_list=["BING", "MICROSOFT", "AZURE"],
+        allow_list_match="regex",
+        regex_flags=re.IGNORECASE,
     )
     assert len(results) == 0
 
@@ -538,13 +553,13 @@ def test_when_entities_is_none_then_return_all_fields(loaded_registry):
 
 
 def test_when_entities_is_none_all_recognizers_loaded_then_return_all_fields(
-        spacy_nlp_engine,
+    spacy_nlp_engine,
 ):
     analyze_engine = AnalyzerEngine(
         registry=RecognizerRegistry(), nlp_engine=spacy_nlp_engine
     )
     threshold = 0
-    text = "My name is Sharon and I live in Seattle." "Domain: microsoft.com "
+    text = "My name is Sharon and I live in Seattle.Domain: microsoft.com "
     response = analyze_engine.analyze(
         text=text, score_threshold=threshold, language="en"
     )
@@ -677,39 +692,41 @@ def test_when_default_threshold_is_zero_then_all_results_pass(
     assert len(results) == 2
 
 
-def test_recognizer_threshold_precedence():
-    """Recognizer-specific and entity-specific thresholds should win."""
+@pytest.mark.parametrize(
+    "score_thresholds, default_score_threshold, request_score_threshold, expected",
+    [
+        (
+            {"default": 0.85, "PERSON": 0.95, "CREDIT_CARD": 0.95},
+            0.1,
+            0.8,
+            {"DATE_TIME": 0.9},
+        ),
+        (
+            {"default": 0.4, "PERSON": 0.6},
+            0.3,
+            None,
+            {"CREDIT_CARD": 0.65, "URL": 0.75, "DATE_TIME": 0.9},
+        ),
+        ({"default": 0.8}, 0.3, None, {"DATE_TIME": 0.9}),
+        ({}, 0.8, None, {"DATE_TIME": 0.9}),
+    ],
+)
+def test_competing_threshold_sources_resolve_in_precedence_order(
+    score_thresholds, default_score_threshold, request_score_threshold, expected
+):
+    """The decisive threshold source should determine the returned results."""
     analyzer_engine = _build_threshold_analyzer(
-        {"default": 0.4, "PERSON": 0.6, "CREDIT_CARD": 0.7}
+        score_thresholds, default_score_threshold
     )
 
     results = analyzer_engine.analyze(
         text="Threshold config",
         language="en",
-        entities=["PERSON", "CREDIT_CARD", "URL", "DATE_TIME", "PHONE_NUMBER"],
+        entities=["PERSON", "CREDIT_CARD", "URL", "DATE_TIME"],
+        score_threshold=request_score_threshold,
     )
 
-    scores = {result.entity_type: result.score for result in results}
-
-    assert scores == {"URL": 0.75, "DATE_TIME": 0.9}
-
-
-def test_explicit_score_threshold_overrides_config():
-    """A request-level score threshold should override config thresholds."""
-    analyzer_engine = _build_threshold_analyzer(
-        {"default": 0.4, "PERSON": 0.6, "CREDIT_CARD": 0.7}
-    )
-
-    results = analyzer_engine.analyze(
-        text="Threshold config",
-        language="en",
-        entities=["PERSON", "CREDIT_CARD", "URL", "DATE_TIME", "PHONE_NUMBER"],
-        score_threshold=0.8,
-    )
-
-    scores = {result.entity_type: result.score for result in results}
-
-    assert scores == {"DATE_TIME": 0.9}
+    assert {result.entity_type: result.score for result in results} == expected
 
 
 def test_duplicate_results_keep_recognizers_that_meet_their_thresholds():
@@ -734,9 +751,10 @@ def test_duplicate_results_keep_recognizers_that_meet_their_thresholds():
 
     assert len(results) == 1
     assert strict.id != lenient.id
-    assert results[0].recognition_metadata[
-        RecognizerResult.RECOGNIZER_IDENTIFIER_KEY
-    ] == lenient.id
+    assert (
+        results[0].recognition_metadata[RecognizerResult.RECOGNIZER_IDENTIFIER_KEY]
+        == lenient.id
+    )
 
 
 def test_empty_recognizer_thresholds_use_default():
@@ -771,8 +789,16 @@ def test_context_enhancement_runs_before_recognizer_threshold_filtering():
     assert [result.score for result in results] == [0.8]
 
 
-@pytest.mark.parametrize("identifier", [None, "not-a-selected-recognizer"])
-def test_missing_or_unmatched_recognizer_identifier_uses_engine_default(identifier):
+@pytest.mark.parametrize(
+    "identifier, log_message",
+    [
+        (None, "Recognizer identifier is missing"),
+        ("not-a-selected-recognizer", "did not match"),
+    ],
+)
+def test_missing_or_unmatched_recognizer_identifier_uses_engine_default(
+    identifier, log_message, caplog
+):
     """Unknown producer provenance should use the engine fallback."""
     registry = RecognizerRegistry()
     registry.add_recognizer(MissingIdentifierRecognizer(identifier))
@@ -782,7 +808,10 @@ def test_missing_or_unmatched_recognizer_identifier_uses_engine_default(identifi
         default_score_threshold=0.8,
     )
 
-    assert analyzer.analyze("John", "en", entities=["PERSON"]) == []
+    with caplog.at_level("DEBUG", logger="presidio-analyzer"):
+        assert analyzer.analyze("John", "en", entities=["PERSON"]) == []
+
+    assert log_message in caplog.text
 
 
 def test_ad_hoc_recognizer_uses_its_score_thresholds():
@@ -1005,7 +1034,9 @@ def test_entities_filter_for_ad_hoc_removes_recognizer(loaded_analyzer_engine):
     assert "MR" not in [resp.entity_type for resp in responses2]
 
 
-def test_ad_hoc_with_context_support_higher_confidence(spacy_nlp_engine, zip_code_recognizer):
+def test_ad_hoc_with_context_support_higher_confidence(
+    spacy_nlp_engine, zip_code_recognizer
+):
     text = "Mr. John Smith's zip code is 10023"
     analyzer_engine = AnalyzerEngine(nlp_engine=spacy_nlp_engine)
 
@@ -1088,7 +1119,9 @@ def test_when_recognizer_doesnt_return_recognizer_name_no_exception(spacy_nlp_en
     )
 
 
-def test_when_recognizer_overrides_enhance_score_then_it_get_boosted_once(spacy_nlp_engine):
+def test_when_recognizer_overrides_enhance_score_then_it_get_boosted_once(
+    spacy_nlp_engine,
+):
     class MockRecognizer(EntityRecognizer, ABC):
         def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
             return [
@@ -1191,12 +1224,8 @@ def test_when_regex_allow_list_times_out_then_result_is_kept(loaded_analyzer_eng
     """Test that a timed-out allow list regex keeps the result (conservative behavior)."""
     text = "bing.com is his favorite website"
 
-    with patch(
-        "presidio_analyzer.analyzer_engine.REGEX_TIMEOUT_SECONDS", 0.001
-    ):
-        with patch(
-            "presidio_analyzer.analyzer_engine.re.compile"
-        ) as mock_compile:
+    with patch("presidio_analyzer.analyzer_engine.REGEX_TIMEOUT_SECONDS", 0.001):
+        with patch("presidio_analyzer.analyzer_engine.re.compile") as mock_compile:
             mock_compiled = mock_compile.return_value
             mock_compiled.search.side_effect = TimeoutError("regex timed out")
 
@@ -1245,4 +1274,3 @@ def test_when_regex_allow_list_is_all_empty_entries_then_results_are_kept():
     )
 
     assert filtered == results
-

@@ -1,11 +1,15 @@
 """Validation helpers for recognizer score thresholds."""
 
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Dict
 
 
-def validate_score_threshold(threshold: Any) -> float:
-    """Validate a score threshold without coercing its input type."""
+def validate_score_threshold(threshold: object) -> float:
+    """Validate a score threshold without coercing its input type.
+
+    :param threshold: The value to validate.
+    :return: The validated score threshold.
+    """
     if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
         raise ValueError(f"Score threshold must be numeric, got: {threshold}")
     if not 0.0 <= threshold <= 1.0:
@@ -15,8 +19,12 @@ def validate_score_threshold(threshold: Any) -> float:
     return threshold
 
 
-def normalize_score_thresholds(score_thresholds: Any) -> Dict[str, float]:
-    """Validate and defensively copy one recognizer's score thresholds."""
+def normalize_score_thresholds(score_thresholds: object) -> Dict[str, float]:
+    """Validate and defensively copy one recognizer's score thresholds.
+
+    :param score_thresholds: The threshold mapping to validate.
+    :return: A normalized copy of the score thresholds.
+    """
     if score_thresholds is None:
         return {}
     if not isinstance(score_thresholds, Mapping):

@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from collections import Counter
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import regex as re
 
@@ -171,8 +171,10 @@ class AnalyzerEngine:
         :param entities: List of PII entities that should be looked for in the text.
         If entities=None then all entities are looked for.
         :param correlation_id: cross call ID for this request
-        :param score_threshold: A minimum value for which
-        to return an identified entity
+        :param score_threshold: An explicit threshold for every result. When
+        supplied, this bypasses recognizer-level score thresholds for this
+        request. When omitted, the analyzer uses an entity-specific recognizer
+        threshold, the recognizer's default threshold, then the engine default.
         :param return_decision_process: Whether the analysis decision process steps
         returned in the response.
         :param ad_hoc_recognizers: List of recognizers which will be used only
@@ -334,7 +336,7 @@ class AnalyzerEngine:
     def __remove_low_scores(
         self,
         results: List[RecognizerResult],
-        score_threshold: float = None,
+        score_threshold: Optional[float] = None,
         recognizers: Optional[List[EntityRecognizer]] = None,
     ) -> List[RecognizerResult]:
         """
@@ -346,8 +348,9 @@ class AnalyzerEngine:
         :return: List[RecognizerResult]
         """
         if score_threshold is None:
-            recognizers_by_id = {
-                recognizer.id: recognizer for recognizer in recognizers or []
+            recognizers_by_id: Dict[str, Dict[str, float]] = {
+                recognizer.id: recognizer.score_thresholds
+                for recognizer in recognizers or []
             }
             return [
                 result
@@ -362,15 +365,25 @@ class AnalyzerEngine:
     def __get_result_score_threshold(
         self,
         result: RecognizerResult,
-        recognizers_by_id: dict,
+        recognizers_by_id: Dict[str, Dict[str, float]],
     ) -> float:
         """Resolve the threshold to apply for a single recognizer result."""
         metadata = result.recognition_metadata or {}
         recognizer_id = metadata.get(RecognizerResult.RECOGNIZER_IDENTIFIER_KEY)
-        recognizer = recognizers_by_id.get(recognizer_id)
-        if recognizer is None:
+        if recognizer_id is None:
+            logger.debug(
+                "Recognizer identifier is missing; using the engine default "
+                "score threshold"
+            )
             return self.default_score_threshold
-        recognizer_thresholds = recognizer.score_thresholds
+        recognizer_thresholds = recognizers_by_id.get(recognizer_id)
+        if recognizer_thresholds is None:
+            logger.debug(
+                "Recognizer identifier %s did not match a selected recognizer; "
+                "using the engine default score threshold",
+                recognizer_id,
+            )
+            return self.default_score_threshold
 
         entity_threshold = recognizer_thresholds.get(result.entity_type)
         if entity_threshold is not None:

@@ -122,7 +122,7 @@ recognizer_registry:
 """
 ```
 
-Each recognizer can set a `default` cutoff and entity-specific overrides in `score_thresholds`. An explicit request threshold takes priority, followed by an entity override, the recognizer default, and the analyzer's `default_score_threshold`.
+Each recognizer can set a `default` threshold and entity-specific overrides in `score_thresholds`. Supplying `analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request. When omitted, precedence is an entity override, the recognizer default, then the analyzer's `default_score_threshold`.
 
 ### NLP Engine parameters
 
