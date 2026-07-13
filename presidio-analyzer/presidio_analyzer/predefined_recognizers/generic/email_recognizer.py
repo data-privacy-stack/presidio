@@ -15,10 +15,15 @@ class EmailRecognizer(PatternRecognizer):
     :param supported_entity: The entity this recognizer can detect
     """
 
+    # The domain part allows internal hyphen groups inside each label, including
+    # consecutive hyphens, so RFC 3490 punycode labels (e.g. "xn--80ak6aa92e")
+    # and raw IDN labels (matched via the Unicode-aware "\w") are detected.
+    # Each label still starts and ends with an alphanumeric, and at least one
+    # dot is required, so no arbitrary non-email text is matched.
     PATTERNS = [
         Pattern(
             "Email (Medium)",
-            r"\b((([!#$%&'*+\-/=?^_`{|}~\w])|([!#$%&'*+\-/=?^_`{|}~\w][!#$%&'*+\-/=?^_`{|}~\.\w]{0,}[!#$%&'*+\-/=?^_`{|}~\w]))[@]\w+([-.]\w+)*\.\w+([-.]\w+)*)\b",
+            r"\b((([!#$%&'*+\-/=?^_`{|}~\w])|([!#$%&'*+\-/=?^_`{|}~\w][!#$%&'*+\-/=?^_`{|}~\.\w]{0,}[!#$%&'*+\-/=?^_`{|}~\w]))[@]\w+(?:-+\w+)*(?:\.\w+(?:-+\w+)*)+)\b",
             0.5,
         ),
     ]

@@ -31,17 +31,17 @@ In addition, it provides simple data generation tools to help you create a datas
 ### Evaluating the Presidio Analyzer using Presidio-Research
 
 Presidio-Research is a python package with a set of tools that help you evaluate the performance of the Presidio Analyzer.
-To get started, follow the instructions in the [Presidio-Research repository](https://github.com/microsoft/presidio-research).
+To get started, follow the instructions in the [Presidio-Research repository](https://github.com/data-privacy-stack/presidio-research).
 
 The easiest way to get started is by reviewing the notebooks:
 
-- [Notebook 1](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb): Shows how to use the PII data generator.
-- [Notebook 2](https://github.com/microsoft/presidio-research/blob/master/notebooks/2_PII_EDA.ipynb): Shows a simple analysis of the PII dataset.
-- [Notebook 3](https://github.com/microsoft/presidio-research/blob/master/notebooks/3_Split_by_pattern_number.ipynb): Provides tools to split the dataset into train/test/validation sets while avoiding leakage due to the same pattern appearing in multiple folds (only applicable for synthetically generated data).
-- [Notebook 4](https://github.com/microsoft/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb): Shows how to use the evaluation tools to evaluate how well Presidio detects PII. Note that this is using the vanilla Presidio, and the results aren't very accurate.
-- [Notebook 5](https://github.com/microsoft/presidio-research/blob/master/notebooks/5_Evaluate_Custom_Presidio_Analyzer.ipynb): Shows how one can configure Presidio to detect PII much more accurately, and boost the f score in ~30%.
+- [Notebook 1](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb): Shows how to use the PII data generator.
+- [Notebook 2](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/2_PII_EDA.ipynb): Shows a simple analysis of the PII dataset.
+- [Notebook 3](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/3_Split_by_pattern_number.ipynb): Provides tools to split the dataset into train/test/validation sets while avoiding leakage due to the same pattern appearing in multiple folds (only applicable for synthetically generated data).
+- [Notebook 4](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb): Shows how to use the evaluation tools to evaluate how well Presidio detects PII. Note that this is using the vanilla Presidio, and the results aren't very accurate.
+- [Notebook 5](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/5_Evaluate_Custom_Presidio_Analyzer.ipynb): Shows how one can configure Presidio to detect PII much more accurately, and boost the f score in ~30%.
 
-For more information and advanced usage, refer to the [Presidio-Research repository](https://github.com/microsoft/presidio-research).
+For more information and advanced usage, refer to the [Presidio-Research repository](https://github.com/data-privacy-stack/presidio-research).
 
 ### Evaluating DICOM redaction with Presidio Image Redactor
 

@@ -82,8 +82,12 @@ class AuAbnRecognizer(PatternRecognizer):
         # Set weights based on digit position
         weight = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
 
-        # Perform checksums
-        abn_list[0] = 9 if abn_list[0] == 0 else abn_list[0] - 1
+        # Perform checksums. The ABR algorithm subtracts 1 from the first
+        # (left-most) digit; a leading 0 therefore becomes -1 (which makes the
+        # weighted sum non-zero mod 89 and correctly fails — valid ABNs never
+        # start with 0). The previous special case remapped 0 to 9, which
+        # admitted some invalid leading-zero numbers as valid.
+        abn_list[0] = abn_list[0] - 1
         sum_product = 0
         for i in range(11):
             sum_product += abn_list[i] * weight[i]

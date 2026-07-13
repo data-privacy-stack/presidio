@@ -23,7 +23,7 @@ recognizers:
   #   visible to no-code YAML readers. It must match the recognizer class's ``COUNTRY_CODE``
   #   attribute; mismatches raise at load time. Locale-agnostic recognizers omit ``country_code``.
   # For custom:
-  # - See an example configuration here: https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/example_recognizers.yaml
+  # - See an example configuration here: https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/example_recognizers.yaml
   # - Custom pattern recognizers with this configuration can be added to this file, with type: custom
   #  For recognizers supporting more than one language, an instance of the recognizer for each language will be created.
   # For example, see the CreditCardRecognizer definition below:
@@ -255,6 +255,14 @@ recognizers:
     type: predefined
     country_code: it
 
+    
+  - name: PhTinRecognizer
+    supported_languages: 
+    - en
+    type: predefined
+    enabled: false
+
+
   - name: PlPeselRecognizer
     supported_languages: 
     - pl
@@ -306,6 +314,13 @@ recognizers:
     type: predefined
     enabled: false
     country_code: se
+
+  - name: ZaIdNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
 
   - name: ThTninRecognizer
     supported_languages:
