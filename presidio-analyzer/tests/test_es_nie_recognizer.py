@@ -1,7 +1,8 @@
 import pytest
+from presidio_analyzer import Pattern
+from presidio_analyzer.predefined_recognizers import EsNieRecognizer
 
 from tests import assert_result
-from presidio_analyzer.predefined_recognizers import EsNieRecognizer
 
 
 @pytest.fixture(scope="module")
@@ -51,3 +52,11 @@ def test_when_all_es_nie_then_succeed(
     assert len(results) == expected_len
     for res, (st_pos, fn_pos) in zip(results, expected_positions):
         assert_result(res, entities[0], st_pos, fn_pos, max_score)
+
+
+def test_when_custom_pattern_allows_non_digit_middle_then_no_crash(entities):
+    """A non-digit middle segment should be rejected, not raise."""
+    loose_pattern = Pattern("NIE_LOOSE", r"\b[X-Z][0-9A-Za-z]{6}[A-Z]\b", 0.5)
+    recognizer = EsNieRecognizer(patterns=[loose_pattern])
+    results = recognizer.analyze("XABCDEFG", entities)
+    assert results == []

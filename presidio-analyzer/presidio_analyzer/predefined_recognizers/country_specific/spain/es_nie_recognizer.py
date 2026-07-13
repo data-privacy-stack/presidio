@@ -66,7 +66,7 @@ class EsNieRecognizer(PatternRecognizer):
         letter = pattern_text[-1]
 
         # check last is a letter, and first is in X,Y,Z
-        if not pattern_text[1:-1].isdigit or pattern_text[:1] not in "XYZ":
+        if not pattern_text[1:-1].isdigit() or pattern_text[:1] not in "XYZ":
             return False
         # check size is 8 or 9
         if len(pattern_text) < 8 or len(pattern_text) > 9:
