@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Anonymizer
 ### General
 #### Changed
-- Migrated dependency management from Poetry to [uv](https://github.com/astral-sh/uv) as the first step toward a fully uv-based repository. Each tested package now declares its development tooling with a PEP 735 `[dependency-groups]` table and ships a committed `uv.lock`; CI and the service Docker images install from the lockfile with `uv sync --locked` (no dependency resolution happens in CI or image builds). This also fixes the Poetry CI hang — its lockless universal resolve backtracked for many minutes on the analyzer's large `--all-extras` graph — and a job-level `timeout-minutes` safety net was added. Package metadata (the `[project]` tables) is unchanged; the `poetry-core` build backend is retained for now.
+- Migrated CI and service-image dependency installation from Poetry to [uv](https://github.com/astral-sh/uv) with committed lockfiles, fixing prolonged dependency-resolution hangs and making builds reproducible.
 #### Fixed
 - Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
 
