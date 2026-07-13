@@ -9,7 +9,7 @@ Presidio-analyzer's decision process exposes information on why a specific PII w
 - Confidence scores before and after each step
 And more.
 
-For more information, refer to the [decision process documentation](https://microsoft.github.io/presidio/analyzer/decision_process/).
+For more information, refer to the [decision process documentation](https://data-privacy-stack.github.io/presidio/analyzer/decision_process/).
 
 Let's use the decision process output to understand how the zip code value was detected:
 

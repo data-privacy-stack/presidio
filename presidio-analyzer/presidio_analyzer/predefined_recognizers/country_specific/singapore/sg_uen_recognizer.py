@@ -23,7 +23,7 @@ class SgUenRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "UEN (low)",
-            r"\b\d{8}[A-Z]\b|\b\d{9}[A-Z]\b|\b(T|S)\d{2}[A-Z]{2}\d{4}[A-Z]\b",
+            r"\b\d{8}[A-Z]\b|\b\d{9}[A-Z]\b|\b[TSR]\d{2}[A-Z]{2}\d{4}[A-Z]\b",
             0.3,
         )
     ]
@@ -105,6 +105,10 @@ class SgUenRecognizer(PatternRecognizer):
         Only the part in text that was detected by the regex engine
         :return: A bool indicating whether the validation was successful.
         """
+        # The prefix, entity-type and check letters are defined in upper case;
+        # the pattern is matched case-insensitively, so normalize before the
+        # checksum or a valid UEN written in lower case would be rejected.
+        pattern_text = pattern_text.upper()
 
         if len(pattern_text) == 9:
             # Checksum validation for UEN format A

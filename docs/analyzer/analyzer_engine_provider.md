@@ -139,9 +139,9 @@ print(results)
 
 The default configuration of `AnalyzerEngine` is defined in the following files: 
 
-  -  [Analyzer Engine](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml)
-  -  [NLP Engine](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml)
-  -  [Recognizer Registry](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
+  -  [Analyzer Engine](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml)
+  -  [NLP Engine](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml)
+  -  [Recognizer Registry](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
 
 ## Enabling and disabling recognizers
 In general, recognizers that are not added to the configuration would not be created, with one exception.

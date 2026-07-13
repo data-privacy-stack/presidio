@@ -322,7 +322,7 @@ class RecognizerRegistry:
         Read YAML file and load recognizers into the recognizer registry.
 
         See example yaml file here:
-        https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/example_recognizers.yaml
+        https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/example_recognizers.yaml
 
         :example:
         >>> yaml_file = "recognizers.yaml"

@@ -26,6 +26,9 @@ def entities():
         ("Here is my National Insurance Number YZ 61 48 68 B", 1, ((36, 50),), ((0.5, 0.5),), ),
         # Invalid National Insurance Numbers
         ("AA 12 34 56 H", 0, (), (), ),
+        # The suffix must be a letter A-D; a numeric suffix is never valid.
+        ("AB 12 34 56 1", 0, (), (), ),
+        ("ab1234561", 0, (), (), ),
         ("FQ 00 00 00 C", 0, (), (), ),
         ("BG123612A", 0, (), (), ),
         ("nino: nt 99 88 77 a", 0, (), (), ),

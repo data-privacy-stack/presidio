@@ -4,7 +4,7 @@ Taking the numbers recognizer one step further, let's say we also would like to 
 
 Notes:
 
-- In this example we would create a new class, which implements [`EntityRecognizer`](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/entity_recognizer.py), the basic recognizer in Presidio. This abstract class requires us to implement the `load` method and `analyze` method.
+- In this example we would create a new class, which implements [`EntityRecognizer`](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/entity_recognizer.py), the basic recognizer in Presidio. This abstract class requires us to implement the `load` method and `analyze` method.
 
 - Each recognizer accepts an object of type `NlpArtifacts`, which holds pre-computed attributes on the input text.
 
