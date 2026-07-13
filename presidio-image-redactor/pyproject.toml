@@ -15,11 +15,12 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 keywords = ["presidio_image_redactor"]
 urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 
 dependencies = [
     "pillow (>=9.0.0,<13.0.0)",
@@ -31,7 +32,8 @@ dependencies = [
     "azure-ai-formrecognizer (>=3.3.3,<4.0.0)",
     "opencv-python (>=4.13.0.92,<5.0.0)",
     "python-gdcm (>=3.0.24.1,<4.0.0)",
-    "spacy >=3.8.7,<4.0.0 ; python_version >= '3.13'"]
+    "spacy (>=3.8.7,<4.0.0) ; python_version >= '3.13' and python_version < '3.14'",
+    "spacy (>=3.8.7,!=3.8.14,<4.0.0) ; python_version >= '3.14'"]
 
 [project.optional-dependencies]
 server = [

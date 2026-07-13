@@ -105,6 +105,10 @@ class SgUenRecognizer(PatternRecognizer):
         Only the part in text that was detected by the regex engine
         :return: A bool indicating whether the validation was successful.
         """
+        # The prefix, entity-type and check letters are defined in upper case;
+        # the pattern is matched case-insensitively, so normalize before the
+        # checksum or a valid UEN written in lower case would be rejected.
+        pattern_text = pattern_text.upper()
 
         if len(pattern_text) == 9:
             # Checksum validation for UEN format A
