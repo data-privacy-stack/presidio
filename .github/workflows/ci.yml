@@ -56,6 +56,9 @@ jobs:
         with:
           fail-on-severity: low
           allow-licenses: MIT, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
+          # transformers advisories that cannot be remediated by a bump
+          # (spacy-huggingface-pipelines caps transformers <5); see .trivyignore.
+          allow-ghsas: GHSA-29pf-2h5f-8g72, GHSA-69w3-r845-3855
           comment-summary-in-pr: on-failure
 
   test:
