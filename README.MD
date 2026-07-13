@@ -95,3 +95,4 @@ This project has adopted the [Contributor Covenant Code of Conduct](CODE_OF_COND
 <a href="https://github.com/data-privacy-stack/presidio/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=data-privacy-stack/presidio" />
 </a>
+
