@@ -224,6 +224,32 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
         return super().model_dump(*args, **kwargs)
 
 
+class BasicLangExtractRecognizerConfig(PredefinedRecognizerConfig):
+    """Configuration specifically for Basic LangExtract recognizers."""
+
+    config_path: Optional[str] = Field(None, description="LangExtract config path")
+
+    def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        """Serialize the config without None values by default."""
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(*args, **kwargs)
+
+
+class AzureOpenAILangExtractRecognizerConfig(PredefinedRecognizerConfig):
+    """Configuration specifically for Azure OpenAI LangExtract recognizers."""
+
+    model_id: Optional[str] = Field(None, description="Azure OpenAI deployment name")
+    config_path: Optional[str] = Field(None, description="LangExtract config path")
+    azure_endpoint: Optional[str] = Field(None, description="Azure OpenAI endpoint")
+    api_key: Optional[str] = Field(None, description="Azure OpenAI API key")
+    api_version: Optional[str] = Field(None, description="Azure OpenAI API version")
+
+    def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        """Serialize the config without None values by default."""
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(*args, **kwargs)
+
+
 class CustomRecognizerConfig(BaseRecognizerConfig):
     """Configuration for custom pattern-based recognizers."""
 
@@ -534,4 +560,6 @@ class RecognizerRegistryConfig(BaseModel):
 CONFIG_MODEL_MAP: Dict[str, Type[BaseModel]] = {
     "HuggingFaceNerRecognizer": HuggingFaceRecognizerConfig,
     "GLiNERRecognizer": GLiNERRecognizerConfig,
+    "BasicLangExtractRecognizer": BasicLangExtractRecognizerConfig,
+    "AzureOpenAILangExtractRecognizer": AzureOpenAILangExtractRecognizerConfig,
 }

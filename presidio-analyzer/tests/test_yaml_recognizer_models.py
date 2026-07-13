@@ -829,6 +829,111 @@ def test_huggingface_recognizer_config_model_dump_excludes_none():
     assert "label_mapping" not in dumped
 
 
+def test_basic_langextract_recognizer_config_path():
+    """Test that BasicLangExtractRecognizer config_path is preserved."""
+    from presidio_analyzer.input_validation.yaml_recognizer_models import (
+        BasicLangExtractRecognizerConfig,
+        RecognizerRegistryConfig,
+    )
+
+    registry_config = {
+        "recognizers": [
+            {
+                "name": "e2eollama",
+                "class_name": "BasicLangExtractRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "config_path": "custom-basic.yaml",
+            }
+        ]
+    }
+
+    config = RecognizerRegistryConfig(**registry_config)
+    recognizer = config.recognizers[0]
+
+    assert isinstance(recognizer, BasicLangExtractRecognizerConfig)
+    assert recognizer.name == "e2eollama"
+    assert recognizer.class_name == "BasicLangExtractRecognizer"
+    assert recognizer.config_path == "custom-basic.yaml"
+
+
+def test_azure_openai_langextract_recognizer_config_fields():
+    """Test that AzureOpenAILangExtractRecognizer fields are preserved."""
+    from presidio_analyzer.input_validation.yaml_recognizer_models import (
+        AzureOpenAILangExtractRecognizerConfig,
+        RecognizerRegistryConfig,
+    )
+
+    registry_config = {
+        "recognizers": [
+            {
+                "name": "custom_azure_langextract",
+                "class_name": "AzureOpenAILangExtractRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "config_path": "custom-azure.yaml",
+                "model_id": "gpt-4o-deployment",
+                "azure_endpoint": "https://example.openai.azure.com/",
+                "api_key": "PLACEHOLDER_NOT_A_REAL_KEY",
+                "api_version": "2024-02-01",
+            }
+        ]
+    }
+
+    config = RecognizerRegistryConfig(**registry_config)
+    recognizer = config.recognizers[0]
+
+    assert isinstance(recognizer, AzureOpenAILangExtractRecognizerConfig)
+    assert recognizer.config_path == "custom-azure.yaml"
+    assert recognizer.model_id == "gpt-4o-deployment"
+    assert recognizer.azure_endpoint == "https://example.openai.azure.com/"
+    assert recognizer.api_key == "PLACEHOLDER_NOT_A_REAL_KEY"
+    assert recognizer.api_version == "2024-02-01"
+
+
+def test_configuration_validator_preserves_langextract_recognizer_fields():
+    """Validated YAML should preserve LangExtract constructor kwargs."""
+    from presidio_analyzer.input_validation.schemas import ConfigurationValidator
+
+    raw_config = {
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "name": "e2eollama",
+                "class_name": "BasicLangExtractRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "config_path": "custom-basic.yaml",
+            },
+            {
+                "name": "custom_azure_langextract",
+                "class_name": "AzureOpenAILangExtractRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "config_path": "custom-azure.yaml",
+                "model_id": "gpt-4o-deployment",
+                "azure_endpoint": "https://example.openai.azure.com/",
+                "api_key": "PLACEHOLDER_NOT_A_REAL_KEY",
+                "api_version": "2024-02-01",
+            },
+        ],
+    }
+
+    validated = ConfigurationValidator.validate_recognizer_registry_configuration(
+        raw_config
+    )
+    basic_recognizer = validated["recognizers"][0]
+    azure_recognizer = validated["recognizers"][1]
+
+    assert basic_recognizer["config_path"] == "custom-basic.yaml"
+    assert "model_id" not in basic_recognizer
+    assert azure_recognizer["config_path"] == "custom-azure.yaml"
+    assert azure_recognizer["model_id"] == "gpt-4o-deployment"
+    assert azure_recognizer["azure_endpoint"] == "https://example.openai.azure.com/"
+    assert azure_recognizer["api_key"] == "PLACEHOLDER_NOT_A_REAL_KEY"
+    assert azure_recognizer["api_version"] == "2024-02-01"
+
+
 def test_config_model_map_fallback_to_predefined():
     """Test CONFIG_MODEL_MAP falls back to Predefined for unknown class_name."""
     from presidio_analyzer.input_validation.yaml_recognizer_models import (
