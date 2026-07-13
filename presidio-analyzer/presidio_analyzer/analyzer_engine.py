@@ -256,6 +256,7 @@ class AnalyzerEngine:
 
         # Remove duplicates or low score results
         results = EntityRecognizer.remove_duplicates(results)
+        results = EntityRecognizer.merge_adjacent_text_entities(results, text)
         results = self.__remove_low_scores(results, score_threshold)
 
         if allow_list:

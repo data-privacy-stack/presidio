@@ -122,6 +122,79 @@ def test_when_remove_duplicates_contained_shorter_length_results_removed():
 
 import pytest
 
+
+# ---------------------------------------------------------------------------
+# merge_adjacent_text_entities tests
+# ---------------------------------------------------------------------------
+
+def test_merge_adjacent_same_type_entities():
+    """Two PERSON spans separated by a single space are merged into one."""
+    text = "My name is Dave Jones"
+    results = [
+        RecognizerResult(entity_type="PERSON", start=11, end=15, score=0.85),
+        RecognizerResult(entity_type="PERSON", start=16, end=21, score=0.85),
+    ]
+    merged = EntityRecognizer.merge_adjacent_text_entities(results, text)
+    assert len(merged) == 1
+    assert merged[0].start == 11
+    assert merged[0].end == 21
+    assert merged[0].entity_type == "PERSON"
+
+
+def test_merge_adjacent_preserves_max_score():
+    """Merged entity takes the higher of the two scores."""
+    text = "Anne Marie"
+    results = [
+        RecognizerResult(entity_type="PERSON", start=0, end=4, score=0.7),
+        RecognizerResult(entity_type="PERSON", start=5, end=10, score=0.9),
+    ]
+    merged = EntityRecognizer.merge_adjacent_text_entities(results, text)
+    assert len(merged) == 1
+    assert merged[0].score == 0.9
+
+
+def test_merge_adjacent_three_tokens():
+    """Three consecutive same-type spans are merged into a single result."""
+    text = "Jean Luc Picard"
+    results = [
+        RecognizerResult(entity_type="PERSON", start=0, end=4, score=0.8),
+        RecognizerResult(entity_type="PERSON", start=5, end=8, score=0.8),
+        RecognizerResult(entity_type="PERSON", start=9, end=15, score=0.8),
+    ]
+    merged = EntityRecognizer.merge_adjacent_text_entities(results, text)
+    assert len(merged) == 1
+    assert merged[0].start == 0
+    assert merged[0].end == 15
+
+
+def test_no_merge_when_different_entity_types():
+    """Adjacent spans of different types are NOT merged."""
+    text = "John London"
+    results = [
+        RecognizerResult(entity_type="PERSON", start=0, end=4, score=0.8),
+        RecognizerResult(entity_type="LOCATION", start=5, end=11, score=0.8),
+    ]
+    merged = EntityRecognizer.merge_adjacent_text_entities(results, text)
+    assert len(merged) == 2
+
+
+def test_no_merge_when_gap_has_non_whitespace():
+    """Spans separated by non-whitespace characters are NOT merged."""
+    text = "foo, bar"
+    results = [
+        RecognizerResult(entity_type="PERSON", start=0, end=3, score=0.8),
+        RecognizerResult(entity_type="PERSON", start=5, end=8, score=0.8),
+    ]
+    merged = EntityRecognizer.merge_adjacent_text_entities(results, text)
+    assert len(merged) == 2
+
+
+def test_merge_empty_results():
+    """Empty input returns empty output without error."""
+    merged = EntityRecognizer.merge_adjacent_text_entities([], "some text")
+    assert merged == []
+
+
 sanitizer_test_set = [
     ["  a|b:c       ::-", [("-", ""), (" ", ""), (":", ""), ("|", "")], "abc"],
     ["def", "", "def"],

@@ -290,6 +290,48 @@ class EntityRecognizer:
         return filtered_results
 
     @staticmethod
+    def merge_adjacent_text_entities(
+        results: List[RecognizerResult], text: str
+    ) -> List[RecognizerResult]:
+        """
+        Merge adjacent entities of the same type separated only by whitespace.
+
+        When an NER model detects a multi-token entity (e.g. "Dave Jones") as
+        separate consecutive spans of the same entity type, this method fuses
+        them into a single span so downstream anonymization produces one
+        placeholder instead of many.
+
+        :param results: List[RecognizerResult] (need not be sorted)
+        :param text: the original text that was analyzed
+        :return: List[RecognizerResult] with whitespace-adjacent same-type
+                 entities merged; order is preserved by start index
+        """
+        if not results:
+            return results
+
+        sorted_results = sorted(results, key=lambda x: x.start)
+        merged: List[RecognizerResult] = []
+        current = sorted_results[0]
+
+        for nxt in sorted_results[1:]:
+            gap = text[current.end : nxt.start]
+            if current.entity_type == nxt.entity_type and gap.strip() == "":
+                current = RecognizerResult(
+                    entity_type=current.entity_type,
+                    start=current.start,
+                    end=nxt.end,
+                    score=max(current.score, nxt.score),
+                    analysis_explanation=current.analysis_explanation,
+                    recognition_metadata=current.recognition_metadata,
+                )
+            else:
+                merged.append(current)
+                current = nxt
+
+        merged.append(current)
+        return merged
+
+    @staticmethod
     def sanitize_value(text: str, replacement_pairs: List[Tuple[str, str]]) -> str:
         """
         Cleanse the input string of the replacement pairs specified as argument.
