@@ -56,12 +56,6 @@ jobs:
         with:
           fail-on-severity: low
           allow-licenses: MIT, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
-          # Pre-existing transformers advisories surfaced by the newly committed
-          # uv.lock files (they already exist on main, capped at transformers
-          # <5 by spacy-huggingface-pipelines). They are unrelated to the uv
-          # migration and are handled in separate security PRs; allow them here
-          # so this PR's dependency review is not blocked by prior debt.
-          allow-ghsas: GHSA-29pf-2h5f-8g72, GHSA-69w3-r845-3855
           comment-summary-in-pr: on-failure
 
   test:
@@ -105,12 +99,9 @@ jobs:
     env:
       COVERAGE_THRESHOLD: 90
       PRIMARY_PYTHON: '3.13'
-      # Keep uv's (potentially large) wheel cache on the runner's roomy
-      # ephemeral disk (/mnt, ~65 GB) rather than the smaller root volume, as
-      # the previous Poetry setup did via POETRY_CACHE_DIR. The cache is
-      # persisted across runs by the "Cache uv downloads" step below, keyed on
-      # the committed uv.lock. UV_LINK_MODE=copy avoids the cross-filesystem
-      # hardlink warning since the project venv lives on the root volume.
+      # uv's wheel cache lives on the roomy /mnt disk (like the old
+      # POETRY_CACHE_DIR); it is persisted across runs by "Cache uv downloads".
+      # UV_LINK_MODE=copy avoids cross-filesystem hardlink warnings.
       UV_CACHE_DIR: /mnt/uv-cache
       UV_LINK_MODE: copy
     steps:
@@ -156,16 +147,9 @@ jobs:
         timeout-minutes: 30
         working-directory: ${{ matrix.component.path }}
         run: |
-          # Install from the committed uv.lock with `uv sync --locked`: uv
-          # errors if pyproject.toml and uv.lock disagree instead of silently
-          # resolving new versions, so CI installs exactly the locked graph and
-          # never mutates the lockfile. (This also cured the Poetry hang, whose
-          # lockless universal resolve backtracked for minutes on the analyzer's
-          # --all-extras graph.) The `dev` dependency group supplies the test
-          # tooling (pytest, diff-cover, ...) plus `pip`, which spaCy's model
-          # download shells out to via `python -m pip install`. Later steps run
-          # inside the synced venv with `uv run --no-sync` (the wheel-build step
-          # deliberately uses the system interpreter, as it did under Poetry).
+          # Install the exact locked graph; --locked fails on pyproject/uv.lock
+          # drift instead of resolving new versions. The dev group provides the
+          # test tooling plus pip (spaCy's model download shells out to pip).
           uv sync --locked ${{ matrix.component.extras }} --group dev --python ${{ matrix.python-version }}
 
       - name: Install presidio-analyzer for Image Redactor
@@ -173,9 +157,8 @@ jobs:
         working-directory: ${{ matrix.component.path }}
         run: |
           # Override the locked PyPI presidio-analyzer with the in-repo copy so
-          # the image-redactor tests run against local analyzer changes. This
-          # editable sibling install isn't expressible in a single-package lock;
-          # the following steps use `uv run --no-sync` so uv won't revert it.
+          # tests run against local analyzer changes; later steps use
+          # `uv run --no-sync` so uv won't revert this editable install.
           uv pip install -e ../presidio-analyzer/.
 
       - name: Download spaCy models
@@ -214,12 +197,9 @@ jobs:
       - name: Build wheel package
         working-directory: ${{ matrix.component.path }}
         run: |
-          # `build` needs `tomli` on Python < 3.11 to read pyproject.toml, but
-          # it is absent from the hashed requirements file (pip-compiled on
-          # 3.11+). Poetry used to install it onto the runner incidentally; uv
-          # has no Python dependencies, so pre-install it (marker-guarded) here
-          # so `pip install --require-hashes` finds it already satisfied rather
-          # than trying to fetch it unhashed.
+          # `build` needs tomli on Python < 3.11 to read pyproject.toml, and it
+          # isn't in the hashed requirements file; pre-install it (marker-guarded)
+          # so --require-hashes finds it already satisfied.
           python -m pip install "tomli==2.4.1; python_version < '3.11'"
           pip install --require-hashes -r ${{ github.workspace }}/.github/pipelines/requirements-build.txt
           python -m build --wheel
@@ -227,8 +207,7 @@ jobs:
       - name: Minimize uv cache
         if: always()
         run: |
-          # Drop pre-built wheels that uv can cheaply rebuild, keeping the
-          # persisted /mnt cache small (recommended for CI by the uv docs).
+          # Trim the persisted cache (recommended for CI by the uv docs).
           uv cache prune --ci
 
   build-platform-images:
