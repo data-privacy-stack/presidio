@@ -33,15 +33,17 @@ dependencies = [
 presidio = "presidio_cli.cli:run"
 
 
-[tool.poetry.group.dev.dependencies]
-pip = "*"
-ruff = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-python-dotenv = "*"
-pre_commit = "*"
-diff-cover = "*"
+[dependency-groups]
+dev = [
+    "pip",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "python-dotenv",
+    "pre-commit",
+    "diff-cover",
+]
 
 [tool.coverage.run]
 relative_files = true
