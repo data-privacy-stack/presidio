@@ -1,6 +1,7 @@
 """Tests for HuggingFaceNerRecognizer."""
 
 import logging
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -819,6 +820,44 @@ def test_hf_recognizer_ort_backend_no_torch_ok():
                         model_name="test-model", backend="ort"
                     )
                     assert rec.backend == "ort"
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_requires_optimum_onnx():
+    """The ort backend raises ImportError when optimum.onnxruntime is missing."""
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            MagicMock(),
+        ):
+            # A None entry in sys.modules makes the import raise ImportError,
+            # simulating optimum installed without the optimum-onnx package.
+            with patch.dict(sys.modules, {"optimum.onnxruntime": None}):
+                with pytest.raises(ImportError, match="optimum-onnx is not installed"):
+                    HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_load_failure_logs_and_raises(caplog):
+    """A model load failure on the ort backend is logged and re-raised."""
+    caplog.set_level(logging.ERROR, logger="presidio-analyzer")
+    mock_ort_model_cls = MagicMock()
+    mock_ort_model_cls.from_pretrained.side_effect = RuntimeError("no such model")
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            MagicMock(),
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                with pytest.raises(RuntimeError, match="no such model"):
+                    HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
+
+    assert "Failed to load model test-model with ort backend" in caplog.text
 
 
 def test_hf_recognizer_loader_supported_entities_filtering():
