@@ -384,6 +384,6 @@ for more information.
 ## API reference
 
 Follow
-the [API Spec](https://microsoft.github.io/presidio/api-docs/api-docs.html#tag/Anonymizer)
+the [API Spec](https://data-privacy-stack.github.io/presidio/api-docs/api-docs.html#tag/Anonymizer)
 for the Anonymizer REST API reference details
 and [Anonymizer Python API](../api/anonymizer_python.md) for Python API reference.

@@ -39,7 +39,7 @@ az login
 For more details, see the [AHDS Integration Authentication documentation](../../../ahds_integration.md#authentication).
 
 ## Azure Health Data Services de-identification Recognizer
-[The implementation of a `AzureHealthDeid` recognizer can be found here](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/third_party/ahds_recognizer.py).
+[The implementation of a `AzureHealthDeid` recognizer can be found here](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/predefined_recognizers/third_party/ahds_recognizer.py).
 
 ## How to integrate Azure Health Data Services de-identification into Presidio
 

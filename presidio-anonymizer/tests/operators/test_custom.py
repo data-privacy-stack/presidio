@@ -32,7 +32,7 @@ def test_stateful_lambda_not_called_during_validate():
     """validate() must not invoke the lambda — stateful lambdas must not
     observe a spurious call with a dummy value.
 
-    Regression test for https://github.com/microsoft/presidio/issues/2024.
+    Regression test for https://github.com/data-privacy-stack/presidio/issues/2024.
     Before the fix, validate() called the lambda with 'PII', causing stateful
     lambdas to insert a spurious {'TOKEN_1': 'PII'} entry into their token map
     and shifting all subsequent token counters by one.
@@ -55,7 +55,7 @@ def test_stateful_token_map_not_corrupted_by_validate():
     """Token map built by a stateful lambda must contain only real values,
     not the dummy 'PII' string injected during validation.
 
-    Regression test for https://github.com/microsoft/presidio/issues/2024.
+    Regression test for https://github.com/data-privacy-stack/presidio/issues/2024.
     """
     token_map = {}
     counter = {"n": 0}

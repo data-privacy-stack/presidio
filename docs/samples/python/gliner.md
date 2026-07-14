@@ -43,7 +43,7 @@ nlp_engine = NlpEngineProvider(
 )
 
 # Create an analyzer engine 
-analyzer_engine = AnalyzerEngine()
+analyzer_engine = AnalyzerEngine(nlp_engine=nlp_engine.create_engine())
 
 # Define and create the GLiNER recognizer
 entity_mapping = {

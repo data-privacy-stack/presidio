@@ -10,12 +10,12 @@ In this example, we'll show how to create a no-code configuration in Presidio.
 We start by creating YAML configuration files that are based on the default ones.
 The default configuration files for Presidio can be found here:
 
-- [Analyzer configuration](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml)
-- [Recognizer registry configuration](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
-- [NLP engine configuration](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml)
+- [Analyzer configuration](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml)
+- [Recognizer registry configuration](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
+- [NLP engine configuration](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml)
 
 Alternatively, one can create one configuration file for all three components.
-In this example, we'll tweak the configuration to reduce the number of predefinedrecognizers to only a few, and add a new custom one. We'll also adjust the context words to support the detection of a different language (Spanish).
+In this example, we'll tweak the configuration to reduce the number of predefined recognizers to only a few, and add a new custom one. We'll also adjust the context words to support the detection of a different language (Spanish).
 
 ```python
 import yaml
@@ -31,7 +31,7 @@ In this example we're going to create the yaml as a string for illustration purp
 
 ### General Analyzer parameters
 
-([default file](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml))
+([default file](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml))
 
 ```python
 analyzer_config_yaml = """
@@ -44,7 +44,7 @@ default_score_threshold: 0.4
 
 ### Recognizer Registry parameters
 
-([default file](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml))
+([default file](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml))
 
 ```python
 
@@ -63,6 +63,9 @@ recognizer_registry:
     - language: es
       context: [tarjeta, credito, visa, mastercard, cc, amex, discover, jcb, diners, maestro, instapayment]
     type: predefined
+    score_thresholds:
+      default: 0.4
+      CREDIT_CARD: 0.7
     
   - name: DateRecognizer
     supported_languages:
@@ -119,9 +122,11 @@ recognizer_registry:
 """
 ```
 
+Each recognizer can set a `default` threshold and entity-specific overrides in `score_thresholds`. Supplying `analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request. When omitted, precedence is an entity override, the recognizer default, then the analyzer's `default_score_threshold`.
+
 ### NLP Engine parameters
 
-([default file](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml))
+([default file](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml))
 
 ```python
 nlp_engine_yaml = """
