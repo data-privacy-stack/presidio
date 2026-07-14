@@ -110,7 +110,7 @@ The recognizer list comprises of both the predefined and custom recognizers, for
   - `supported_entity`: the detected entity associated by the recognizer.
   - `deny_list`: A list of words to detect, in case the recognizer uses a predefined list of words.
   - `deny_list_score`: confidence score for a term identified using a deny-list.
-  - `score_thresholds`: optional score thresholds for this recognizer. Use `default` as the recognizer-wide threshold and entity names for overrides. Supplying `analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request. When omitted, precedence is an entity override, this recognizer default, then the analyzer's `default_score_threshold`.
+  - `score_thresholds`: optional score thresholds for this recognizer. Use `default` as the recognizer-wide threshold and entity names for overrides. Note that supplying `analyzer_engine.analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request. The precedence is: Presidio Analyzer analyzer.analyze(score_threshold=...) > an entity specific threshold > a recognizer default threshold (`default`) > the Presidio Analyzer `default_score_threshold`.
 
 !!! tip "Configuration Tip: Agglutinative languages (e.g., Korean)"
 

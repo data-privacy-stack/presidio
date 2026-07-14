@@ -78,7 +78,8 @@ The configuration file contains the following parameters:
 - `nlp_configuration`: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.
 - `recognizer_registry`: All the recognizers that will be used by the analyzer. Each recognizer entry can define `score_thresholds`, using `default` as its fallback and entity names for overrides.
 
-Supplying `analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request and applies the supplied threshold to every result. When omitted, precedence is an entity-specific recognizer threshold, the recognizer's `default`, then `default_score_threshold`.
+!!! note "Defining confidence thresholds"
+    Presidio supports multiple types of score thresholds: default ones (for the analyzer and each recognizer), per-request thresholds, and per-entity thresholds. Supplying `analyzer.analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request and applies the supplied threshold to every result. The order of importance is: `analyzer.analyze(score_threshold=...)` > an entity specific threshold > a recognizer default threshold (`default`) > the Presidio Analyzer `default_score_threshold`.
 
 !!! note "Note"
 
