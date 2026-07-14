@@ -574,3 +574,98 @@ class TestBasicLangExtractRecognizerParameterConfiguration:
             assert call_kwargs["config"].provider == "ollama"
             assert call_kwargs["config"].provider_kwargs["model_url"] == "http://localhost:11434"
 
+            # Regression: language_model_params must also surface on
+            # ModelConfig.provider_kwargs, because langextract.extract()
+            # ignores `language_model_params` when `config` is passed and
+            # only reads values from ModelConfig.provider_kwargs in that
+            # branch. Without this, `timeout` and `num_ctx` are silently
+            # dropped and Ollama falls back to its 120s default.
+            assert call_kwargs["config"].provider_kwargs["timeout"] == 180
+            assert call_kwargs["config"].provider_kwargs["num_ctx"] == 8192
+
+    def test_language_model_params_reach_provider_kwargs(self, tmp_path):
+        """Regression test: values under provider.language_model_params in the
+        yaml must end up on ModelConfig.provider_kwargs so they actually reach
+        the provider constructor (e.g. OllamaLanguageModel(timeout=...)).
+
+        Prior to the fix, BasicLangExtractRecognizer only copied
+        provider.kwargs onto ModelConfig.provider_kwargs, and
+        provider.language_model_params was forwarded to lx.extract() as a
+        separate argument — but langextract.extract() ignores that argument
+        when config is passed directly, so values like `timeout` and
+        `num_ctx` were silently dropped.
+        """
+        import yaml
+
+        config = create_test_config()
+        config["langextract"]["model"]["provider"]["language_model_params"]["timeout"] = 600
+        config["langextract"]["model"]["provider"]["language_model_params"]["num_ctx"] = 16384
+
+        config_file = tmp_path / "test_config.yaml"
+        with open(config_file, 'w') as f:
+            yaml.dump(config, f)
+
+        with patch('presidio_analyzer.llm_utils.langextract_helper.lx',
+                   return_value=Mock()):
+            from presidio_analyzer.predefined_recognizers.third_party.basic_langextract_recognizer import BasicLangExtractRecognizer
+            recognizer = BasicLangExtractRecognizer(config_path=str(config_file))
+
+        provider_kwargs = recognizer._get_provider_params()["config"].provider_kwargs
+        assert provider_kwargs["timeout"] == 600
+        assert provider_kwargs["num_ctx"] == 16384
+
+    def test_provider_kwargs_take_precedence_over_language_model_params(self, tmp_path):
+        """Explicit `provider.kwargs:` entries must win over values of the
+        same name under `provider.language_model_params:`. This preserves
+        backward compatibility for configs that already place timeout in
+        `kwargs:` as a workaround.
+        """
+        import yaml
+
+        config = create_test_config()
+        config["langextract"]["model"]["provider"]["kwargs"]["timeout"] = 900
+        config["langextract"]["model"]["provider"]["language_model_params"]["timeout"] = 60
+
+        config_file = tmp_path / "test_config.yaml"
+        with open(config_file, 'w') as f:
+            yaml.dump(config, f)
+
+        with patch('presidio_analyzer.llm_utils.langextract_helper.lx',
+                   return_value=Mock()):
+            from presidio_analyzer.predefined_recognizers.third_party.basic_langextract_recognizer import BasicLangExtractRecognizer
+            recognizer = BasicLangExtractRecognizer(config_path=str(config_file))
+
+        provider_kwargs = recognizer._get_provider_params()["config"].provider_kwargs
+        # The explicit kwargs: value wins
+        assert provider_kwargs["timeout"] == 900
+
+    def test_when_kwargs_null_in_yaml_then_no_crash(self, tmp_path):
+        """Verify that `kwargs: null` (or an empty `kwargs:` key) in the YAML
+        does not raise a TypeError. Both provider.kwargs and
+        provider.language_model_params must tolerate None values from the
+        YAML parser.
+        """
+        import yaml
+
+        config = create_test_config()
+        # Simulate `kwargs: null` in YAML
+        config["langextract"]["model"]["provider"]["kwargs"] = None
+        config["langextract"]["model"]["provider"]["language_model_params"] = None
+
+        config_file = tmp_path / "test_config.yaml"
+        with open(config_file, 'w') as f:
+            yaml.dump(config, f)
+
+        with patch('presidio_analyzer.llm_utils.langextract_helper.lx',
+                   return_value=Mock()):
+            from presidio_analyzer.predefined_recognizers.third_party.basic_langextract_recognizer import BasicLangExtractRecognizer
+            # Should not raise TypeError
+            recognizer = BasicLangExtractRecognizer(config_path=str(config_file))
+
+        provider_kwargs = recognizer._get_provider_params()["config"].provider_kwargs
+        # When kwargs/language_model_params are null, explicit kwargs are empty
+        # but the class-level DEFAULT_LANGUAGE_MODEL_PARAMS are still merged in.
+        # The key requirement is that no TypeError is raised, and the defaults are present.
+        assert "timeout" in provider_kwargs
+        assert "num_ctx" in provider_kwargs
+

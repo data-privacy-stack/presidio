@@ -12,7 +12,9 @@ services:
       interval: 10s
       timeout: 10s
       retries: 30        # ~5 minutes total
-      start_period: 60s  
+      start_period: 60s
+    restart: unless-stopped
+
   presidio-anonymizer:
     image: ${REGISTRY_NAME}/${IMAGE_PREFIX}presidio-anonymizer${TAG}
     build:
@@ -23,6 +25,13 @@ services:
       - PORT=5001
     ports:
       - "5001:5001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
 
   presidio-analyzer:
     image: ${REGISTRY_NAME}/${IMAGE_PREFIX}presidio-analyzer${TAG}
@@ -38,6 +47,13 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
 
   presidio-image-redactor:
     image: ${REGISTRY_NAME}/${IMAGE_PREFIX}presidio-image-redactor${TAG}
@@ -49,6 +65,13 @@ services:
       - PORT=5001
     ports:
       - "5003:5001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
 
 volumes:
   ollama-data:

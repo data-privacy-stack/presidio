@@ -22,6 +22,7 @@ from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerConfigurationLoader,
     RecognizerListLoader,
 )
+from presidio_analyzer.score_thresholds import normalize_score_thresholds
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -314,7 +315,12 @@ class RecognizerRegistry:
         >>> registry.add_pattern_recognizer_from_dict(recognizer)
         """  # noqa: E501
 
-        recognizer = PatternRecognizer.from_dict(recognizer_dict)
+        recognizer_config = recognizer_dict.copy()
+        score_thresholds = normalize_score_thresholds(
+            recognizer_config.pop("score_thresholds", None)
+        )
+        recognizer = PatternRecognizer.from_dict(recognizer_config)
+        recognizer.score_thresholds = score_thresholds
         self.add_recognizer(recognizer)
 
     def add_recognizers_from_yaml(self, yml_path: Union[str, Path]) -> None:
