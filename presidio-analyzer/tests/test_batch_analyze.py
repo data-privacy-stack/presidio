@@ -4,15 +4,12 @@ import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from presidio_analyzer import (
-    AnalyzerEngine,
     BatchAnalyzerEngine,
     RecognizerResult,
 )
 from presidio_analyzer.chunkers import BaseTextChunker
 from presidio_analyzer.chunkers.base_chunker import TextChunk
-
 
 # ---------------------------------------------------------------------------
 # 7a. EntityRecognizer.batch_analyze — default implementation
@@ -93,8 +90,7 @@ class _SimpleChunker(BaseTextChunker):
 
 
 def test_predict_batch_no_chunking_needed():
-    """Texts that fit in one chunk: predict_batch_func called once with all
-    texts, sorted by length to minimize padding waste."""
+    """Single-chunk texts go to predict_batch_func in one length-sorted call."""
     chunker = _SimpleChunker(max_len=100)
     texts = ["Hello world", "Foo bar"]
 
@@ -124,8 +120,7 @@ def test_predict_batch_no_chunking_needed():
 
 
 def test_predict_batch_results_restored_to_original_order():
-    """Chunks are predicted in length-sorted order but results must map back
-    to the original text positions."""
+    """Results from length-sorted prediction map back to original text order."""
     chunker = _SimpleChunker(max_len=100)
     # Deliberately NOT in length order
     texts = ["the longest text of them all", "mid text", "tiny"]
@@ -216,8 +211,7 @@ def test_predict_batch_empty_input():
 
 
 def test_predict_batch_func_returns_wrong_length_raises():
-    """predict_batch_with_chunking raises when predict_batch_func returns
-    a list of a different length than the input."""
+    """predict_batch_with_chunking raises on mismatched result list length."""
     chunker = _SimpleChunker(max_len=100)
 
     def bad_predict(chunk_texts):
@@ -717,8 +711,7 @@ def test_analyze_batch_with_precomputed_artifacts(analyzer_engine_simple):
 
 
 def test_analyze_batch_artifacts_length_mismatch_raises(analyzer_engine_simple):
-    """analyze_batch raises ValueError when nlp_artifacts_list length
-    differs from texts length."""
+    """analyze_batch raises ValueError on nlp_artifacts_list length mismatch."""
     with pytest.raises(ValueError, match="Length mismatch"):
         analyzer_engine_simple.analyze_batch(
             texts=["a", "b"],
@@ -727,11 +720,58 @@ def test_analyze_batch_artifacts_length_mismatch_raises(analyzer_engine_simple):
         )
 
 
+def test_analyze_batch_recognizer_wrong_length_raises(analyzer_engine_simple):
+    """analyze_batch raises when a recognizer returns a misaligned result list."""
+    from presidio_analyzer import EntityRecognizer
+
+    class _BadRecognizer(EntityRecognizer):
+        def load(self):
+            pass
+
+        def analyze(self, text, entities, nlp_artifacts=None):
+            return []
+
+        def batch_analyze(self, texts, entities, nlp_artifacts_list):
+            return [[]]  # always one list, regardless of input length
+
+    rec = _BadRecognizer(supported_entities=["PERSON"], supported_language="en")
+    with pytest.raises(ValueError, match="one result list per input text"):
+        analyzer_engine_simple.analyze_batch(
+            texts=["a", "b"], language="en", ad_hoc_recognizers=[rec]
+        )
+
+
 # ---------------------------------------------------------------------------
 # 7g. Backward compatibility — BatchAnalyzerEngine
 # (The existing tests in test_batch_analyzer_engine.py cover this;
 #  here we add an explicit cross-check)
 # ---------------------------------------------------------------------------
+
+
+def test_analyze_iterator_processes_in_batch_size_slices(analyzer_engine_simple):
+    """analyze_iterator bounds memory by calling analyze_batch per slice."""
+    batch_engine = BatchAnalyzerEngine(analyzer_engine=analyzer_engine_simple)
+    texts = [
+        "Call me at 2352351232",
+        "no entities",
+        "still nothing",
+        "nothing here",
+        "or here",
+    ]
+
+    with patch.object(
+        analyzer_engine_simple,
+        "analyze_batch",
+        wraps=analyzer_engine_simple.analyze_batch,
+    ) as spy:
+        results = batch_engine.analyze_iterator(
+            texts=texts, language="en", batch_size=2
+        )
+
+    assert spy.call_count == 3  # slices of 2 + 2 + 1
+    assert len(results) == 5
+    assert results[0][0].entity_type == "PHONE_NUMBER"
+    assert all(r == [] for r in results[1:])
 
 
 def test_batch_analyzer_engine_backward_compat(analyzer_engine_simple):

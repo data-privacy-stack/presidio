@@ -330,6 +330,15 @@ class AnalyzerEngine:
                 "They must be parallel lists."
             )
 
+        if self.log_decision_process:
+            for i, nlp_artifacts in enumerate(nlp_artifacts_list):
+                if nlp_artifacts is None:
+                    continue
+                self.app_tracer.trace(
+                    correlation_id,
+                    f"nlp artifacts for text {i}:" + nlp_artifacts.to_json(),
+                )
+
         # Aggregate results from all recognizers per text
         num_texts = len(texts)
         per_text_results: List[List[RecognizerResult]] = [[] for _ in range(num_texts)]
@@ -346,6 +355,13 @@ class AnalyzerEngine:
                 entities=entities,
                 nlp_artifacts_list=nlp_artifacts_list,
             )
+            if len(recognizer_batch_results) != num_texts:
+                raise ValueError(
+                    f"Recognizer {recognizer.name} returned "
+                    f"{len(recognizer_batch_results)} result lists for "
+                    f"{num_texts} input texts. batch_analyze must return "
+                    "one result list per input text."
+                )
 
             # Merge results per text
             for i, current_results in enumerate(recognizer_batch_results):
@@ -361,6 +377,12 @@ class AnalyzerEngine:
             results = self._enhance_using_context(
                 texts[i], results, nlp_artifacts_list[i], recognizers, context
             )
+
+            if self.log_decision_process:
+                self.app_tracer.trace(
+                    correlation_id,
+                    json.dumps([str(result.to_dict()) for result in results]),
+                )
 
             results = EntityRecognizer.remove_duplicates(results)
             results = self.__remove_low_scores(results, score_threshold)

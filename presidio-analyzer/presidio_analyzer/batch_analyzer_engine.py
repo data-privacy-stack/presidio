@@ -36,7 +36,11 @@ class BatchAnalyzerEngine:
 
         :param texts: An list containing strings to be analyzed.
         :param language: Input language
-        :param batch_size: Batch size to process in a single iteration
+        :param batch_size: Batch size to process in a single iteration.
+        Also bounds how many texts are passed to
+        `AnalyzerEngine.analyze_batch` at once, keeping memory usage
+        predictable for large iterables; increase it to let batch-capable
+        recognizers process more texts per forward pass.
         :param n_process: Number of processors to use. Defaults to `1`
         :param kwargs: Additional parameters for the `AnalyzerEngine.analyze` method.
         (default value depends on the nlp engine implementation)
@@ -55,23 +59,35 @@ class BatchAnalyzerEngine:
             )
         )
 
-        # Collect all texts and artifacts for batch recognizer processing
-        ordered_texts = []
-        ordered_artifacts = []
+        # Consume the artifacts iterator in slices of batch_size so memory
+        # stays bounded (NlpArtifacts can be heavy) while recognizers still
+        # get batched inference within each slice.
+        all_results: List[List[RecognizerResult]] = []
+        slice_texts: List[str] = []
+        slice_artifacts: List[NlpArtifacts] = []
+
+        def _flush() -> None:
+            all_results.extend(
+                self.analyzer_engine.analyze_batch(
+                    texts=slice_texts,
+                    nlp_artifacts_list=slice_artifacts,
+                    language=language,
+                    **kwargs,
+                )
+            )
+            slice_texts.clear()
+            slice_artifacts.clear()
+
         for text, nlp_artifacts in nlp_artifacts_batch:
-            ordered_texts.append(str(text))
-            ordered_artifacts.append(nlp_artifacts)
+            slice_texts.append(str(text))
+            slice_artifacts.append(nlp_artifacts)
+            if len(slice_texts) >= max(batch_size, 1):
+                _flush()
 
-        if not ordered_texts:
-            return []
+        if slice_texts:
+            _flush()
 
-        # Batch analyze through recognizers
-        return self.analyzer_engine.analyze_batch(
-            texts=ordered_texts,
-            nlp_artifacts_list=ordered_artifacts,
-            language=language,
-            **kwargs,
-        )
+        return all_results
 
     def analyze_dict(
         self,
