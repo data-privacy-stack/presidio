@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from collections import Counter
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import regex as re
 
@@ -24,6 +24,7 @@ from presidio_analyzer.recognizer_registry import (
 logger = logging.getLogger("presidio-analyzer")
 
 REGEX_TIMEOUT_SECONDS = int(os.environ.get("REGEX_TIMEOUT_SECONDS", 60))
+
 
 class AnalyzerEngine:
     """
@@ -170,8 +171,10 @@ class AnalyzerEngine:
         :param entities: List of PII entities that should be looked for in the text.
         If entities=None then all entities are looked for.
         :param correlation_id: cross call ID for this request
-        :param score_threshold: A minimum value for which
-        to return an identified entity
+        :param score_threshold: An explicit threshold for every result. When
+        supplied, this bypasses recognizer-level score thresholds for this
+        request. When omitted, the analyzer uses an entity-specific recognizer
+        threshold, the recognizer's default threshold, then the engine default.
         :param return_decision_process: Whether the analysis decision process steps
         returned in the response.
         :param ad_hoc_recognizers: List of recognizers which will be used only
@@ -254,9 +257,10 @@ class AnalyzerEngine:
                 json.dumps([str(result.to_dict()) for result in results]),
             )
 
-        # Remove duplicates or low score results
+        # Filter low-score results before deduplication so recognizer-specific
+        # thresholds do not get lost when duplicate spans collapse.
+        results = self.__remove_low_scores(results, score_threshold, recognizers)
         results = EntityRecognizer.remove_duplicates(results)
-        results = self.__remove_low_scores(results, score_threshold)
 
         if allow_list:
             results = self._remove_allow_list(
@@ -330,20 +334,66 @@ class AnalyzerEngine:
         return results
 
     def __remove_low_scores(
-        self, results: List[RecognizerResult], score_threshold: float = None
+        self,
+        results: List[RecognizerResult],
+        score_threshold: Optional[float] = None,
+        recognizers: Optional[List[EntityRecognizer]] = None,
     ) -> List[RecognizerResult]:
         """
         Remove results for which the confidence is lower than the threshold.
 
         :param results: List of RecognizerResult
         :param score_threshold: float value for minimum possible confidence
+        :param recognizers: recognizers selected for this request
         :return: List[RecognizerResult]
         """
         if score_threshold is None:
-            score_threshold = self.default_score_threshold
+            recognizers_by_id: Dict[str, Dict[str, float]] = {
+                recognizer.id: recognizer.score_thresholds
+                for recognizer in recognizers or []
+            }
+            return [
+                result
+                for result in results
+                if result.score
+                >= self.__get_result_score_threshold(result, recognizers_by_id)
+            ]
 
         new_results = [result for result in results if result.score >= score_threshold]
         return new_results
+
+    def __get_result_score_threshold(
+        self,
+        result: RecognizerResult,
+        recognizers_by_id: Dict[str, Dict[str, float]],
+    ) -> float:
+        """Resolve the threshold to apply for a single recognizer result."""
+        metadata = result.recognition_metadata or {}
+        recognizer_id = metadata.get(RecognizerResult.RECOGNIZER_IDENTIFIER_KEY)
+        if recognizer_id is None:
+            logger.debug(
+                "Recognizer identifier is missing; using the engine default "
+                "score threshold"
+            )
+            return self.default_score_threshold
+        recognizer_thresholds = recognizers_by_id.get(recognizer_id)
+        if recognizer_thresholds is None:
+            logger.debug(
+                "Recognizer identifier %s did not match a selected recognizer; "
+                "using the engine default score threshold",
+                recognizer_id,
+            )
+            return self.default_score_threshold
+
+        entity_threshold = recognizer_thresholds.get(result.entity_type)
+        if entity_threshold is not None:
+            return entity_threshold
+
+        recognizer_default_threshold = recognizer_thresholds.get("default")
+        if recognizer_default_threshold is not None:
+            return recognizer_default_threshold
+
+        return self.default_score_threshold
 
     @staticmethod
     def _remove_allow_list(

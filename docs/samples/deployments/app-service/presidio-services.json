@@ -102,21 +102,21 @@
         },
         "analyzerImage": {
             "type": "string",
-            "defaultValue": "mcr.microsoft.com/presidio-analyzer:latest",
+            "defaultValue": "ghcr.io/data-privacy-stack/presidio-analyzer:latest",
             "metadata": {
                 "description": "The full analyzer image name. Only required if image is not hosted on a public registry (imageIsPublic is false)"
             }
         },
         "anonymizerImage": {
             "type": "string",
-            "defaultValue": "mcr.microsoft.com/presidio-anonymizer:latest",
+            "defaultValue": "ghcr.io/data-privacy-stack/presidio-anonymizer:latest",
             "metadata": {
                 "description": "The full anonymizer image name. Only required if image is not hosted on a public registry (imageIsPublic is false)"
             }
         },
         "imageRedactorImage": {
             "type": "string",
-            "defaultValue": "mcr.microsoft.com/presidio-image-redactor:latest",
+            "defaultValue": "ghcr.io/data-privacy-stack/presidio-image-redactor:latest",
             "metadata": {
                 "description": "The full image redactor image name. Only required if image is not hosted on a public registry (imageIsPublic is false)"
             }
@@ -168,7 +168,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/microsoft/presidio/main/docs/samples/deployments/app-service/presidio-app-service.json",
+                    "uri": "https://raw.githubusercontent.com/data-privacy-stack/presidio/main/docs/samples/deployments/app-service/presidio-app-service.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -213,7 +213,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/microsoft/presidio/main/docs/samples/deployments/app-service/presidio-app-service.json",
+                    "uri": "https://raw.githubusercontent.com/data-privacy-stack/presidio/main/docs/samples/deployments/app-service/presidio-app-service.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -258,7 +258,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/microsoft/presidio/main/docs/samples/deployments/app-service/presidio-app-service.json",
+                    "uri": "https://raw.githubusercontent.com/data-privacy-stack/presidio/main/docs/samples/deployments/app-service/presidio-app-service.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {

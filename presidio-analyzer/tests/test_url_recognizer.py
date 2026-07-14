@@ -32,8 +32,8 @@ def entities():
         ("https://www.microsoft.com/store/abc/", 1, ((0, 36),), 0.6,),
         ("microsoft.com", 1, ((0, 13),), 0.5,),
         ("my domains: microsoft.com google.co.il", 2, ((12, 25), (26, 38),), 0.5),
-        ('"https://microsoft.github.io/presidio/"', 1, ((0, 39),), 0.6),  
-        ("'https://microsoft.github.io/presidio/'", 1, ((0, 39),), 0.6),
+        ('"https://presidio.dataprivacystack.org/"', 1, ((0, 40),), 0.6),
+        ("'https://presidio.dataprivacystack.org/'", 1, ((0, 40),), 0.6),
 
         # Invalid URLs
         ("www.microsoft", 0, (), 0),

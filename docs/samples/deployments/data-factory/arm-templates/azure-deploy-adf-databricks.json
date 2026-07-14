@@ -81,7 +81,7 @@
     "variables": {
         "AzureBlobStorage_connectionString": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('AzureBlobStorage_accountName'), ';EndpointSuffix=core.windows.net')]",
         "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]",
-        "Dataset_url": "https://raw.githubusercontent.com/microsoft/presidio-research/master/tests/data/generated_large.txt",
+        "Dataset_url": "https://raw.githubusercontent.com/data-privacy-stack/presidio-research/master/tests/data/generated_large.txt",
         "AzureKeyVault_baseUrl": "[concat('https://', parameters('AzureKeyVault_name'), '.vault.azure.net/')]",
         "storageAccountId": "[concat(resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', parameters('AzureBlobStorage_accountName'))]"
 

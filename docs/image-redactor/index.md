@@ -44,11 +44,11 @@ Pre-requisites:
         This requires Docker to be installed. [Download Docker](https://docs.docker.com/get-docker/).
     
     ```sh
-    # Download image from Dockerhub
-    docker pull mcr.microsoft.com/presidio-image-redactor
-    
+    # Download image from GitHub Container Registry
+    docker pull ghcr.io/data-privacy-stack/presidio-image-redactor
+
     # Run the container with the default port
-    docker run -d -p 5003:3000 mcr.microsoft.com/presidio-image-redactor:latest
+    docker run -d -p 5003:3000 ghcr.io/data-privacy-stack/presidio-image-redactor:latest
     ```
 
 === "From source"
@@ -225,6 +225,6 @@ The DICOM data used for unit and integration testing for `DicomImageRedactorEngi
 
 ## API reference
 
-the [API Spec](https://microsoft.github.io/presidio/api-docs/api-docs.html#tag/Image-redactor)
+the [API Spec](https://data-privacy-stack.github.io/presidio/api-docs/api-docs.html#tag/Image-redactor)
 for the Image Redactor REST API reference details
 and [Image Redactor Python API](../api/image_redactor_python.md) for Python API reference

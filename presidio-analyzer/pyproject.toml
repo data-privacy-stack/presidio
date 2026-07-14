@@ -4,9 +4,9 @@ requires = ["poetry-core"]
 
 [project]
 name = "presidio_analyzer"
-version = "2.2.362"
+version = "2.2.363"
 description = "Presidio Analyzer package"
-authors = [{name = "Presidio", email = "presidio@microsoft.com"}]
+authors = [{name = "Presidio", email = "presidio@dataprivacystack.org"}]
 license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -18,13 +18,14 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 keywords = ["presidio_analyzer"]
-urls = {Homepage = "https://github.com/Microsoft/presidio"}
+urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 include = ["conf/*",]
 
 requires-python = ">=3.10,<3.15"
 dependencies = [
-    "spacy (>=3.4.4,!=3.7.0,!=3.8.14,<4.0.0)",
+    "spacy (>=3.4.4,!=3.7.0,<4.0.0); python_version < '3.14'",
+    "spacy (>=3.4.4,!=3.7.0,!=3.8.14,<4.0.0); python_version >= '3.14'",
     "numpy (>=1.19.0,<2.5.0)",
     "click (>=8.1.0,<9.0.0)",
     "regex (>=2023.0.0)",
@@ -77,15 +78,17 @@ onnxruntime = [
     "transformers (>=4.0.0,<5.0.0)",
 ]
 
-[tool.poetry.group.dev.dependencies]
-pip = "*"
-ruff = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-python-dotenv = "*"
-pre_commit = "*"
-diff-cover = "*"
+[dependency-groups]
+dev = [
+    "pip",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "python-dotenv",
+    "pre-commit",
+    "diff-cover",
+]
 
 [tool.coverage.run]
 relative_files = true

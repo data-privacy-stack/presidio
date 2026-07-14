@@ -20,9 +20,9 @@
 | Usage | Text      | Python file                            | [Azure Health Data Services de-identification Service as a Remote Recognizer](python/ahds/index.md)  |
 | Usage | Text      | Python file                            | [AHDS Surrogate Example](python/ahds/example_ahds_surrogate.py)  |
 | Usage | Text      | Python file                            | [Language Model-based PII/PHI Detection using LangExtract](python/langextract/index.md)  |
-| Usage | CSV       | Python file                            | [Analyze and Anonymize CSV file](https://github.com/microsoft/presidio/blob/main/docs/samples/python/process_csv_file.py) |
-| Usage | Text      | Python                                 | [Using Flair as an external PII model](https://github.com/microsoft/presidio/blob/main/docs/samples/python/flair_recognizer.py)|
-| Usage | Text      | Python file                            | [Using Span Marker as an external PII model](https://github.com/microsoft/presidio/blob/main/docs/samples/python/span_marker_recognizer.py)|
+| Usage | CSV       | Python file                            | [Analyze and Anonymize CSV file](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/process_csv_file.py) |
+| Usage | Text      | Python                                 | [Using Flair as an external PII model](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/flair_recognizer.py)|
+| Usage | Text      | Python file                            | [Using Span Marker as an external PII model](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/span_marker_recognizer.py)|
 | Usage | Text      | Python file                            | [Using Transformers as an external PII model](python/transformers_recognizer/index.md)|
 | Usage | Text      | Python file                            | [Pseudonymization (replace PII values using mappings)](python/pseudonymization.ipynb)|
 | Usage | Text      | Python file                            | [Passing a lambda as a Presidio anonymizer using Faker](python/example_custom_lambda_anonymizer.py)|

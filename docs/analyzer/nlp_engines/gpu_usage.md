@@ -18,7 +18,7 @@ export PRESIDIO_DEVICE=cuda:0
 export PRESIDIO_DEVICE=cuda:1
 
 # Or when running Docker containers
-docker run -e PRESIDIO_DEVICE=cuda mcr.microsoft.com/presidio-analyzer:latest
+docker run -e PRESIDIO_DEVICE=cuda ghcr.io/data-privacy-stack/presidio-analyzer:latest
 ```
 
 !!! note "Priority"

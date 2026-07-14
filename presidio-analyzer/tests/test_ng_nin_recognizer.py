@@ -41,6 +41,8 @@ def _generate_verhoeff_digit(num_str: str) -> str:
 VALID_NIN_1 = "1234567890" + _generate_verhoeff_digit("1234567890")
 VALID_NIN_2 = "9876543210" + _generate_verhoeff_digit("9876543210")
 VALID_NIN_3 = "5551234567" + _generate_verhoeff_digit("5551234567")
+# A valid 11-digit NIN whose first digit is 0 (no rule forbids it).
+VALID_NIN_LEADING_ZERO = "0123456789" + _generate_verhoeff_digit("0123456789")
 
 
 @pytest.fixture(scope="module")
@@ -75,6 +77,14 @@ def entities():
             2,
             ((10, 21), (35, 46)),
             ((1.0, 1.0), (1.0, 1.0)),
+        ),
+        # Valid NIN whose first digit is 0 — must still validate (the checksum
+        # was previously computed on int(value), dropping the leading zero).
+        (
+            VALID_NIN_LEADING_ZERO,
+            1,
+            ((0, 11),),
+            ((1.0, 1.0),),
         ),
         # Invalid: fails Verhoeff checksum (flip last digit)
         (
@@ -137,14 +147,25 @@ class TestVerhoeffChecksum:
     """Direct tests for the Verhoeff checksum method."""
 
     def test_when_valid_verhoeff_then_returns_true(self):
-        valid_number = int(VALID_NIN_1)
-        assert NgNinRecognizer._is_verhoeff_number(valid_number) is True
+        assert NgNinRecognizer._is_verhoeff_number(VALID_NIN_1) is True
 
     def test_when_invalid_verhoeff_then_returns_false(self):
         # Flip the last digit to break the checksum
         broken = VALID_NIN_1[:-1] + str((int(VALID_NIN_1[-1]) + 1) % 10)
-        assert NgNinRecognizer._is_verhoeff_number(int(broken)) is False
+        assert NgNinRecognizer._is_verhoeff_number(broken) is False
 
-    def test_when_all_zeros_then_returns_true(self):
-        # Verhoeff: 00000000000 is valid (checksum of all zeros is 0)
-        assert NgNinRecognizer._is_verhoeff_number(0) is True
+    def test_when_eleven_zeros_then_returns_false(self):
+        # 11 zeros is not a valid Verhoeff number. (The previous version passed
+        # int(0), which the helper stringified to a single "0" — itself valid —
+        # so it never exercised the 11-digit all-zero case.)
+        assert NgNinRecognizer._is_verhoeff_number("00000000000") is False
+
+    def test_when_single_zero_then_returns_true(self):
+        assert NgNinRecognizer._is_verhoeff_number("0") is True
+
+    def test_when_leading_zero_then_not_dropped(self):
+        # Regression: the checksum used to run on int(value), dropping a
+        # leading zero and shortening the digit string, so a valid 11-digit
+        # NIN beginning with 0 was wrongly rejected.
+        assert NgNinRecognizer._is_verhoeff_number(VALID_NIN_LEADING_ZERO) is True
+        assert VALID_NIN_LEADING_ZERO[0] == "0"

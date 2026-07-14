@@ -25,7 +25,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        "About": "https://microsoft.github.io/presidio/",
+        "About": "https://data-privacy-stack.github.io/presidio/",
     },
 )
 
@@ -39,7 +39,7 @@ allow_other_models = os.getenv("ALLOW_OTHER_MODELS", False)
 # Sidebar
 st.sidebar.header(
     """
-PII De-Identification with [Microsoft Presidio](https://microsoft.github.io/presidio/)
+PII De-Identification with [Presidio](https://data-privacy-stack.github.io/presidio/)
 """
 )
 
@@ -208,7 +208,7 @@ st_return_decision_process = st.sidebar.checkbox(
     "Add analysis explanations to findings",
     value=False,
     help="Add the decision process to the output table. "
-    "More information can be found here: https://microsoft.github.io/presidio/analyzer/decision_process/",
+    "More information can be found here: https://data-privacy-stack.github.io/presidio/analyzer/decision_process/",
 )
 
 # Allow and deny lists
@@ -236,10 +236,10 @@ with st_deny_allow_expander:
 with st.expander("About this demo", expanded=False):
     st.info(
         """Presidio is an open source customizable framework for PII detection and de-identification.
-        \n\n[Code](https://aka.ms/presidio) | 
-        [Tutorial](https://microsoft.github.io/presidio/tutorial/) | 
-        [Installation](https://microsoft.github.io/presidio/installation/) | 
-        [FAQ](https://microsoft.github.io/presidio/faq/) |
+        \n\n[Code](https://github.com/data-privacy-stack/presidio) | 
+        [Tutorial](https://data-privacy-stack.github.io/presidio/tutorial/) | 
+        [Installation](https://data-privacy-stack.github.io/presidio/installation/) | 
+        [FAQ](https://data-privacy-stack.github.io/presidio/faq/) |
         [Feedback](https://forms.office.com/r/9ufyYjfDaY) |"""
     )
 
@@ -248,11 +248,11 @@ with st.expander("About this demo", expanded=False):
     Use this demo to:
     - Experiment with different off-the-shelf models and NLP packages.
     - Explore the different de-identification options, including redaction, masking, encryption and more.
-    - Generate synthetic text with Microsoft Presidio and OpenAI.
+    - Generate synthetic text with Presidio and OpenAI.
     - Configure allow and deny lists.
     
     This demo website shows some of Presidio's capabilities.
-    [Visit our website](https://microsoft.github.io/presidio) for more info,
+    [Visit our website](https://data-privacy-stack.github.io/presidio) for more info,
     samples and deployment options.    
     """
     )
@@ -260,7 +260,7 @@ with st.expander("About this demo", expanded=False):
     st.markdown(
         "[![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-analyzer.svg)](https://img.shields.io/pypi/dm/presidio-analyzer.svg)"
         "[![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)"
-        "![GitHub Repo stars](https://img.shields.io/github/stars/microsoft/presidio?style=social)"
+        "![GitHub Repo stars](https://img.shields.io/github/stars/data-privacy-stack/presidio?style=social)"
     )
 
 analyzer_load_state = st.info("Starting Presidio analyzer...")
@@ -289,7 +289,7 @@ try:
         default=list(get_supported_entities(*analyzer_params)),
         help="Limit the list of PII entities detected. "
         "This list is dynamic and based on the NER model and registered recognizers. "
-        "More information can be found here: https://microsoft.github.io/presidio/analyzer/adding_recognizers/",
+        "More information can be found here: https://data-privacy-stack.github.io/presidio/analyzer/adding_recognizers/",
     )
 
     # Before
