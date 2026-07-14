@@ -102,8 +102,8 @@ engine.analyze(...)
 
 To create a new recognizer via code:
 
-1. Create a new Python class which implements [LocalRecognizer](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/local_recognizer.py).
-(`LocalRecognizer` implements the base [EntityRecognizer](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/entity_recognizer.py) class)
+1. Create a new Python class which implements [LocalRecognizer](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/local_recognizer.py).
+(`LocalRecognizer` implements the base [EntityRecognizer](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/entity_recognizer.py) class)
 
     This class has the following functions:
 
@@ -124,9 +124,9 @@ To create a new recognizer via code:
     Notes:
     1. Each recognizer has access to different NLP assets such as tokens, [lemmas](https://en.wikipedia.org/wiki/Lemma_(morphology)), and more.
     These are given through the `nlp_artifacts` parameter.
-    Refer to the [source code](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/entity_recognizer.py) for more information.
+    Refer to the [source code](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/entity_recognizer.py) for more information.
 
-    2. The `analyze` method should return a list of [RecognizerResult](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/recognizer_result.py).
+    2. The `analyze` method should return a list of [RecognizerResult](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/recognizer_result.py).
 
 2. Add it to the recognizer registry using `registry.add_recognizer(my_recognizer)`.
 
@@ -150,7 +150,7 @@ To add a recognizer to the list of pre-defined recognizers:
 
 1. Clone the repo.
 2. Create a file containing the new recognizer Python class.
-3. Add the recognizer to the `recognizers` in the [`default_recognizers`](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml) config. Details of recognizer parameters are given [Here](./recognizer_registry_provider.md#the-recognizer-parameters).
+3. Add the recognizer to the `recognizers` in the [`default_recognizers`](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml) config. Details of recognizer parameters are given [Here](./recognizer_registry_provider.md#the-recognizer-parameters).
 4. If the recognizer is country-specific (file lives under `predefined_recognizers/country_specific/<country>/`), declare its country by setting the class-level `COUNTRY_CODE = "<iso-3166-1-alpha-2>"` attribute. This makes the recognizer participate in the country filter — see [Filtering recognizers by country](./filtering_by_country.md). Generic / locale-agnostic recognizers leave `COUNTRY_CODE` unset (defaults to `None`).
 5. Optional: Update documentation (e.g., the [supported entities list](../supported_entities.md)).
 
@@ -232,7 +232,7 @@ Additional examples can be found in the [OpenAPI spec](../api-docs/api-docs.html
 ### Reading pattern recognizers from YAML
 
 Recognizers can be loaded from a YAML file, which allows users to add recognition logic without writing code.
-An example YAML file can be found [here](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml).
+An example YAML file can be found [here](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml).
 
 Once the YAML file is created, it can be loaded into the `RecognizerRegistry` instance.
 

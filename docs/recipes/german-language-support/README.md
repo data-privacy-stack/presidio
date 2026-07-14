@@ -99,9 +99,9 @@ LOCATION, and ORGANIZATION on top of the pattern recognizers.
 ## Results
 
 Formal evaluation against a labelled German dataset has not yet been performed.
-To benchmark this recipe follow the [Presidio Research evaluation workflow](https://github.com/microsoft/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb):
+To benchmark this recipe follow the [Presidio Research evaluation workflow](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb):
 
-1. Generate synthetic German text with the [data generator](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb)
+1. Generate synthetic German text with the [data generator](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb)
 2. Configure the analyzer with `spacy_en_de.yaml`
 3. Run the evaluator and report precision / recall / F₂ / latency
 

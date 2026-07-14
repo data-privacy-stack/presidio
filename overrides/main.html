@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{% block extrahead %}
+{{ super() }}
+<meta name="google-site-verification" content="XTJynzxw5KJpNFN8WemNurQh1lj33OTCbkDbQr8267k" />
+{% endblock %}
+
 {% block analytics %}
 <!-- Microsoft Clarity with Consent Mode -->
 <script type="text/javascript">
@@ -137,4 +142,3 @@
 
 {{ super() }}
 {% endblock content %}
-

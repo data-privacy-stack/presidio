@@ -32,7 +32,7 @@ During the migration process:
 
 * Repositories, documentation links, and package references may gradually change.
 * Some GitHub URLs and documentation pages may redirect temporarily.
-* New Docker image releases will be published on Docker Hub rather than Microsoft Container Registry (MCR).
+* New Docker image releases are published to [GitHub Container Registry](https://github.com/orgs/data-privacy-stack/packages) under the Data Privacy Stack organization. Legacy Microsoft Container Registry (MCR) images remain available for older tags but are no longer updated; update `mcr.microsoft.com/presidio-*` image references to `ghcr.io/data-privacy-stack/presidio-*`.
 * Contribution and governance processes will evolve and become more community-driven.
 * The technical steering committee (TSC) will expand to include maintainers and contributors from outside Microsoft.
 

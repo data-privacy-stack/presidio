@@ -102,21 +102,21 @@ Using Presidio's modules as Python packages to get started:
 
 ## Simple flow - Docker container
 
-Presidio provides Docker containers that you can use to de-identify text data. Each module, analyzer, and anonymizer, has its own Docker container. The containers are available on Docker Hub.
+Presidio provides Docker containers that you can use to de-identify text data. Each module, analyzer, and anonymizer, has its own Docker container. New releases are available on [GitHub Container Registry](https://github.com/orgs/data-privacy-stack/packages); the legacy Microsoft Container Registry images are no longer updated.
 
 1. Download Docker images
 
 ```sh
-docker pull mcr.microsoft.com/presidio-analyzer
-docker pull mcr.microsoft.com/presidio-anonymizer
+docker pull ghcr.io/data-privacy-stack/presidio-analyzer
+docker pull ghcr.io/data-privacy-stack/presidio-anonymizer
 ```
 
 2. Run containers
 
 ```sh
-docker run -d -p 5002:3000 mcr.microsoft.com/presidio-analyzer:latest
+docker run -d -p 5002:3000 ghcr.io/data-privacy-stack/presidio-analyzer:latest
 
-docker run -d -p 5001:3000 mcr.microsoft.com/presidio-anonymizer:latest
+docker run -d -p 5001:3000 ghcr.io/data-privacy-stack/presidio-anonymizer:latest
 ```
 
 3. Use the API

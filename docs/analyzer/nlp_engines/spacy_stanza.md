@@ -55,7 +55,7 @@ sequenceDiagram
 !!! note "Note"
     A labeled dataset containing text and labeled PII entities is required for training a new model.
 
-For more information on model training and evaluation for Presidio, see the [Presidio-Research Github repository](https://github.com/microsoft/presidio-research).
+For more information on model training and evaluation for Presidio, see the [Presidio-Research Github repository](https://github.com/data-privacy-stack/presidio-research).
 
 To train your own model, see these links on spaCy and Stanza:
 

@@ -63,6 +63,9 @@ recognizer_registry:
       - en
     supported_entity: IT_FISCAL_CODE
     type: predefined
+    score_thresholds:
+      default: 0.4
+      CREDIT_CARD: 0.7
 
   - name: ItFiscalCodeRecognizer
     type: predefined
@@ -70,10 +73,13 @@ recognizer_registry:
 
 The configuration file contains the following parameters:
 
-  - `supported_languages`: A list of supported languages that the analyzer will support.
-  - `default_score_threshold`: A score that determines the minimal threshold for detection.
-  - `nlp_configuration`: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.
-  - `recognizer_registry`: All the recognizers that will be used by the analyzer. 
+- `supported_languages`: A list of supported languages that the analyzer will support.
+- `default_score_threshold`: A score that determines the minimal threshold for detection.
+- `nlp_configuration`: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.
+- `recognizer_registry`: All the recognizers that will be used by the analyzer. Each recognizer entry can define `score_thresholds`, using `default` as its fallback and entity names for overrides.
+
+!!! note "Defining confidence thresholds"
+    Presidio supports multiple types of score thresholds: default ones (for the analyzer and each recognizer), per-request thresholds, and per-entity thresholds. Supplying `analyzer.analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request and applies the supplied threshold to every result. The order of importance is: `analyzer.analyze(score_threshold=...)` > an entity specific threshold > a recognizer default threshold (`default`) > the Presidio Analyzer `default_score_threshold`.
 
 !!! note "Note"
 
@@ -139,9 +145,9 @@ print(results)
 
 The default configuration of `AnalyzerEngine` is defined in the following files: 
 
-  -  [Analyzer Engine](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml)
-  -  [NLP Engine](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml)
-  -  [Recognizer Registry](https://github.com/microsoft/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
+  -  [Analyzer Engine](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_analyzer.yaml)
+  -  [NLP Engine](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default.yaml)
+  -  [Recognizer Registry](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
 
 ## Enabling and disabling recognizers
 In general, recognizers that are not added to the configuration would not be created, with one exception.

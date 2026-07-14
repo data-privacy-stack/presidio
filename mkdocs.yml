@@ -1,9 +1,10 @@
 site_name: Presidio
-site_url: https://microsoft.github.io/presidio
+site_url: https://data-privacy-stack.github.io/presidio
 site_description: PII anonymization for text, images, and structured data.
 site_author: Data Privacy Stack
+copyright: '<a href="https://dataprivacystack.org/">Data Privacy Stack</a>'
 
-repo_url: https://github.com/microsoft/presidio/
+repo_url: https://github.com/data-privacy-stack/presidio/
 edit_uri: ""
 
 nav:
@@ -66,7 +67,7 @@ nav:
       - Supported entities: supported_entities.md
       - Project transition update: project_transition.md
       - Community: community.md
-      - Change log: https://github.com/microsoft/presidio/blob/main/CHANGELOG.md
+      - Change log: https://github.com/data-privacy-stack/presidio/blob/main/CHANGELOG.md
       - Setting up a development environment: development.md
       - Build and release process: build_release.md
       - Changes from V1 to V2: presidio_V2.md
@@ -76,7 +77,7 @@ nav:
           - Presidio Anonymizer Python API: api/anonymizer_python.md
           - Presidio Image Redactor Python API: api/image_redactor_python.md
           - Presidio Structured Python API: api/structured_python.md
-      - REST API reference: https://microsoft.github.io/presidio/api-docs/api-docs.html" target="_blank
+      - REST API reference: https://data-privacy-stack.github.io/presidio/api-docs/api-docs.html" target="_blank
   - Recipes:
     - Home: recipes/index.md
     - Contributing: recipes/CONTRIBUTING.md
@@ -93,21 +94,21 @@ nav:
       - Anonymizing known values: samples/python/Anonymizing known values.ipynb
       - Keeping some entities from being anonymized: samples/python/keep_entities.ipynb
       - Integrating with external services: samples/python/integrating_with_external_services.ipynb
-      - Remote Recognizer: https://github.com/microsoft/presidio/blob/main/docs/samples/python/example_remote_recognizer.py
+      - Remote Recognizer: https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_remote_recognizer.py
       - Azure AI Language as a Remote Recognizer: samples/python/text_analytics/index.md
       - Azure Health DataServices De-identification as a Remote Recognizer: samples/python/ahds/index.md
-      - Using Flair as an external PII model: https://github.com/microsoft/presidio/blob/main/docs/samples/python/flair_recognizer.py
-      - Using Span Marker as an external PII model: https://github.com/microsoft/presidio/blob/main/docs/samples/python/span_marker_recognizer.py
+      - Using Flair as an external PII model: https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/flair_recognizer.py
+      - Using Span Marker as an external PII model: https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/span_marker_recognizer.py
       - Using Transformers as an external PII model: samples/python/transformers_recognizer/index.md
       - Using GLiNER as an external PII model: samples/python/gliner.md
       - Pseudonymization (replace PII values using mappings): samples/python/pseudonymization.ipynb
-      - Passing a lambda as a Presidio anonymizer using Faker: https://github.com/microsoft/presidio/blob/main/docs/samples/python/example_custom_lambda_anonymizer.py
+      - Passing a lambda as a Presidio anonymizer using Faker: https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_custom_lambda_anonymizer.py
       - Synthetic data generation with OpenAI: samples/python/synth_data_with_openai.ipynb
       - YAML based no-code configuration: samples/python/no_code_config.ipynb
     - Data:
       - Analyzing structured / semi-structured data in batch: samples/python/batch_processing.ipynb
       - Presidio Structured Basic Usage Notebook: samples/python/example_structured.ipynb
-      - Analyze and Anonymize CSV file: https://github.com/microsoft/presidio/blob/main/docs/samples/python/process_csv_file.py
+      - Analyze and Anonymize CSV file: https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/process_csv_file.py
     - Images:
       - Redacting Text PII from DICOM images: samples/python/example_dicom_image_redactor.ipynb
       - Using an allow list with image redaction: samples/python/image_redaction_allow_list_approach.ipynb
@@ -219,17 +220,17 @@ plugins:
               modules: false
             filters:
               - "!^_"
-  - mkdocs-jupyter:
-      ignore_h1_titles: True
 
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/microsoft/presidio
+      link: https://github.com/data-privacy-stack/presidio
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/MewtBGFquB
     - icon: fontawesome/brands/docker
-      link: https://hub.docker.com/_/microsoft-presidio
+      link: https://github.com/orgs/data-privacy-stack/packages
     - icon: fontawesome/solid/envelope
-      link: mailto:presidio@microsoft.com
+      link: mailto:presidio@dataprivacystack.org
     - icon: fontawesome/solid/meteor
       link: https://huggingface.co/spaces/presidio/presidio_demo
 

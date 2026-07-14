@@ -49,7 +49,17 @@ def entities():
         ("Today is 2024-03-15T14:30:00Z\r or not?", 1, ((9, 29),), ((0.6, 0.81),),),
         ("Today is 2024-03-15T14:30Z\n or not?", 1, ((9, 26),), ((0.6, 0.81),),),
         ("2024-03-15T14:30Z", 1, ((0, 17),), ((0.6, 1),),),
+        # Invalid ISO 8601 month/day values must not be detected as a date
+        ("2024-13-15T14:30:00Z", 0, (), (),),
+        ("2024-00-15T14:30:00Z", 0, (), (),),
+        ("2024-12-32T14:30Z", 0, (), (),),
+        ("2024-12-00T14:30Z", 0, (), (),),
         ("Today is2024-06-05T09:15:30.500-07:00", 0, (), (),),
+        # The leading `\b` must apply to every alternative in the pattern,
+        # not just the first one. Without a non-capturing wrapper, the
+        # seconds and minutes-only alternatives could match mid-word.
+        ("Today is2024-03-15T14:30:00+02:00", 0, (), (),),
+        ("Today is2024-03-15T14:30Z", 0, (), (),),
         # Word boundary tests
         ("Today is5/21", 0, (), (),),
         ("Today is5/21and it's sunny", 0, (), (),),

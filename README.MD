@@ -4,18 +4,19 @@
 
 ---
 
-[![Build Status](https://github.com/microsoft/presidio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/microsoft/presidio/actions/workflows/ci.yml)
+[![Build Status](https://github.com/data-privacy-stack/presidio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/data-privacy-stack/presidio/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
-![Release](https://img.shields.io/github/release/Microsoft/presidio.svg)
+![Release](https://img.shields.io/github/release/data-privacy-stack/presidio.svg)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/6076/badge)](https://www.bestpractices.dev/projects/6076)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/presidio-analyzer.svg)](https://pypi.python.org/pypi/presidio-analyzer/)
+[![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?logo=discord&logoColor=white)](https://discord.gg/MewtBGFquB)
 
 | Component | Downloads | Coverage |
 |-----------|-----------|----------|
-| Presidio Analyzer | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-analyzer.svg)](https://pypi.python.org/pypi/presidio-analyzer/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/microsoft/presidio/coverage-data-presidio-analyzer/endpoint.json)](https://github.com/microsoft/presidio/tree/coverage-data-presidio-analyzer) |
-| Presidio Anonymizer | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-anonymizer.svg)](https://pypi.python.org/pypi/presidio-anonymizer/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/microsoft/presidio/coverage-data-presidio-anonymizer/endpoint.json)](https://github.com/microsoft/presidio/tree/coverage-data-presidio-anonymizer) |
-| Presidio Image-Redactor | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-image-redactor.svg)](https://pypi.python.org/pypi/presidio-image-redactor/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/microsoft/presidio/coverage-data-presidio-image-redactor/endpoint.json)](https://github.com/microsoft/presidio/tree/coverage-data-presidio-image-redactor) |
-| Presidio Structured | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-structured.svg)](https://pypi.python.org/pypi/presidio-structured/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/microsoft/presidio/coverage-data-presidio-structured/endpoint.json)](https://github.com/microsoft/presidio/tree/coverage-data-presidio-structured) |
+| Presidio Analyzer | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-analyzer.svg)](https://pypi.python.org/pypi/presidio-analyzer/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/data-privacy-stack/presidio/coverage-data-presidio-analyzer/endpoint.json)](https://github.com/data-privacy-stack/presidio/tree/coverage-data-presidio-analyzer) |
+| Presidio Anonymizer | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-anonymizer.svg)](https://pypi.python.org/pypi/presidio-anonymizer/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/data-privacy-stack/presidio/coverage-data-presidio-anonymizer/endpoint.json)](https://github.com/data-privacy-stack/presidio/tree/coverage-data-presidio-anonymizer) |
+| Presidio Image-Redactor | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-image-redactor.svg)](https://pypi.python.org/pypi/presidio-image-redactor/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/data-privacy-stack/presidio/coverage-data-presidio-image-redactor/endpoint.json)](https://github.com/data-privacy-stack/presidio/tree/coverage-data-presidio-image-redactor) |
+| Presidio Structured | [![Pypi Downloads](https://img.shields.io/pypi/dm/presidio-structured.svg)](https://pypi.python.org/pypi/presidio-structured/) | [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/data-privacy-stack/presidio/coverage-data-presidio-structured/endpoint.json)](https://github.com/data-privacy-stack/presidio/tree/coverage-data-presidio-structured) |
 ## What is Presidio
 
 Presidio _(Origin from Latin praesidium ‘protection, garrison’)_ helps to ensure sensitive data is properly managed and governed. It provides fast **_identification_** and **_anonymization_** modules for private entities in text such as credit card numbers, names, locations, social security numbers, bitcoin wallets, US phone numbers, financial data and more.
@@ -24,15 +25,15 @@ Presidio _(Origin from Latin praesidium ‘protection, garrison’)_ helps to en
 
 ---
 
-### :blue_book: [Full documentation](https://microsoft.github.io/presidio)
+### :blue_book: [Full documentation](https://data-privacy-stack.github.io/presidio)
 
 ### :mega: [Project transition update](docs/project_transition.md)
 
 ### :question: [Frequently Asked Questions](docs/faq.md)
 
-### :thought_balloon: [Demo](https://aka.ms/presidio-demo)
+### :thought_balloon: [Demo](https://huggingface.co/spaces/presidio/presidio_demo)
 
-### :flight_departure: [Examples](https://microsoft.github.io/presidio/samples/)
+### :flight_departure: [Examples](https://data-privacy-stack.github.io/presidio/samples/)
 
 ---
 
@@ -55,43 +56,33 @@ Presidio _(Origin from Latin praesidium ‘protection, garrison’)_ helps to en
 
 ## Installing Presidio
 
-1. [Using pip](https://microsoft.github.io/presidio/installation/#using-pip)
-2. [Using Docker](https://microsoft.github.io/presidio/installation/#using-docker)
-3. [From source](https://microsoft.github.io/presidio/installation/#install-from-source)
+1. [Using pip](https://data-privacy-stack.github.io/presidio/installation/#using-pip)
+2. [Using Docker](https://data-privacy-stack.github.io/presidio/installation/#using-docker)
+3. [From source](https://data-privacy-stack.github.io/presidio/installation/#install-from-source)
 4. [Migrating from V1 to V2](./docs/presidio_V2.md)
 
 ## Running Presidio
 
-1. [Getting started](https://microsoft.github.io/presidio/getting_started)
-2. [Setting up a development environment](https://microsoft.github.io/presidio/development)
-3. [PII de-identification in text](https://microsoft.github.io/presidio/text_anonymization)
-4. [PII de-identification in images](https://microsoft.github.io/presidio/image-redactor)
-5. [Usage samples and example deployments](https://microsoft.github.io/presidio/samples)
+1. [Getting started](https://data-privacy-stack.github.io/presidio/getting_started)
+2. [Setting up a development environment](https://data-privacy-stack.github.io/presidio/development)
+3. [PII de-identification in text](https://data-privacy-stack.github.io/presidio/text_anonymization)
+4. [PII de-identification in images](https://data-privacy-stack.github.io/presidio/image-redactor)
+5. [Usage samples and example deployments](https://data-privacy-stack.github.io/presidio/samples)
 
 ---
 
 ## Support
 
-- Before you submit an issue, please go over the [documentation](https://microsoft.github.io/presidio/).
-- For general discussions, please use the [GitHub repo's discussion board](https://github.com/microsoft/presidio/discussions).
-- If you have a usage question, found a bug or have a suggestion for improvement, please file a [GitHub issue](https://github.com/microsoft/presidio/issues).
-- For other matters, please email [presidio@microsoft.com](mailto:presidio@microsoft.com).
+- Before you submit an issue, please go over the [documentation](https://data-privacy-stack.github.io/presidio/).
+- For general discussions, please use the [GitHub repo's discussion board](https://github.com/data-privacy-stack/presidio/discussions).
+- If you have a usage question, found a bug or have a suggestion for improvement, please file a [GitHub issue](https://github.com/data-privacy-stack/presidio/issues).
+- For other matters, please email [presidio@dataprivacystack.org](mailto:presidio@dataprivacystack.org).
 
 ## Contributing
 
 For details on contributing to this repository, see the [contributing guide](CONTRIBUTING.md).
 
-This project welcomes contributions and suggestions. Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit [https://cla.microsoft.com](https://cla.microsoft.com).
-
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+This project has adopted the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Contributors
 
@@ -101,6 +92,6 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 <!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
-<a href="https://github.com/microsoft/presidio/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=microsoft/presidio" />
+<a href="https://github.com/data-privacy-stack/presidio/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=data-privacy-stack/presidio" />
 </a>

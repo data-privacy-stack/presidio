@@ -1,5 +1,10 @@
 name: Release Documentation
 
+# Builds the docs with Zensical (the successor to Material for MkDocs) via
+# scripts/zensical_build.py and publishes the result to GitHub Pages. The script
+# pre-converts the notebook samples with nbconvert because Zensical does not run
+# the mkdocs-jupyter plugin.
+
 on:
   workflow_dispatch:
 
@@ -8,28 +13,70 @@ permissions:
 
 jobs:
   github-pages-release:
-    name: Push to github pages
-    runs-on: ubuntu-slim
-    
+    name: Build with Zensical and push to GitHub Pages
+    runs-on: ubuntu-latest
+
     permissions:
-      contents: write  # Required for pushing to gh-pages branch
-    
+      contents: write  # Required for pushing to the gh-pages branch
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
         with:
           fetch-depth: 0  # Fetch all history for proper gh-pages deployment
           persist-credentials: true  # So that the token is available for pushing
-      
+
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: '3.x'
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
           pip install -r docs/requirements-docs.txt
-      
-      - name: Deploy docs
+
+      - name: Build docs
         run: |
-          mkdocs gh-deploy
+          echo "::group::Available memory before build"
+          free -h || true
+          echo "::endgroup::"
+
+          # Capture peak RSS and exit status so an OS kill (e.g. SIGKILL ->
+          # exit 247) is visible. Continue to the diagnostics step regardless.
+          status=0
+          /usr/bin/time -v python scripts/zensical_build.py build || status=$?
+          echo "docs build exit status: $status"
+
+          if [ "$status" -ne 0 ]; then
+            echo "::group::OOM killer check"
+            dmesg 2>/dev/null | grep -i -E "killed process|out of memory" | tail -n 20 || \
+              echo "dmesg unavailable or no OOM messages"
+            echo "::endgroup::"
+            exit "$status"
+          fi
+
+      - name: Deploy to GitHub Pages
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          publish_dir="$(mktemp -d)"
+          trap 'git worktree remove --force "$publish_dir"' EXIT
+
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+          git worktree add --detach "$publish_dir" origin/gh-pages
+
+          find "$publish_dir" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a site/. "$publish_dir"/
+          touch "$publish_dir/.nojekyll"
+
+          git -C "$publish_dir" add -A
+          if git -C "$publish_dir" diff --cached --quiet; then
+            echo "No documentation changes to publish."
+            exit 0
+          fi
+
+          git -C "$publish_dir" commit -m "docs: publish Zensical documentation"
+          git -C "$publish_dir" push origin HEAD:gh-pages

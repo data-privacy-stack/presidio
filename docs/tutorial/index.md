@@ -1,6 +1,6 @@
-# Tutorial: Customization in Microsoft Presidio
+# Tutorial: Customization in Presidio
 
-This tutorials covers different customization use cases to:
+This tutorial covers different customization use cases to:
 
 1. Adapt Presidio to detect new types of PII entities.
 2. Adapt Presidio to detect PII entities in a new language.

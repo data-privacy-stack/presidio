@@ -1,3 +1,5 @@
+# ruff: noqa: D103,D200,D205,E501,F841,I001
+
 import pytest
 import re
 from pathlib import Path
@@ -38,6 +40,81 @@ def test_recognizer_registry_provider_configuration_file():
     assert [recognizer.supported_language for recognizer in recognizer_registry.recognizers if recognizer.name == "ExampleCustomRecognizer"] == ["en", "es"]
     spanish_recognizer = [recognizer for recognizer in recognizer_registry.recognizers if recognizer.name == "ExampleCustomRecognizer" and recognizer.supported_language == "es"][0]
     assert spanish_recognizer.context == ["tarjeta", "credito"]
+    credit_card = next(
+        recognizer
+        for recognizer in recognizer_registry.recognizers
+        if recognizer.name == "CreditCardRecognizer"
+    )
+    assert credit_card.score_thresholds == {
+        "default": 0.4,
+        "CREDIT_CARD": 0.8,
+    }
+    assert all(
+        recognizer.score_thresholds == {"ZIP": 0.6}
+        for recognizer in recognizer_registry.recognizers
+        if recognizer.name == "ExampleCustomRecognizer"
+    )
+
+
+def test_recognizer_registry_provider_inline_thresholds_attach_to_instance():
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [
+                {
+                    "name": "CreditCardRecognizer",
+                    "type": "predefined",
+                    "supported_language": "en",
+                    "score_thresholds": {"default": 0.4},
+                }
+            ],
+        }
+    )
+
+    recognizer = provider.create_recognizer_registry().recognizers[0]
+
+    assert recognizer.score_thresholds == {"default": 0.4}
+
+
+def test_recognizer_registry_provider_omitted_thresholds_default_to_empty():
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [
+                {
+                    "name": "CreditCardRecognizer",
+                    "type": "predefined",
+                    "supported_language": "en",
+                }
+            ],
+        }
+    )
+
+    recognizer = provider.create_recognizer_registry().recognizers[0]
+
+    assert recognizer.score_thresholds == {}
+
+
+@pytest.mark.parametrize(
+    "score_thresholds",
+    [True, False, 0, "", "0.4", [], {"": 0.4}, {"default": True}, {"default": 1.1}],
+)
+def test_recognizer_registry_provider_rejects_invalid_score_thresholds(
+    score_thresholds,
+):
+    with pytest.raises(ValueError):
+        RecognizerRegistryProvider(
+            registry_configuration={
+                "supported_languages": ["en"],
+                "recognizers": [
+                    {
+                        "name": "CreditCardRecognizer",
+                        "type": "predefined",
+                        "score_thresholds": score_thresholds,
+                    }
+                ],
+            }
+        )
 
 
 def test_recognizer_registry_provider_configuration_file_load_predefined(mandatory_recognizers):

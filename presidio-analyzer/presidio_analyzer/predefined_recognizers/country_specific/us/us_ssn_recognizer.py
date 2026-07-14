@@ -77,8 +77,12 @@ class UsSsnRecognizer(PatternRecognizer):
             # groups cannot be all zeros
             return True
 
-        for sample_ssn in ("000", "666", "123456789", "98765432", "078051120"):
-            if only_digits.startswith(sample_ssn):
-                return True
+        if only_digits[:3] in ("000", "666"):
+            # area number (first group) is never issued by the SSA
+            return True
+
+        if only_digits in ("123456789", "987654320", "078051120"):
+            # canonical sample/placeholder SSNs published for examples
+            return True
 
         return False

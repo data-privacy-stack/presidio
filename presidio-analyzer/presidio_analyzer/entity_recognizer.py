@@ -3,6 +3,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional, Tuple
 
 from presidio_analyzer import RecognizerResult
+from presidio_analyzer.score_thresholds import normalize_score_thresholds
 
 if TYPE_CHECKING:
     from presidio_analyzer.nlp_engine import NlpArtifacts
@@ -33,6 +34,7 @@ class EntityRecognizer:
         recognizers may set it per instance; predefined recognizers should
         prefer the class-level :attr:`COUNTRY_CODE`. Values are stripped,
         lower-cased, and must match :attr:`COUNTRY_CODE` when both are set.
+    :param score_thresholds: Optional default and entity-specific score thresholds.
     """
 
     MIN_SCORE = 0
@@ -53,6 +55,7 @@ class EntityRecognizer:
         version: str = "0.0.1",
         context: Optional[List[str]] = None,
         country_code: Optional[str] = None,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         self.supported_entities = supported_entities
 
@@ -67,12 +70,26 @@ class EntityRecognizer:
         self.version = version
         self.is_loaded = False
         self.context = context if context else []
+        self.score_thresholds = score_thresholds
 
         self._country_code = self._resolve_country_code(country_code)
 
         self.load()
         logger.info("Loaded recognizer: %s", self.name)
         self.is_loaded = True
+
+    @property
+    def score_thresholds(self) -> Dict[str, float]:
+        """Return a defensive copy of this recognizer's score thresholds."""
+        return self._score_thresholds.copy()
+
+    @score_thresholds.setter
+    def score_thresholds(self, value: Optional[Dict[str, float]]) -> None:
+        """Validate and store this recognizer's score thresholds.
+
+        :param value: The default and entity-specific score thresholds.
+        """
+        self._score_thresholds = normalize_score_thresholds(value)
 
     @classmethod
     def _resolve_country_code(cls, passed: Optional[str]) -> Optional[str]:
