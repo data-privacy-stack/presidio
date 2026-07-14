@@ -570,7 +570,7 @@ Use atomic grouping: (?>a+)b or possessive quantifier a++b"
 
 ### Technology Stack
 - **Python** - Must support all versions
-- **Poetry** - Package manager, not pip
+- **uv** - Dependency management and installation (not pip or Poetry). Each package commits a `uv.lock`; `poetry-core` is retained only as the build backend for now.
 - **Ruff** - Linting and formatting (replaces flake8, black, isort)
 - **spaCy** - Default NLP engine (en_core_web_lg for production), although one can use other NLP engines via provider pattern
 - **Docker** - Deployment via GitHub Container Registry (`ghcr.io/data-privacy-stack`)
@@ -587,19 +587,27 @@ Use atomic grouping: (?>a+)b or possessive quantifier a++b"
 
 ### Local Development
 ```bash
-# Setup
+# Setup (uv reads the committed uv.lock; --locked fails if it is stale)
 cd presidio-analyzer  # or presidio-anonymizer, presidio-cli, etc.
-poetry install --all-extras
-poetry run python -m spacy download en_core_web_lg  # For analyzer/CLI only
+uv sync --locked --all-extras --group dev
+uv run python -m spacy download en_core_web_lg  # For analyzer/CLI only
 
 # Run tests
-poetry run pytest -xvv  # Stop on first failure with verbose output
-poetry run pytest tests/test_us_ssn_recognizer.py -k "test_valid"  # Specific test
+uv run pytest -xvv  # Stop on first failure with verbose output
+uv run pytest tests/test_us_ssn_recognizer.py -k "test_valid"  # Specific test
 
 # Lint
-ruff check .  # From repo root
-ruff format .  # Auto-format
+uv run ruff check .
+uv run ruff format .
 ```
+
+> **Dependency changes:** whenever you edit a package's `pyproject.toml`
+> dependencies (add/remove/bump `[project]` deps, extras, or
+> `[dependency-groups]`), you MUST regenerate and commit that package's
+> `uv.lock` in the same change (`cd <package> && uv lock`). CI installs with
+> `uv sync --locked` and fails if `pyproject.toml` and `uv.lock` are out of
+> sync, so an updated `pyproject.toml` without its matching `uv.lock` will
+> break the build.
 
 ### Docker Testing
 ```bash
@@ -624,7 +632,7 @@ pytest -v  # Run all E2E tests
 ## Common Issues to Watch For
 
 ### Build/Test Issues
-- **Poetry version conflicts** - Use `poetry lock --no-update` to preserve versions
+- **Stale `uv.lock`** - If `uv sync --locked` fails with "lockfile needs to be updated", run `uv lock` in that package and commit the result.
 - **Missing spaCy models** - Download en_core_web_lg before running tests
 - **AHDS test skips** - Expected when AHDS_ENDPOINT not set
 - **Transformers test failures** - Expected without HuggingFace access in restricted environments

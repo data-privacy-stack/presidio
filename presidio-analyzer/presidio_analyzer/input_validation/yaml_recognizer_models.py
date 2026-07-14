@@ -224,6 +224,34 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
         return super().model_dump(*args, **kwargs)
 
 
+class LangExtractRecognizerConfig(PredefinedRecognizerConfig):
+    """Configuration for language model (LangExtract) recognizers.
+
+    Covers ``BasicLangExtractRecognizer`` and ``AzureOpenAILangExtractRecognizer``.
+    ``extra="allow"`` lets recognizer-specific kwargs (most importantly
+    ``config_path``, pointing at the langextract model YAML) survive validation
+    and reach the recognizer constructor. Without this, the strict
+    ``PredefinedRecognizerConfig`` schema drops ``config_path`` and the recognizer
+    silently falls back to its bundled default model configuration.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    config_path: Optional[str] = Field(
+        None, description="Path to the langextract model configuration YAML"
+    )
+
+    def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        """Serialize the config without None values by default.
+
+        LangExtract recognizer kwargs are passed directly to the recognizer
+        constructor. Excluding None values preserves constructor defaults for
+        omitted YAML fields instead of overriding them with explicit None.
+        """
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(*args, **kwargs)
+
+
 class CustomRecognizerConfig(BaseRecognizerConfig):
     """Configuration for custom pattern-based recognizers."""
 
@@ -534,4 +562,6 @@ class RecognizerRegistryConfig(BaseModel):
 CONFIG_MODEL_MAP: Dict[str, Type[BaseModel]] = {
     "HuggingFaceNerRecognizer": HuggingFaceRecognizerConfig,
     "GLiNERRecognizer": GLiNERRecognizerConfig,
+    "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
+    "AzureOpenAILangExtractRecognizer": LangExtractRecognizerConfig,
 }

@@ -343,6 +343,13 @@ recognizers:
     enabled: false
     country_code: tr
 
+  - name: PhUmidRecognizer
+    supported_languages:
+      - en
+    type: predefined
+    enabled: false
+    country_code: ph
+
   - name: HuggingFaceNerRecognizer
     supported_languages:
     - en
