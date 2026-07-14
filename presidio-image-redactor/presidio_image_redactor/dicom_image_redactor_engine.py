@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import shutil
@@ -77,11 +78,20 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
         # burned-in PHI on any frame, and not necessarily in the same location.
         frames = image_np if is_multiframe else [image_np]
         bboxes_per_frame = []
+        analyzed_frames: Dict[bytes, List[Dict[str, int]]] = {}
         for frame_np in frames:
-            image_pil = self._image_from_array(frame_np, is_greyscale)
-            padded_image_pil = self._add_padding(
-                image_pil, is_greyscale, padding_width
+            # Identical frames (e.g. static lead-in or padding frames in cine
+            # loops) yield identical detection results; skip re-running
+            # OCR + analysis for frames already seen.
+            frame_key = (
+                hashlib.sha256(frame_np.tobytes()).digest() if is_multiframe else None
             )
+            if frame_key is not None and frame_key in analyzed_frames:
+                bboxes_per_frame.append(analyzed_frames[frame_key])
+                continue
+
+            image_pil = self._image_from_array(frame_np, is_greyscale)
+            padded_image_pil = self._add_padding(image_pil, is_greyscale, padding_width)
 
             # Detect PII
             analyzer_results = self._get_analyzer_results(
@@ -99,12 +109,12 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
             frame_bboxes = self.bbox_processor.remove_bbox_padding(
                 analyzer_bboxes, padding_width
             )
+            if frame_key is not None:
+                analyzed_frames[frame_key] = frame_bboxes
             bboxes_per_frame.append(frame_bboxes)
 
         # Redact all bounding boxes from DICOM file (every frame for multi-frame)
-        boxes_for_redaction = (
-            bboxes_per_frame if is_multiframe else bboxes_per_frame[0]
-        )
+        boxes_for_redaction = bboxes_per_frame if is_multiframe else bboxes_per_frame[0]
         redacted_image = self._add_redact_box(
             instance, boxes_for_redaction, crop_ratio, fill
         )
@@ -742,9 +752,7 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
                 value = text_metadata[i]
                 # Flatten MultiValue/list/tuple into individual elements
                 items = (
-                    value
-                    if isinstance(value, (MultiValue, list, tuple))
-                    else [value]
+                    value if isinstance(value, (MultiValue, list, tuple)) else [value]
                 )
                 for item in items:
                     text = str(item).strip()
@@ -1179,11 +1187,19 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
         # Detect PII on each frame independently
         frames = image_np if is_multiframe else [image_np]
         bboxes_per_frame = []
+        analyzed_frames: Dict[bytes, List[Dict[str, int]]] = {}
         for frame_np in frames:
-            loaded_image = self._image_from_array(frame_np, is_greyscale)
-            padded_image = self._add_padding(
-                loaded_image, is_greyscale, padding_width
+            # Skip re-running OCR + analysis for identical frames (see
+            # redact_and_return_bbox).
+            frame_key = (
+                hashlib.sha256(frame_np.tobytes()).digest() if is_multiframe else None
             )
+            if frame_key is not None and frame_key in analyzed_frames:
+                bboxes_per_frame.append(analyzed_frames[frame_key])
+                continue
+
+            loaded_image = self._image_from_array(frame_np, is_greyscale)
+            padded_image = self._add_padding(loaded_image, is_greyscale, padding_width)
 
             # Detect PII
             analyzer_results = self._get_analyzer_results(
@@ -1201,12 +1217,12 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
             frame_bboxes = self.bbox_processor.remove_bbox_padding(
                 analyzer_bboxes, padding_width
             )
+            if frame_key is not None:
+                analyzed_frames[frame_key] = frame_bboxes
             bboxes_per_frame.append(frame_bboxes)
 
         # Redact all bounding boxes from DICOM file (every frame for multi-frame)
-        boxes_for_redaction = (
-            bboxes_per_frame if is_multiframe else bboxes_per_frame[0]
-        )
+        boxes_for_redaction = bboxes_per_frame if is_multiframe else bboxes_per_frame[0]
         redacted_dicom_instance = self._add_redact_box(
             instance, boxes_for_redaction, crop_ratio, fill
         )

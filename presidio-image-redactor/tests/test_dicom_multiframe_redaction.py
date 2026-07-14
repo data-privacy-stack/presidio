@@ -260,9 +260,7 @@ def test_redact_multiframe_does_not_raise_and_preserves_shape():
 
     redacted = engine.redact(instance, use_metadata=False)
 
-    assert isinstance(
-        redacted, (pydicom.dataset.FileDataset, pydicom.dataset.Dataset)
-    )
+    assert isinstance(redacted, (pydicom.dataset.FileDataset, pydicom.dataset.Dataset))
     assert int(redacted.NumberOfFrames) == 3
     assert redacted.pixel_array.shape == (3, 24, 24)
 
@@ -274,9 +272,7 @@ def test_redact_multiframe_redacts_all_frames_end_to_end(mocker):
     # Detection coordinates chosen so they remain inside the frame after the
     # OCR padding is removed (padding_width defaults to 25).
     detection = ImageRecognizerResult("PERSON", 0, 6, 0.99, 30, 30, 8, 8)
-    engine = DicomImageRedactorEngine(
-        image_analyzer_engine=_StubAnalyzer([detection])
-    )
+    engine = DicomImageRedactorEngine(image_analyzer_engine=_StubAnalyzer([detection]))
     mocker.patch.object(
         DicomImageRedactorEngine, "_get_most_common_pixel_value", return_value=0
     )
@@ -294,3 +290,58 @@ def test_redact_multiframe_redacts_all_frames_end_to_end(mocker):
     # Identical detection per frame => identical redaction across frames.
     for i in range(1, frames):
         assert np.array_equal(redacted_pa[0], redacted_pa[i])
+
+
+# ------------------------------------------------------
+# Frame deduplication (identical frames analyzed once)
+# ------------------------------------------------------
+def test_identical_frames_are_analyzed_once(mocker):
+    """Byte-identical frames are analyzed once while every frame is redacted.
+
+    Static lead-in or padding frames in cine loops are the typical case.
+    """
+    frames = 4
+    instance = _build_dicom(frames=frames, rows=40, cols=40)
+    identical = np.tile(instance.pixel_array[0], (frames, 1, 1))
+    instance.PixelData = identical.tobytes()
+
+    detection = ImageRecognizerResult("PERSON", 0, 6, 0.99, 30, 30, 8, 8)
+    engine = DicomImageRedactorEngine(image_analyzer_engine=_StubAnalyzer([detection]))
+    mocker.patch.object(
+        DicomImageRedactorEngine, "_get_most_common_pixel_value", return_value=0
+    )
+    spy = mocker.spy(DicomImageRedactorEngine, "_get_analyzer_results")
+
+    redacted, bboxes = engine.redact_and_return_bbox(instance, use_metadata=False)
+
+    assert spy.call_count == 1, "identical frames must be analyzed only once"
+    # Every frame is still redacted, with identical results.
+    redacted_pa = redacted.pixel_array
+    original_pa = instance.pixel_array
+    for i in range(frames):
+        assert not np.array_equal(
+            redacted_pa[i], original_pa[i]
+        ), f"frame {i} was not redacted"
+        assert np.array_equal(redacted_pa[0], redacted_pa[i])
+    # The aggregated bbox return still reports one detection per frame.
+    assert len(bboxes) == frames
+
+
+def test_duplicate_frames_reuse_results_distinct_frames_do_not(mocker):
+    """Only byte-identical frames reuse analysis results.
+
+    Distinct frames are each analyzed.
+    """
+    frames = 3
+    instance = _build_dicom(frames=frames, rows=40, cols=40)
+    pixels = instance.pixel_array.copy()
+    pixels[1, 0:5, 0:5] = 500  # make frame 1 distinct
+    pixels[2] = pixels[0]  # frame 2 duplicates frame 0
+    instance.PixelData = pixels.tobytes()
+
+    engine = DicomImageRedactorEngine(image_analyzer_engine=_StubAnalyzer([]))
+    spy = mocker.spy(DicomImageRedactorEngine, "_get_analyzer_results")
+
+    engine.redact_and_return_bbox(instance, use_metadata=False)
+
+    assert spy.call_count == 2, "two distinct frames -> two analysis runs"
