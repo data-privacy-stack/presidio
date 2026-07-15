@@ -81,6 +81,10 @@ class BaseRecognizerConfig(BaseModel):
     supported_entities: Optional[List[str]] = Field(
         default=None, description="List of supported entities for this recognizer"
     )
+    score_thresholds: Optional[Any] = Field(
+        default=None,
+        description="Default and entity-specific score thresholds",
+    )
 
     @field_validator("supported_language")
     @classmethod
@@ -463,6 +467,7 @@ class RecognizerRegistryConfig(BaseModel):
                 continue
 
             if isinstance(recognizer, dict):
+                recognizer = recognizer.copy()
                 recognizer_type = recognizer.get("type")
 
                 # Validate conflicting custom-only fields if explicitly predefined

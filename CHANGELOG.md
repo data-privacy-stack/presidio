@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file.
 
 ### Analyzer
 #### Added
+- Recognizer registry YAML entries now accept `score_thresholds` for recognizer-wide and entity-specific score cutoffs, with the analyzer's `default_score_threshold` as the fallback.
 - UK Driving Licence Number (`UK_DRIVING_LICENCE`) recognizer with pattern matching and context support (#1857) (Thanks @tee-jagz)
 - German PII recognizers for `DE_TAX_ID`, `DE_TAX_NUMBER`, `DE_PASSPORT`, `DE_ID_CARD`, `DE_SOCIAL_SECURITY`, `DE_HEALTH_INSURANCE`, `DE_KFZ`, `DE_HANDELSREGISTER`, and `DE_PLZ`; all are disabled by default (#1909) (Thanks @MvdB)
 - `SE_PERSONNUMMER` recognizer for Swedish personal identity and coordination numbers, plus Swedish Organisationsnummer recognition; both are disabled by default (#1912, #1918) (Thanks @goveebee)
