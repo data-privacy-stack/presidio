@@ -1,5 +1,7 @@
-from typing import Optional, List
+from typing import List, Optional
+
 from presidio_analyzer import LocalRecognizer, Pattern, RecognizerResult
+
 
 class TwNationalIdRecognizer(LocalRecognizer):
     """Recognizes Taiwan (TW) National ID using regex patterns, context words,
