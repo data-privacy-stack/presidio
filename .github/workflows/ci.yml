@@ -336,9 +336,9 @@ jobs:
       - name: Wait for services to be ready
         run: sleep 60
 
-      - name: Download Ollama model for LangExtract recognizer tests
-        if: matrix.platform == 'linux/arm64'
+      - name: Prepare Ollama and download model for LangExtract recognizer tests
         run: |
+          .github/scripts/prepare-ollama-cpu.sh docker-compose.yml
           ollama_container="$(docker compose -f docker-compose.yml ps -q ollama)"
           docker exec "$ollama_container" ollama pull qwen2.5:1.5b
           docker exec "$ollama_container" ollama run qwen2.5:1.5b
@@ -347,11 +347,7 @@ jobs:
         working-directory: e2e-tests
         run: |
           source env/bin/activate
-          pytest_args=()
-          if [ "${{ matrix.platform }}" != "linux/arm64" ]; then
-            pytest_args=(-k "not ollama")
-          fi
-          pytest -vv --tb=short "${pytest_args[@]}"
+          pytest -vv --tb=short
 
       - name: Capture Docker logs on failure (${{ matrix.platform }})
         if: failure()
@@ -429,9 +425,9 @@ jobs:
       - name: Wait for services to be ready
         run: sleep 60
 
-      - name: Download Ollama model for LangExtract recognizer tests
-        if: matrix.platform == 'linux/arm64'
+      - name: Prepare Ollama and download model for LangExtract recognizer tests
         run: |
+          .github/scripts/prepare-ollama-cpu.sh docker-compose.yml
           ollama_container="$(docker compose -f docker-compose.yml ps -q ollama)"
           docker exec "$ollama_container" ollama pull qwen2.5:1.5b
           docker exec "$ollama_container" ollama run qwen2.5:1.5b
@@ -440,11 +436,7 @@ jobs:
         working-directory: e2e-tests
         run: |
           source env/bin/activate
-          pytest_args=()
-          if [ "${{ matrix.platform }}" != "linux/arm64" ]; then
-            pytest_args=(-k "not ollama")
-          fi
-          pytest -vv --tb=short "${pytest_args[@]}"
+          pytest -vv --tb=short
 
       - name: Capture Docker logs on failure
         if: failure()
