@@ -1,13 +1,10 @@
 from typing import List, Optional
 
-from presidio_analyzer import LocalRecognizer, Pattern, RecognizerResult
+from presidio_analyzer import LocalRecognizer, Pattern
 
 
 class TwNationalIdRecognizer(LocalRecognizer):
-    """Recognizes Taiwan (TW) National ID using regex patterns, context words,
-
-    and Modulus-10 checksum validation.
-    """
+    """Recognize Taiwan National ID using patterns and checksums."""
 
     PATTERNS = [
         Pattern(
