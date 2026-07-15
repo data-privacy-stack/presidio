@@ -92,10 +92,12 @@ jobs:
     env:
       COVERAGE_THRESHOLD: 90
       PRIMARY_PYTHON: '3.13'
-      # Keep both uv's cache and the installed environment off the smaller root disk.
+      # Co-locate uv's cache and environment so packages can be hardlinked instead
+      # of duplicated on the runner's single filesystem.
       UV_CACHE_DIR: /mnt/uv-cache
       UV_PROJECT_ENVIRONMENT: /mnt/uv-venv
-      UV_LINK_MODE: copy
+      UV_LINK_MODE: hardlink
+      PIP_NO_CACHE_DIR: '1'
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
@@ -159,11 +161,19 @@ jobs:
             uv run --no-sync python -m spacy download $model
           done
 
+      - name: Reclaim dependency cache space
+        run: |
+          # Dependencies are installed, so prune before coverage needs workspace space.
+          # Hardlinked environment files remain valid when their cache links are removed.
+          uv cache prune --ci
+          df -h / /mnt
+          du -sh "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT"
+
       - name: Run tests with coverage
         working-directory: ${{ matrix.component.path }}
         run: |
           PACKAGE_NAME=$(echo "${{ matrix.component.path }}" | sed 's/-/_/g')
-          uv run --no-sync pytest --cov=$PACKAGE_NAME --cov-report=xml:coverage.xml --cov-report=term --cov-report=html -vv --tb=short
+          uv run --no-sync pytest --cov=$PACKAGE_NAME --cov-report=xml:coverage.xml --cov-report=term -vv --tb=short
           
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Checking PR difference coverage (>= ${{ env.COVERAGE_THRESHOLD }}%) with diff-cover..."
@@ -193,12 +203,6 @@ jobs:
           python -m pip install "tomli==2.4.1; python_version < '3.11'"
           pip install --require-hashes -r ${{ github.workspace }}/.github/pipelines/requirements-build.txt
           python -m build --wheel
-
-      - name: Minimize uv cache
-        if: always()
-        run: |
-          # Trim the persisted cache (recommended for CI by the uv docs).
-          uv cache prune --ci
 
   build-platform-images:
     name: Build ${{ matrix.image }} (${{ matrix.platform }})
