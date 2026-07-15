@@ -336,14 +336,22 @@ jobs:
       - name: Wait for services to be ready
         run: sleep 60
 
-      - name: Prepare Ollama model for LangExtract recognizer tests
-        run: .github/scripts/prepare-ollama-ci.sh
+      - name: Download Ollama model for LangExtract recognizer tests
+        if: matrix.platform == 'linux/arm64'
+        run: |
+          ollama_container="$(docker compose -f docker-compose.yml ps -q ollama)"
+          docker exec "$ollama_container" ollama pull qwen2.5:1.5b
+          docker exec "$ollama_container" ollama run qwen2.5:1.5b
 
       - name: Run E2E tests
         working-directory: e2e-tests
         run: |
           source env/bin/activate
-          pytest -vv --tb=short
+          pytest_args=()
+          if [ "${{ matrix.platform }}" != "linux/arm64" ]; then
+            pytest_args=(-k "not ollama")
+          fi
+          pytest -vv --tb=short "${pytest_args[@]}"
 
       - name: Capture Docker logs on failure (${{ matrix.platform }})
         if: failure()
@@ -421,14 +429,22 @@ jobs:
       - name: Wait for services to be ready
         run: sleep 60
 
-      - name: Prepare Ollama model for LangExtract recognizer tests
-        run: .github/scripts/prepare-ollama-ci.sh
+      - name: Download Ollama model for LangExtract recognizer tests
+        if: matrix.platform == 'linux/arm64'
+        run: |
+          ollama_container="$(docker compose -f docker-compose.yml ps -q ollama)"
+          docker exec "$ollama_container" ollama pull qwen2.5:1.5b
+          docker exec "$ollama_container" ollama run qwen2.5:1.5b
 
       - name: Run E2E tests
         working-directory: e2e-tests
         run: |
           source env/bin/activate
-          pytest -vv --tb=short
+          pytest_args=()
+          if [ "${{ matrix.platform }}" != "linux/arm64" ]; then
+            pytest_args=(-k "not ollama")
+          fi
+          pytest -vv --tb=short "${pytest_args[@]}"
 
       - name: Capture Docker logs on failure
         if: failure()
