@@ -15,12 +15,13 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 keywords = ["pii", "checker", "presidio_cli"]
 urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 include = ["conf/*", ".presidiocli"]
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 
 dependencies = [
     "presidio-analyzer (>=2.2.0,<3.0.0)",
@@ -33,15 +34,17 @@ dependencies = [
 presidio = "presidio_cli.cli:run"
 
 
-[tool.poetry.group.dev.dependencies]
-pip = "*"
-ruff = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-python-dotenv = "*"
-pre_commit = "*"
-diff-cover = "*"
+[dependency-groups]
+dev = [
+    "pip",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "python-dotenv",
+    "pre-commit",
+    "diff-cover",
+]
 
 [tool.coverage.run]
 relative_files = true

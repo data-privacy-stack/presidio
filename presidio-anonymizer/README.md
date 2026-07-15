@@ -190,6 +190,28 @@ print(result)
 
 ```
 
+Batch deanonymization works the same way for lists and nested dictionaries:
+```python
+from presidio_anonymizer import BatchDeanonymizeEngine
+from presidio_anonymizer.entities import OperatorConfig, OperatorResult
+
+engine = BatchDeanonymizeEngine()
+
+results = engine.deanonymize_list(
+    texts=[
+        "My name is S184CMt9Drj7QaKQ21JTrpYzghnboTF9pn/neN8JME0=",
+        "My name is S184CMt9Drj7QaKQ21JTrpYzghnboTF9pn/neN8JME0=",
+    ],
+    entities_list=[
+        [OperatorResult(start=11, end=55, entity_type="PERSON")],
+        [OperatorResult(start=11, end=55, entity_type="PERSON")],
+    ],
+    operators={"DEFAULT": OperatorConfig("decrypt", {"key": "WmZq4t7w!z%C&F)J"})},
+)
+
+print(results)
+```
+
 ### As docker service:
 
 In folder presidio/presidio-anonymizer run:
