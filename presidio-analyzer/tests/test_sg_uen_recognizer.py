@@ -33,6 +33,10 @@ def entities():
         ("53125226D 201434292D S57TU0392K", 3, [(0, 9), (10, 20), (21, 31)],),
         # Test with valid UEN in a sentence
         ("UEN 53125226D was processed", 1, [(4, 13)],),
+        # Lower-case UENs must still validate; the prefix, entity-type and
+        # check letters are upper-cased before the checksum. Format A and C:
+        ("53125226d", 1, [(0, 9)],),
+        ("t16rf0037c", 1, [(0, 10)],),
 
         ## No match
         # Test with invalid length

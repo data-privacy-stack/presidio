@@ -8,9 +8,18 @@ All notable changes to this project will be documented in this file.
 #### Added
 - Added a disabled-by-default US health insurance member ID (`US_HEALTH_INSURANCE_MEMBER_ID`) recognizer requiring healthcare or insurance context.
 - Added disabled-by-default US healthcare administrative ID recognizers for claim numbers, prior authorization numbers, prescription numbers, provider tax IDs, and referral numbers.
+#### Fixed
+- Language model recognizers (`BasicLangExtractRecognizer`, `AzureOpenAILangExtractRecognizer`) configured in a recognizer registry YAML now honour `config_path` (and other recognizer-specific kwargs). Previously these entries were validated by the strict `PredefinedRecognizerConfig` schema, which has no `config_path` field and does not allow extra keys, so `config_path` was silently dropped and the recognizer fell back to its bundled default model configuration. Added a `LangExtractRecognizerConfig` model (`extra="allow"`) and registered both recognizer class names in `CONFIG_MODEL_MAP`.
+- `BasicLangExtractRecognizer` now honours values under `langextract.model.provider.language_model_params` (including `timeout` and `num_ctx`). Previously these were silently dropped because `langextract.extract()` ignores its `language_model_params` argument when a pre-built `ModelConfig` is passed via `config=`, causing Ollama-backed recognizers to fall back to langextract's 120s default regardless of the configured timeout. The recognizer now merges `language_model_params` into `ModelConfig.provider_kwargs`, which is the path that reaches the provider constructor. Explicit entries under `provider.kwargs:` still take precedence. Also fixed a `TypeError` when `kwargs:` or `language_model_params:` is `null` in the YAML. (#1943, Thanks @lsternlicht)
 
 ### Anonymizer
 ### General
+#### Added
+- Added `BatchDeanonymizeEngine` to complement `BatchAnonymizerEngine` for batch deanonymization over lists and nested dictionaries.
+
+#### Changed
+- Migrated CI and service-image dependency installation from Poetry to [uv](https://github.com/astral-sh/uv) with committed lockfiles, fixing prolonged dependency-resolution hangs and making builds reproducible.
+- Added Python 3.14 package support for `presidio-anonymizer`, `presidio-image-redactor`, `presidio-cli`, `presidio-structured`, and `presidio` by allowing Python `<3.15` and excluding `spacy==3.8.14` on Python 3.14 where applicable (#2096) (Thanks @Copilot)
 #### Fixed
 - Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
 
@@ -33,6 +42,7 @@ All notable changes to this project will be documented in this file.
 
 ### Analyzer
 #### Added
+- Recognizer registry YAML entries now accept `score_thresholds` for recognizer-wide and entity-specific score cutoffs, with the analyzer's `default_score_threshold` as the fallback.
 - UK Driving Licence Number (`UK_DRIVING_LICENCE`) recognizer with pattern matching and context support (#1857) (Thanks @tee-jagz)
 - German PII recognizers for `DE_TAX_ID`, `DE_TAX_NUMBER`, `DE_PASSPORT`, `DE_ID_CARD`, `DE_SOCIAL_SECURITY`, `DE_HEALTH_INSURANCE`, `DE_KFZ`, `DE_HANDELSREGISTER`, and `DE_PLZ`; all are disabled by default (#1909) (Thanks @MvdB)
 - `SE_PERSONNUMMER` recognizer for Swedish personal identity and coordination numbers, plus Swedish Organisationsnummer recognition; both are disabled by default (#1912, #1918) (Thanks @goveebee)

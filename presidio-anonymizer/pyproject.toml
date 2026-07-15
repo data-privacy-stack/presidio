@@ -15,12 +15,13 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 keywords = ["presidio_anonymizer"]
 urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "cryptography (>=48.0.1,<49.0.0)"
 ]
@@ -36,15 +37,17 @@ ahds = [
     "azure-health-deidentification (>=1.1.0b1,<2.0.0)"
 ]
 
-[tool.poetry.group.dev.dependencies]
-pip = "*"
-ruff = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-python-dotenv = "*"
-pre_commit = "*"
-diff-cover = "*"
+[dependency-groups]
+dev = [
+    "pip",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "python-dotenv",
+    "pre-commit",
+    "diff-cover",
+]
 
 [tool.coverage.run]
 relative_files = true
