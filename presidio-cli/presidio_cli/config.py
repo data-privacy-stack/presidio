@@ -3,6 +3,7 @@ from typing import Optional
 
 import pathspec
 import yaml
+
 from presidio_analyzer import AnalyzerEngine
 
 

@@ -5,13 +5,13 @@ from collections.abc import Iterable
 from typing import Dict, Iterator, List, Optional, Union
 
 from pandas import DataFrame
+
 from presidio_analyzer import (
     AnalyzerEngine,
     BatchAnalyzerEngine,
     DictAnalyzerResult,
     RecognizerResult,
 )
-
 from presidio_structured.config import StructuredAnalysis
 
 NON_PII_ENTITY_TYPE = "NON_PII"

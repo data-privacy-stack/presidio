@@ -9,10 +9,10 @@ import numpy as np
 import pydicom
 from matplotlib import pyplot as plt  # necessary import for PIL typing # noqa: F401
 from PIL import Image, ImageOps
-from presidio_analyzer import PatternRecognizer
 from pydicom.multival import MultiValue
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 
+from presidio_analyzer import PatternRecognizer
 from presidio_image_redactor import (
     ImageAnalyzerEngine,  # noqa: F401
     ImageRedactorEngine,

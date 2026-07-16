@@ -1,7 +1,6 @@
 from typing import Generator, Optional, Union
 
 from presidio_analyzer import RecognizerResult
-
 from presidio_cli.config import PresidioCLIConfig
 
 

@@ -8,13 +8,14 @@ from pathlib import Path
 from typing import Tuple
 
 from flask import Flask, Response, jsonify, request
+from werkzeug.exceptions import HTTPException
+
 from presidio_analyzer import (
     AnalyzerEngine,
     AnalyzerEngineProvider,
     AnalyzerRequest,
     BatchAnalyzerEngine,
 )
-from werkzeug.exceptions import HTTPException
 
 DEFAULT_PORT = "3000"
 DEFAULT_BATCH_SIZE = "500"

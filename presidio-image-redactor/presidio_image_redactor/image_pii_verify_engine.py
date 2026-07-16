@@ -2,8 +2,8 @@ import io
 from typing import List, Optional
 
 from PIL import Image, ImageChops
-from presidio_analyzer import PatternRecognizer
 
+from presidio_analyzer import PatternRecognizer
 from presidio_image_redactor.image_redactor_engine import ImageRedactorEngine
 
 
