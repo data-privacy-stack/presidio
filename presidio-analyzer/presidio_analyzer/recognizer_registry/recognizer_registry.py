@@ -10,6 +10,7 @@ from presidio_analyzer import EntityRecognizer, PatternRecognizer
 from presidio_analyzer.nlp_engine import (
     NlpEngine,
     NoOpNlpEngine,
+    SlimSpacyNlpEngine,
     SpacyNlpEngine,
     StanzaNlpEngine,
     TransformersNlpEngine,
@@ -26,6 +27,11 @@ from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
 from presidio_analyzer.score_thresholds import normalize_score_thresholds
 
 logger = logging.getLogger("presidio-analyzer")
+
+_NLP_ENGINES_WITHOUT_NER_OUTPUT = (
+    NoOpNlpEngine,
+    SlimSpacyNlpEngine,
+)
 
 
 class RecognizerRegistry:
@@ -59,7 +65,7 @@ class RecognizerRegistry:
         self, nlp_engine: Optional[NlpEngine]
     ) -> None:
         """Validate that registered recognizers can use the selected NLP engine."""
-        if not isinstance(nlp_engine, NoOpNlpEngine):
+        if not isinstance(nlp_engine, _NLP_ENGINES_WITHOUT_NER_OUTPUT):
             return
 
         nlp_recognizers = [
@@ -68,8 +74,9 @@ class RecognizerRegistry:
         if nlp_recognizers:
             names = sorted({rec.__class__.__name__ for rec in nlp_recognizers})
             raise ValueError(
-                "NoOpNlpEngine cannot be used with NLP engine recognizers. "
-                f"Remove or disable these recognizers: {names}."
+                f"{nlp_engine.__class__.__name__} does not provide NER output "
+                f"required by these recognizers: {names}. "
+                "Remove or disable them."
             )
 
     def _create_nlp_recognizer(
@@ -95,9 +102,13 @@ class RecognizerRegistry:
         :return: None
         """
 
-        if isinstance(nlp_engine, NoOpNlpEngine):
+        if isinstance(nlp_engine, _NLP_ENGINES_WITHOUT_NER_OUTPUT):
             self.validate_nlp_engine_compatibility(nlp_engine)
-            logger.info("Skipping NLP recognizer registration for no-op NLP engine.")
+            logger.info(
+                "Skipping NLP recognizer registration for %s because it does not "
+                "provide NER output.",
+                nlp_engine.__class__.__name__,
+            )
             return
 
         if not nlp_engine:
@@ -172,8 +183,10 @@ class RecognizerRegistry:
             return StanzaRecognizer
         if isinstance(nlp_engine, TransformersNlpEngine):
             return TransformersRecognizer
-        if isinstance(nlp_engine, NoOpNlpEngine):
-            raise ValueError("NoOpNlpEngine does not have an NLP recognizer")
+        if isinstance(nlp_engine, _NLP_ENGINES_WITHOUT_NER_OUTPUT):
+            raise ValueError(
+                f"{nlp_engine.__class__.__name__} does not have an NLP recognizer"
+            )
         if not nlp_engine or isinstance(nlp_engine, SpacyNlpEngine):
             return SpacyRecognizer
         else:

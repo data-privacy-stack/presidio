@@ -7,9 +7,12 @@ from typing import Any, Dict, List, Optional, Union
 
 from presidio_analyzer import EntityRecognizer
 from presidio_analyzer.input_validation import ConfigurationValidator
-from presidio_analyzer.nlp_engine import NlpEngine, NoOpNlpEngine
+from presidio_analyzer.nlp_engine import NlpEngine
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer
-from presidio_analyzer.recognizer_registry import RecognizerRegistry
+from presidio_analyzer.recognizer_registry.recognizer_registry import (
+    _NLP_ENGINES_WITHOUT_NER_OUTPUT,
+    RecognizerRegistry,
+)
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerConfigurationLoader,
     RecognizerListLoader,
@@ -120,9 +123,11 @@ class RecognizerRegistryProvider:
         if not nlp_engine:
             return
 
-        if isinstance(nlp_engine, NoOpNlpEngine):
+        if isinstance(nlp_engine, _NLP_ENGINES_WITHOUT_NER_OUTPUT):
             logger.info(
-                "Skipping NLP recognizer configuration updates for no-op NLP engine."
+                "Skipping NLP recognizer configuration updates for %s because it "
+                "does not provide NER output.",
+                nlp_engine.__class__.__name__,
             )
             return
 

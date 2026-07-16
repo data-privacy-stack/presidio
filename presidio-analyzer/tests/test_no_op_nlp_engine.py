@@ -285,7 +285,10 @@ class TestNoOpNlpEngineAnalyzerIntegration:
             recognizers=[SpacyRecognizer()], supported_languages=["en"]
         )
 
-        with pytest.raises(ValueError, match="NoOpNlpEngine cannot be used"):
+        with pytest.raises(
+            ValueError,
+            match="NoOpNlpEngine does not provide NER output",
+        ):
             AnalyzerEngine(registry=registry, nlp_engine=no_op_nlp_engine)
 
     def test_when_get_nlp_recognizer_with_no_op_then_raises(self, no_op_nlp_engine):
@@ -428,5 +431,8 @@ recognizer_registry:
 
         provider = AnalyzerEngineProvider(analyzer_engine_conf_file=analyzer_conf_file)
 
-        with pytest.raises(ValueError, match="NoOpNlpEngine cannot be used"):
+        with pytest.raises(
+            ValueError,
+            match="NoOpNlpEngine does not provide NER output",
+        ):
             provider.create_engine()
