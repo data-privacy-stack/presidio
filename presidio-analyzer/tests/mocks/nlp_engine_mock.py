@@ -4,11 +4,6 @@ from presidio_analyzer.nlp_engine import NlpEngine, NlpArtifacts
 
 
 class NlpEngineMock(NlpEngine):
-    @property
-    def has_ner(self) -> bool:
-        """Return True because this mock represents an NER-capable engine."""
-        return True
-
     def __init__(self, stopwords=None, punct_words=None, nlp_artifacts=None):
         self.stopwords = stopwords if stopwords else []
         self.punct_words = punct_words if punct_words else []

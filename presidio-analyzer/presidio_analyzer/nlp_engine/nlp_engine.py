@@ -14,8 +14,13 @@ class NlpEngine(ABC):
 
     @property
     def has_ner(self) -> bool:
-        """Returns True if this engine performs Named Entity Recognition natively."""
-        return False
+        """Return whether this engine performs Named Entity Recognition natively.
+
+        The default is ``True``. Engines without native NER output should
+        override this property and return ``False``; otherwise, they are
+        treated as NER-capable.
+        """
+        return True
 
     @abstractmethod
     def load(self) -> None:

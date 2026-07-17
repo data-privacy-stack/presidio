@@ -18,17 +18,17 @@ In addition, other types of NLP frameworks [can be integrated into Presidio](dev
 ## Declaring NER support for a custom NLP engine
 
 The `NlpEngine.has_ner` property indicates whether an engine produces native
-NER output. The base implementation returns `False`. A custom engine that
-produces NER entities in `NlpArtifacts` must ensure the property returns `True`:
+NER output. The base implementation returns `True`. Engines without native NER
+output should override the property and return `False`; otherwise, they are
+treated as NER-capable:
 
 ```python
 @property
 def has_ner(self) -> bool:
-    return True
+    return False
 ```
 
 Presidio uses this property to determine whether to register an NLP recognizer.
-Engines without NER output should keep the default value.
 
 ## Configure Presidio to use the new model
 
