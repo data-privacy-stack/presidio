@@ -12,6 +12,11 @@ class NlpEngine(ABC):
     on tokens.
     """
 
+    @property
+    def has_ner(self) -> bool:
+        """Returns True if this engine performs Named Entity Recognition natively."""
+        return False
+
     @abstractmethod
     def load(self) -> None:
         """Load the NLP model."""

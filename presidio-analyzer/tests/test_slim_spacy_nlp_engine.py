@@ -277,6 +277,9 @@ class TestSlimSpacyNlpEngineLinguisticUtils:
 class TestSlimSpacyNlpEngineSupportedEntitiesAndLanguages:
     """Tests for supported entities and languages."""
 
+    def test_has_ner_is_false(self, slim_nlp_engine):
+        assert slim_nlp_engine.has_ner is False
+
     def test_when_get_supported_entities_then_empty(self, slim_nlp_engine):
         assert slim_nlp_engine.get_supported_entities() == []
 

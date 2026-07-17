@@ -9,10 +9,7 @@ from presidio_analyzer import EntityRecognizer
 from presidio_analyzer.input_validation import ConfigurationValidator
 from presidio_analyzer.nlp_engine import NlpEngine
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer
-from presidio_analyzer.recognizer_registry.recognizer_registry import (
-    _NLP_ENGINES_WITHOUT_NER_OUTPUT,
-    RecognizerRegistry,
-)
+from presidio_analyzer.recognizer_registry import RecognizerRegistry
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerConfigurationLoader,
     RecognizerListLoader,
@@ -104,8 +101,10 @@ class RecognizerRegistryProvider:
         The method adds the NLP recognizer to the list of recognizers
         if it is not already present,
         or removes it if it is not enabled in the configuration.
-        Furthermore, it checks if there are
-        any inconsistencies in configuration. For example:
+        For engines without native NER output, this method leaves the
+        recognizer list unchanged.
+        For engines with native NER output, it also checks for configuration
+        inconsistencies. For example:
         - Multiple enabled NLP recognizers in the configuration for one language.
         - The NLP recognizer in the configuration does not match the Nlp Engine.
 
@@ -120,11 +119,11 @@ class RecognizerRegistryProvider:
         """
         nlp_engine = self.nlp_engine
 
-        if not nlp_engine:
+        if nlp_engine is None:
             return
 
-        if isinstance(nlp_engine, _NLP_ENGINES_WITHOUT_NER_OUTPUT):
-            logger.info(
+        if not nlp_engine.has_ner:
+            logger.debug(
                 "Skipping NLP recognizer configuration updates for %s because it "
                 "does not provide NER output.",
                 nlp_engine.__class__.__name__,
@@ -165,9 +164,9 @@ class RecognizerRegistryProvider:
                 f"NLP recognizer (e.g. SpacyRecognizer, StanzaRecognizer) "
                 f"is not in the list of recognizers "
                 f"for language {language}. "
-                f"Adding the default recognizer to the list."
+                f"Adding the default recognizer to the list. "
                 f"If you wish to remove the NLP recognizer, "
-                f"define it as `enabled=false`."
+                f"define it as `enabled: false`."
             )
             logger.warning(warning_text)
             warnings.warn(warning_text)

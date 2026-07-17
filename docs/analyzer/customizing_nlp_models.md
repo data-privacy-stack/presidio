@@ -15,11 +15,26 @@ In addition, other types of NLP frameworks [can be integrated into Presidio](dev
 - [spaCy or stanza](nlp_engines/spacy_stanza.md)
 - [transformers](nlp_engines/transformers.md)
 
+## Declaring NER support for a custom NLP engine
+
+The `NlpEngine.has_ner` property indicates whether an engine produces native
+NER output. The base implementation returns `False`. A custom engine that
+produces NER entities in `NlpArtifacts` must ensure the property returns `True`:
+
+```python
+@property
+def has_ner(self) -> bool:
+    return True
+```
+
+Presidio uses this property to determine whether to register an NLP recognizer.
+Engines without NER output should keep the default value.
+
 ## Configure Presidio to use the new model
 
 Configuration can be done in two ways:
 
-- **Via code**: Create an `NlpEngine` using the `NlpEnginerProvider` class, and pass it to the `AnalyzerEngine` as input:
+- **Via code**: Create an `NlpEngine` using the `NlpEngineProvider` class, and pass it to the `AnalyzerEngine` as input:
 
     ```python
     from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
