@@ -181,12 +181,26 @@ recognizers:
     enabled: false
     country_code: ng
 
+  - name: NgBvnRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: ng
+
   - name: InPanRecognizer
     supported_languages: 
     - en
     type: predefined
     enabled: false
     country_code: in
+
+  - name: KeNationalIdRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: ke
 
   - name: InAadhaarRecognizer
     supported_languages: 
