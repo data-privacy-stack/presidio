@@ -1,0 +1,82 @@
+{
+  "config": "default (spacy en)",
+  "overall": {
+    "precision": 0.7244,
+    "recall": 0.9892,
+    "f1": 0.8364
+  },
+  "per_entity": {
+    "CREDIT_CARD": {
+      "support": 6,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "CRYPTO": {
+      "support": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "DATE_TIME": {
+      "support": 12,
+      "precision": 0.55,
+      "recall": 0.9167,
+      "f1": 0.6875
+    },
+    "EMAIL_ADDRESS": {
+      "support": 11,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "IBAN_CODE": {
+      "support": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "IP_ADDRESS": {
+      "support": 8,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "LOCATION": {
+      "support": 10,
+      "precision": 0.7692,
+      "recall": 1.0,
+      "f1": 0.8696
+    },
+    "PERSON": {
+      "support": 21,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "PHONE_NUMBER": {
+      "support": 6,
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6667
+    },
+    "UK_NHS": {
+      "support": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "URL": {
+      "support": 7,
+      "precision": 0.2917,
+      "recall": 1.0,
+      "f1": 0.4516
+    },
+    "US_SSN": {
+      "support": 4,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  }
+}
