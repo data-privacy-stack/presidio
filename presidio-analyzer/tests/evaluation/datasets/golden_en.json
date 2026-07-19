@@ -1,0 +1,894 @@
+{
+  "version": 1,
+  "language": "en",
+  "entities": [
+    "PERSON",
+    "LOCATION",
+    "DATE_TIME",
+    "EMAIL_ADDRESS",
+    "PHONE_NUMBER",
+    "CREDIT_CARD",
+    "US_SSN",
+    "IP_ADDRESS",
+    "URL",
+    "IBAN_CODE",
+    "CRYPTO",
+    "UK_NHS"
+  ],
+  "samples": [
+    {
+      "id": "person_simple_001",
+      "category": "simple",
+      "text": "My name is David Johnson and I am calling about my account.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 11,
+          "end": 24,
+          "entity_value": "David Johnson"
+        }
+      ]
+    },
+    {
+      "id": "person_simple_002",
+      "category": "simple",
+      "text": "Please forward the report to Maria Garcia in accounting.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 29,
+          "end": 41,
+          "entity_value": "Maria Garcia"
+        }
+      ]
+    },
+    {
+      "id": "email_simple_001",
+      "category": "simple",
+      "text": "Contact us at support@acme-corp.com for further details.",
+      "spans": [
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 14,
+          "end": 35,
+          "entity_value": "support@acme-corp.com"
+        }
+      ]
+    },
+    {
+      "id": "email_simple_002",
+      "category": "simple",
+      "text": "Her personal address is jane.doe+billing@gmail.com.",
+      "spans": [
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 24,
+          "end": 50,
+          "entity_value": "jane.doe+billing@gmail.com"
+        }
+      ]
+    },
+    {
+      "id": "phone_simple_001",
+      "category": "simple",
+      "text": "Call (212) 555-0143 to reschedule your appointment.",
+      "spans": [
+        {
+          "entity_type": "PHONE_NUMBER",
+          "start": 5,
+          "end": 19,
+          "entity_value": "(212) 555-0143"
+        }
+      ]
+    },
+    {
+      "id": "phone_simple_002",
+      "category": "simple",
+      "text": "You can reach the office at +1-312-555-0198.",
+      "spans": [
+        {
+          "entity_type": "PHONE_NUMBER",
+          "start": 28,
+          "end": 43,
+          "entity_value": "+1-312-555-0198"
+        }
+      ]
+    },
+    {
+      "id": "credit_card_simple_001",
+      "category": "simple",
+      "text": "The payment was made with card 4111 1111 1111 1111.",
+      "spans": [
+        {
+          "entity_type": "CREDIT_CARD",
+          "start": 31,
+          "end": 50,
+          "entity_value": "4111 1111 1111 1111"
+        }
+      ]
+    },
+    {
+      "id": "credit_card_simple_002",
+      "category": "simple",
+      "text": "Charge the amount to 5555555555554444 as usual.",
+      "spans": [
+        {
+          "entity_type": "CREDIT_CARD",
+          "start": 21,
+          "end": 37,
+          "entity_value": "5555555555554444"
+        }
+      ]
+    },
+    {
+      "id": "ssn_simple_001",
+      "category": "simple",
+      "text": "The applicant's social security number is 078-05-1123.",
+      "spans": [
+        {
+          "entity_type": "US_SSN",
+          "start": 42,
+          "end": 53,
+          "entity_value": "078-05-1123"
+        }
+      ]
+    },
+    {
+      "id": "ip_simple_001",
+      "category": "simple",
+      "text": "A login attempt was made from 192.168.1.101.",
+      "spans": [
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 30,
+          "end": 43,
+          "entity_value": "192.168.1.101"
+        }
+      ]
+    },
+    {
+      "id": "ip_simple_002",
+      "category": "simple",
+      "text": "The server listens on 2001:db8:85a3::8a2e:370:7334 for IPv6 traffic.",
+      "spans": [
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 22,
+          "end": 50,
+          "entity_value": "2001:db8:85a3::8a2e:370:7334"
+        }
+      ]
+    },
+    {
+      "id": "url_simple_001",
+      "category": "simple",
+      "text": "The installation guide is at https://docs.example-project.org/setup.",
+      "spans": [
+        {
+          "entity_type": "URL",
+          "start": 29,
+          "end": 67,
+          "entity_value": "https://docs.example-project.org/setup"
+        }
+      ]
+    },
+    {
+      "id": "iban_simple_001",
+      "category": "simple",
+      "text": "Please transfer the funds to DE89 3704 0044 0532 0130 00.",
+      "spans": [
+        {
+          "entity_type": "IBAN_CODE",
+          "start": 29,
+          "end": 56,
+          "entity_value": "DE89 3704 0044 0532 0130 00"
+        }
+      ]
+    },
+    {
+      "id": "crypto_simple_001",
+      "category": "simple",
+      "text": "Send the bitcoin payment to 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa.",
+      "spans": [
+        {
+          "entity_type": "CRYPTO",
+          "start": 28,
+          "end": 62,
+          "entity_value": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        }
+      ]
+    },
+    {
+      "id": "nhs_simple_001",
+      "category": "simple",
+      "text": "The patient's NHS number is 401-023-2137.",
+      "spans": [
+        {
+          "entity_type": "UK_NHS",
+          "start": 28,
+          "end": 40,
+          "entity_value": "401-023-2137"
+        }
+      ]
+    },
+    {
+      "id": "date_simple_001",
+      "category": "simple",
+      "text": "The invoice was issued on March 5, 2024.",
+      "spans": [
+        {
+          "entity_type": "DATE_TIME",
+          "start": 26,
+          "end": 39,
+          "entity_value": "March 5, 2024"
+        }
+      ]
+    },
+    {
+      "id": "location_simple_001",
+      "category": "simple",
+      "text": "She recently moved to Barcelona for a new role.",
+      "spans": [
+        {
+          "entity_type": "LOCATION",
+          "start": 22,
+          "end": 31,
+          "entity_value": "Barcelona"
+        }
+      ]
+    },
+    {
+      "id": "location_simple_002",
+      "category": "simple",
+      "text": "The conference will be hosted in Toronto, Canada.",
+      "spans": [
+        {
+          "entity_type": "LOCATION",
+          "start": 33,
+          "end": 40,
+          "entity_value": "Toronto"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 42,
+          "end": 48,
+          "entity_value": "Canada"
+        }
+      ]
+    },
+    {
+      "id": "support_ticket_001",
+      "category": "medium",
+      "text": "Customer Alice Brown reported that she cannot log in. Her registered email is alice.brown@example.com and her callback number is (415) 555-0132.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 9,
+          "end": 20,
+          "entity_value": "Alice Brown"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 78,
+          "end": 101,
+          "entity_value": "alice.brown@example.com"
+        },
+        {
+          "entity_type": "PHONE_NUMBER",
+          "start": 129,
+          "end": 143,
+          "entity_value": "(415) 555-0132"
+        }
+      ]
+    },
+    {
+      "id": "hr_note_001",
+      "category": "medium",
+      "text": "Robert King joined the team on January 12, 2023 and relocated from Chicago to Seattle.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 0,
+          "end": 11,
+          "entity_value": "Robert King"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 31,
+          "end": 47,
+          "entity_value": "January 12, 2023"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 67,
+          "end": 74,
+          "entity_value": "Chicago"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 78,
+          "end": 85,
+          "entity_value": "Seattle"
+        }
+      ]
+    },
+    {
+      "id": "bank_note_001",
+      "category": "medium",
+      "text": "Wire sent to IBAN IL62 0108 0000 0009 9999 999 on behalf of Daniel Cohen. Reference card ending was replaced by 4111111111111111.",
+      "spans": [
+        {
+          "entity_type": "IBAN_CODE",
+          "start": 18,
+          "end": 46,
+          "entity_value": "IL62 0108 0000 0009 9999 999"
+        },
+        {
+          "entity_type": "PERSON",
+          "start": 60,
+          "end": 72,
+          "entity_value": "Daniel Cohen"
+        },
+        {
+          "entity_type": "CREDIT_CARD",
+          "start": 112,
+          "end": 128,
+          "entity_value": "4111111111111111"
+        }
+      ]
+    },
+    {
+      "id": "server_log_001",
+      "category": "medium",
+      "text": "Failed SSH login from 203.0.113.42 targeting host 198.51.100.7; alert emailed to secops@corp-infra.io.",
+      "spans": [
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 22,
+          "end": 34,
+          "entity_value": "203.0.113.42"
+        },
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 50,
+          "end": 62,
+          "entity_value": "198.51.100.7"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 81,
+          "end": 101,
+          "entity_value": "secops@corp-infra.io"
+        }
+      ]
+    },
+    {
+      "id": "order_confirmation_001",
+      "category": "medium",
+      "text": "Hi Emily Watson, your order will arrive on Friday, June 21. Track it at https://shipping.example.com/track?id=98765.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 3,
+          "end": 15,
+          "entity_value": "Emily Watson"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 43,
+          "end": 58,
+          "entity_value": "Friday, June 21"
+        },
+        {
+          "entity_type": "URL",
+          "start": 72,
+          "end": 115,
+          "entity_value": "https://shipping.example.com/track?id=98765"
+        }
+      ]
+    },
+    {
+      "id": "clinical_note_001",
+      "category": "medium",
+      "text": "Patient Margaret Hill (NHS 4010232137) attended a follow-up on 12 May 2024. Next of kin can be reached at +44 20 7946 0958.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 8,
+          "end": 21,
+          "entity_value": "Margaret Hill"
+        },
+        {
+          "entity_type": "UK_NHS",
+          "start": 27,
+          "end": 37,
+          "entity_value": "4010232137"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 63,
+          "end": 74,
+          "entity_value": "12 May 2024"
+        },
+        {
+          "entity_type": "PHONE_NUMBER",
+          "start": 106,
+          "end": 122,
+          "entity_value": "+44 20 7946 0958"
+        }
+      ]
+    },
+    {
+      "id": "travel_itinerary_001",
+      "category": "medium",
+      "text": "James Miller flies from London to New York on October 3rd. Confirmation was sent to j.miller@travelmail.net.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 0,
+          "end": 12,
+          "entity_value": "James Miller"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 24,
+          "end": 30,
+          "entity_value": "London"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 34,
+          "end": 42,
+          "entity_value": "New York"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 46,
+          "end": 57,
+          "entity_value": "October 3rd"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 84,
+          "end": 107,
+          "entity_value": "j.miller@travelmail.net"
+        }
+      ]
+    },
+    {
+      "id": "signature_block_001",
+      "category": "medium",
+      "text": "Best regards,\nSarah Connor\nHead of Operations\nsarah.connor@cyber-systems.com\n+1 (617) 555-0170\nhttps://www.cyber-systems.com",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 14,
+          "end": 26,
+          "entity_value": "Sarah Connor"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 46,
+          "end": 76,
+          "entity_value": "sarah.connor@cyber-systems.com"
+        },
+        {
+          "entity_type": "PHONE_NUMBER",
+          "start": 77,
+          "end": 94,
+          "entity_value": "+1 (617) 555-0170"
+        },
+        {
+          "entity_type": "URL",
+          "start": 95,
+          "end": 124,
+          "entity_value": "https://www.cyber-systems.com"
+        }
+      ]
+    },
+    {
+      "id": "payment_dispute_001",
+      "category": "medium",
+      "text": "On April 2, 2024, a charge on card 378282246310005 was disputed by Carlos Ruiz. His SSN on file is 078-05-1123.",
+      "spans": [
+        {
+          "entity_type": "DATE_TIME",
+          "start": 3,
+          "end": 16,
+          "entity_value": "April 2, 2024"
+        },
+        {
+          "entity_type": "CREDIT_CARD",
+          "start": 35,
+          "end": 50,
+          "entity_value": "378282246310005"
+        },
+        {
+          "entity_type": "PERSON",
+          "start": 67,
+          "end": 78,
+          "entity_value": "Carlos Ruiz"
+        },
+        {
+          "entity_type": "US_SSN",
+          "start": 99,
+          "end": 110,
+          "entity_value": "078-05-1123"
+        }
+      ]
+    },
+    {
+      "id": "crypto_report_001",
+      "category": "medium",
+      "text": "The wallet 3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy received funds routed through 104.26.10.229; details published at https://chain-audit.example.io/report.",
+      "spans": [
+        {
+          "entity_type": "CRYPTO",
+          "start": 11,
+          "end": 45,
+          "entity_value": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy"
+        },
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 76,
+          "end": 89,
+          "entity_value": "104.26.10.229"
+        },
+        {
+          "entity_type": "URL",
+          "start": 112,
+          "end": 149,
+          "entity_value": "https://chain-audit.example.io/report"
+        }
+      ]
+    },
+    {
+      "id": "discharge_summary_001",
+      "category": "long",
+      "text": "DISCHARGE SUMMARY\n\nPatient Kenji Nakamura was admitted on 3 February 2024 and discharged on 9 February 2024. NHS number: 401 023 2137. The patient lives in Manchester with his daughter Yuki Nakamura, who can be contacted on +44 161 496 0735 or at yuki.nakamura@familymail.co.uk. Follow-up scheduled for March 1, 2024 at the outpatient clinic.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 27,
+          "end": 41,
+          "entity_value": "Kenji Nakamura"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 58,
+          "end": 73,
+          "entity_value": "3 February 2024"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 92,
+          "end": 107,
+          "entity_value": "9 February 2024"
+        },
+        {
+          "entity_type": "UK_NHS",
+          "start": 121,
+          "end": 133,
+          "entity_value": "401 023 2137"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 156,
+          "end": 166,
+          "entity_value": "Manchester"
+        },
+        {
+          "entity_type": "PERSON",
+          "start": 185,
+          "end": 198,
+          "entity_value": "Yuki Nakamura"
+        },
+        {
+          "entity_type": "PHONE_NUMBER",
+          "start": 224,
+          "end": 240,
+          "entity_value": "+44 161 496 0735"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 247,
+          "end": 277,
+          "entity_value": "yuki.nakamura@familymail.co.uk"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 303,
+          "end": 316,
+          "entity_value": "March 1, 2024"
+        }
+      ]
+    },
+    {
+      "id": "incident_report_001",
+      "category": "long",
+      "text": "INCIDENT 4471 SUMMARY\n\nBetween 02:00 and 04:30 UTC we observed repeated credential-stuffing attempts against https://login.example-bank.com originating from 185.220.101.5 and 185.220.101.34. The on-call engineer, Priya Sharma, blocked both addresses and notified fraud-team@example-bank.com. No cardholder data was exposed; the honeypot card number 4012888888881881 recorded no authorization attempts.",
+      "spans": [
+        {
+          "entity_type": "DATE_TIME",
+          "start": 31,
+          "end": 50,
+          "entity_value": "02:00 and 04:30 UTC"
+        },
+        {
+          "entity_type": "URL",
+          "start": 109,
+          "end": 139,
+          "entity_value": "https://login.example-bank.com"
+        },
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 157,
+          "end": 170,
+          "entity_value": "185.220.101.5"
+        },
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 175,
+          "end": 189,
+          "entity_value": "185.220.101.34"
+        },
+        {
+          "entity_type": "PERSON",
+          "start": 213,
+          "end": 225,
+          "entity_value": "Priya Sharma"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 263,
+          "end": 290,
+          "entity_value": "fraud-team@example-bank.com"
+        },
+        {
+          "entity_type": "CREDIT_CARD",
+          "start": 349,
+          "end": 365,
+          "entity_value": "4012888888881881"
+        }
+      ]
+    },
+    {
+      "id": "kyc_paragraph_001",
+      "category": "long",
+      "text": "KYC VERIFICATION\n\nApplicant Fatima Al-Sayed, residing in Dubai, provided SSN 078-05-1123 and settlement account GB29 NWBK 6016 1331 9268 19. Identity confirmed via video call on 11 November 2023; certificate archived at https://kyc.example-verify.com/cases/8842.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 28,
+          "end": 43,
+          "entity_value": "Fatima Al-Sayed"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 57,
+          "end": 62,
+          "entity_value": "Dubai"
+        },
+        {
+          "entity_type": "US_SSN",
+          "start": 77,
+          "end": 88,
+          "entity_value": "078-05-1123"
+        },
+        {
+          "entity_type": "IBAN_CODE",
+          "start": 112,
+          "end": 139,
+          "entity_value": "GB29 NWBK 6016 1331 9268 19"
+        },
+        {
+          "entity_type": "DATE_TIME",
+          "start": 178,
+          "end": 194,
+          "entity_value": "11 November 2023"
+        },
+        {
+          "entity_type": "URL",
+          "start": 220,
+          "end": 261,
+          "entity_value": "https://kyc.example-verify.com/cases/8842"
+        }
+      ]
+    },
+    {
+      "id": "meeting_minutes_001",
+      "category": "long",
+      "text": "Minutes — infrastructure sync, Tuesday, 14 May\n\nAttendees: Lars Eriksson, Nina Petrova (remote from Berlin).\n\nLars Eriksson reported that the gateway at 10.0.0.254 will be decommissioned. Action items were mailed to infra-sync@corp-example.com.",
+      "spans": [
+        {
+          "entity_type": "DATE_TIME",
+          "start": 31,
+          "end": 46,
+          "entity_value": "Tuesday, 14 May"
+        },
+        {
+          "entity_type": "PERSON",
+          "start": 59,
+          "end": 72,
+          "entity_value": "Lars Eriksson"
+        },
+        {
+          "entity_type": "PERSON",
+          "start": 74,
+          "end": 86,
+          "entity_value": "Nina Petrova"
+        },
+        {
+          "entity_type": "LOCATION",
+          "start": 100,
+          "end": 106,
+          "entity_value": "Berlin"
+        },
+        {
+          "entity_type": "PERSON",
+          "start": 110,
+          "end": 123,
+          "entity_value": "Lars Eriksson"
+        },
+        {
+          "entity_type": "IP_ADDRESS",
+          "start": 153,
+          "end": 163,
+          "entity_value": "10.0.0.254"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 216,
+          "end": 243,
+          "entity_value": "infra-sync@corp-example.com"
+        }
+      ]
+    },
+    {
+      "id": "edge_lowercase_name_001",
+      "category": "edge",
+      "text": "appointment note: dr nakamura kenji will see the patient today",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 21,
+          "end": 35,
+          "entity_value": "nakamura kenji"
+        }
+      ]
+    },
+    {
+      "id": "edge_hyphenated_name_001",
+      "category": "edge",
+      "text": "Anne-Marie O'Neill signed the consent form.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 0,
+          "end": 18,
+          "entity_value": "Anne-Marie O'Neill"
+        }
+      ]
+    },
+    {
+      "id": "edge_name_at_start_001",
+      "category": "edge",
+      "text": "Thomas Anderson requested a password reset.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 0,
+          "end": 15,
+          "entity_value": "Thomas Anderson"
+        }
+      ]
+    },
+    {
+      "id": "edge_entity_at_end_001",
+      "category": "edge",
+      "text": "For any billing questions email billing@example-corp.net",
+      "spans": [
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 32,
+          "end": 56,
+          "entity_value": "billing@example-corp.net"
+        }
+      ]
+    },
+    {
+      "id": "edge_adjacent_entities_001",
+      "category": "edge",
+      "text": "Escalated to John Smith john.smith@corp-example.com for review.",
+      "spans": [
+        {
+          "entity_type": "PERSON",
+          "start": 13,
+          "end": 23,
+          "entity_value": "John Smith"
+        },
+        {
+          "entity_type": "EMAIL_ADDRESS",
+          "start": 24,
+          "end": 51,
+          "entity_value": "john.smith@corp-example.com"
+        }
+      ]
+    },
+    {
+      "id": "edge_inline_id_001",
+      "category": "edge",
+      "text": "Case #078-05-1123 was closed after identity verification.",
+      "spans": [
+        {
+          "entity_type": "US_SSN",
+          "start": 6,
+          "end": 17,
+          "entity_value": "078-05-1123"
+        }
+      ]
+    },
+    {
+      "id": "edge_spaced_card_001",
+      "category": "edge",
+      "text": "Card on file: 5555 5555 5555 4444 (primary).",
+      "spans": [
+        {
+          "entity_type": "CREDIT_CARD",
+          "start": 14,
+          "end": 33,
+          "entity_value": "5555 5555 5555 4444"
+        }
+      ]
+    },
+    {
+      "id": "edge_url_query_001",
+      "category": "edge",
+      "text": "Reset your password at https://auth.example.com/reset?token=abc123&user=456.",
+      "spans": [
+        {
+          "entity_type": "URL",
+          "start": 23,
+          "end": 75,
+          "entity_value": "https://auth.example.com/reset?token=abc123&user=456"
+        }
+      ]
+    },
+    {
+      "id": "negative_version_001",
+      "category": "negative",
+      "text": "Please upgrade the client to version 10.2.1 before the rollout.",
+      "spans": []
+    },
+    {
+      "id": "negative_numbers_001",
+      "category": "negative",
+      "text": "The warehouse stores 4111 pallets across 16 aisles.",
+      "spans": []
+    },
+    {
+      "id": "negative_tech_001",
+      "category": "negative",
+      "text": "The API returns a JSON object with numeric identifiers for each record.",
+      "spans": []
+    },
+    {
+      "id": "negative_metrics_001",
+      "category": "negative",
+      "text": "Server response time improved by 20 percent after the caching change.",
+      "spans": []
+    },
+    {
+      "id": "negative_room_001",
+      "category": "negative",
+      "text": "The workshop takes place in room 402, building C.",
+      "spans": []
+    },
+    {
+      "id": "negative_product_001",
+      "category": "negative",
+      "text": "Model XR-500 ships with a 250 GB drive and dual fans.",
+      "spans": []
+    }
+  ]
+}
