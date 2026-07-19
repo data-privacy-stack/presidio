@@ -22,6 +22,7 @@ class AnalyzerEngineProvider:
     :param nlp_engine_conf_file: the path to the nlp engine configuration file
     :param recognizer_registry_conf_file: the path to the recognizer
     registry configuration file
+    :param supported_languages: optional runtime override for supported languages
     """
 
     def __init__(
@@ -29,6 +30,7 @@ class AnalyzerEngineProvider:
         analyzer_engine_conf_file: Optional[Union[Path, str]] = None,
         nlp_engine_conf_file: Optional[Union[Path, str]] = None,
         recognizer_registry_conf_file: Optional[Union[Path, str]] = None,
+        supported_languages: Optional[List[str]] = None,
     ):
         if analyzer_engine_conf_file:
             ConfigurationValidator.validate_file_path(analyzer_engine_conf_file)
@@ -40,6 +42,7 @@ class AnalyzerEngineProvider:
         self.configuration = self.get_configuration(conf_file=analyzer_engine_conf_file)
         self.nlp_engine_conf_file = nlp_engine_conf_file
         self.recognizer_registry_conf_file = recognizer_registry_conf_file
+        self.supported_languages = supported_languages
 
     def get_configuration(
         self, conf_file: Optional[Union[Path, str]]
@@ -61,8 +64,7 @@ class AnalyzerEngineProvider:
                     configuration = yaml.safe_load(file)
             except OSError:
                 logger.warning(
-                    f"configuration file {conf_file} not found.  "
-                    f"Using default config."
+                    f"configuration file {conf_file} not found.  Using default config."
                 )
                 with open(self._get_full_conf_path()) as file:
                     configuration = yaml.safe_load(file)
@@ -86,7 +88,11 @@ class AnalyzerEngineProvider:
         """
 
         nlp_engine = self._load_nlp_engine()
-        supported_languages = self.configuration.get("supported_languages", ["en"])
+        supported_languages = (
+            self.supported_languages
+            if self.supported_languages is not None
+            else self.configuration.get("supported_languages", ["en"])
+        )
         default_score_threshold = self.configuration.get("default_score_threshold", 0)
 
         registry = self._load_recognizer_registry(

@@ -22,6 +22,20 @@ DEFAULT_N_PROCESS = "1"
 
 LOGGING_CONF_FILE = "logging.ini"
 
+
+def _get_supported_languages():
+    supported_languages = os.environ.get("SUPPORTED_LANGUAGES")
+    if not supported_languages:
+        return None
+
+    parsed_languages = [
+        language.strip()
+        for language in supported_languages.split(",")
+        if language.strip()
+    ]
+    return parsed_languages or None
+
+
 WELCOME_MESSAGE = r"""
  _______  _______  _______  _______ _________ ______  _________ _______
 (  ____ )(  ____ )(  ____ \(  ____ \\__   __/(  __  \ \__   __/(  ___  )
@@ -48,12 +62,14 @@ class Server:
         recognizer_registry_conf_file = (
             os.environ.get("RECOGNIZER_REGISTRY_CONF_FILE") or None
         )
+        supported_languages = _get_supported_languages()
 
         self.logger.info("Starting analyzer engine")
         self.engine: AnalyzerEngine = AnalyzerEngineProvider(
             analyzer_engine_conf_file=analyzer_conf_file,
             nlp_engine_conf_file=nlp_engine_conf_file,
             recognizer_registry_conf_file=recognizer_registry_conf_file,
+            supported_languages=supported_languages,
         ).create_engine()
 
         self.batch_engine = BatchAnalyzerEngine(self.engine)
@@ -86,7 +102,7 @@ class Server:
                     texts=batch,
                     batch_size=min(
                         len(batch),
-                        int(os.environ.get("BATCH_SIZE", DEFAULT_BATCH_SIZE))
+                        int(os.environ.get("BATCH_SIZE", DEFAULT_BATCH_SIZE)),
                     ),
                     language=req_data.language,
                     correlation_id=req_data.correlation_id,
@@ -99,9 +115,8 @@ class Server:
                     allow_list_match=req_data.allow_list_match,
                     regex_flags=req_data.regex_flags,
                     n_process=min(
-                        len(batch),
-                        int(os.environ.get("N_PROCESS", DEFAULT_N_PROCESS))
-                    )
+                        len(batch), int(os.environ.get("N_PROCESS", DEFAULT_N_PROCESS))
+                    ),
                 )
                 results = []
                 for recognizer_result_list in iterator:
