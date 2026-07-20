@@ -185,19 +185,21 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         if hf_pipeline is None:
             raise ImportError(
                 "transformers is not installed. Please install it "
-                "(pip install transformers) to use this recognizer."
+                "(pip install 'presidio-analyzer[transformers]') "
+                "to use this recognizer."
             )
         if self.backend == "torch":
             if torch is None:
                 raise ImportError(
                     "torch is not installed. Please install it "
-                    "(pip install torch) to use the 'torch' backend."
+                    "(pip install 'presidio-analyzer[transformers]') "
+                    "to use the 'torch' backend."
                 )
         elif self.backend == "ort":
             if optimum_pipeline is None:
                 raise ImportError(
                     "optimum is not installed. Please install it "
-                    "(pip install optimum 'optimum-onnx[onnxruntime]') "
+                    "(pip install 'presidio-analyzer[onnxruntime]') "
                     "to use the 'ort' backend."
                 )
 
@@ -365,7 +367,7 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         except ImportError as e:
             raise ImportError(
                 "optimum-onnx is not installed. Please install it "
-                "(pip install 'optimum-onnx[onnxruntime]') "
+                "(pip install 'presidio-analyzer[onnxruntime]') "
                 "to use the 'ort' backend."
             ) from e
 
