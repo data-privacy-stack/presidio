@@ -381,6 +381,9 @@ recognizers:
   - name: MacAddressRecognizer
     type: predefined
 
+  - name: UuidRecognizer
+    type: predefined
+
   - name: PhoneRecognizer
     type: predefined
 
