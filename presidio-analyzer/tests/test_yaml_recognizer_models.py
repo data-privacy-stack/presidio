@@ -5,6 +5,7 @@ import pytest
 from presidio_analyzer.input_validation.yaml_recognizer_models import (
     BaseRecognizerConfig,
     CustomRecognizerConfig,
+    GLiNERRecognizerConfig,
     LangExtractRecognizerConfig,
     LanguageContextConfig,
     PredefinedRecognizerConfig,
@@ -306,6 +307,58 @@ def test_configuration_validator_uses_recognizer_specific_dump_rules():
     assert "entity_mapping" not in gliner_recognizer
     assert predefined_recognizer["name"] == "CreditCardRecognizer"
     assert predefined_recognizer["supported_language"] is None
+
+
+def test_gliner_config_name_required_before_this_change_now_optional():
+    """class_name + model_name alone is enough; name is auto-derived."""
+    config = GLiNERRecognizerConfig(
+        class_name="GLiNERRecognizer",
+        model_name="urchade/gliner_multi_pii-v1",
+        type="predefined",
+    )
+    assert config.name == "GLiNERRecognizer_urchade_gliner_multi_pii_v1"
+
+
+def test_gliner_config_two_instances_omitting_name_get_distinct_names():
+    """The actual multi-instance motivation: different models -> different names."""
+    first = GLiNERRecognizerConfig(
+        class_name="GLiNERRecognizer",
+        model_name="urchade/gliner_multi_pii-v1",
+        type="predefined",
+    )
+    second = GLiNERRecognizerConfig(
+        class_name="GLiNERRecognizer",
+        model_name="gliner-community/gliner_small-v2.5",
+        type="predefined",
+    )
+    assert first.name != second.name
+
+
+def test_gliner_config_explicit_name_not_overridden():
+    config = GLiNERRecognizerConfig(
+        name="MyCustomGliner",
+        class_name="GLiNERRecognizer",
+        model_name="urchade/gliner_multi_pii-v1",
+        type="predefined",
+    )
+    assert config.name == "MyCustomGliner"
+
+
+def test_gliner_config_no_name_no_model_name_falls_back_to_class_name():
+    config = GLiNERRecognizerConfig(class_name="GLiNERRecognizer", type="predefined")
+    assert config.name == "GLiNERRecognizer"
+
+
+def test_gliner_config_include_requested_entities_as_labels_preserved_on_dump():
+    config = GLiNERRecognizerConfig(
+        class_name="GLiNERRecognizer",
+        model_name="urchade/gliner_multi_pii-v1",
+        entity_mapping={"Address": "ADDRESS"},
+        include_requested_entities_as_labels=False,
+        type="predefined",
+    )
+    dumped = config.model_dump()
+    assert dumped["include_requested_entities_as_labels"] is False
 
 
 def test_langextract_config_preserves_config_path():

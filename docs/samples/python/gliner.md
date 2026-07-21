@@ -102,3 +102,33 @@ gliner_recognizer = GLiNERRecognizer(
 
 **Note:** Make sure `onnxruntime` is installed when using this feature. It's included in the `gliner` extra dependencies.
 
+## Configuring multiple GLiNER recognizers via YAML
+
+`GLiNERRecognizer` can also be configured through the [recognizer registry YAML configuration](../../analyzer/recognizer_registry_provider.md). You can define **multiple** `GLiNERRecognizer` instances in the same YAML file (e.g. to use different models, entity mappings or thresholds side by side) by pointing `class_name` at `GLiNERRecognizer` for each entry:
+
+```yaml
+recognizers:
+  - class_name: GLiNERRecognizer
+    type: predefined
+    supported_language: en
+    model_name: "urchade/gliner_multi_pii-v1"
+    threshold: 0.4
+    entity_mapping:
+      person: PERSON
+      organization: ORGANIZATION
+    include_requested_entities_as_labels: false
+
+  - class_name: GLiNERRecognizer
+    type: predefined
+    supported_language: en
+    model_name: "gliner-community/gliner_small-v2.5"
+    threshold: 0.25
+    entity_mapping:
+      location: LOCATION
+    include_requested_entities_as_labels: false
+```
+
+- `class_name` tells the loader which Python class to instantiate. You no longer need to supply an explicit `name` for each entry: when omitted, a unique instance name is derived automatically from `class_name` and `model_name` (e.g. `GLiNERRecognizer_urchade_gliner_multi_pii_v1`) so multiple instances don't collide. Set `name` explicitly if you want a specific value (e.g. as it appears in `analysis_explanation.recognizer` on results).
+- Any additional `GLiNERRecognizer` constructor argument (`model_name`, `threshold`, `entity_mapping`, `flat_ner`, `multi_label`, `map_location`, `load_onnx_model`, `onnx_model_file`, ...) can be set per entry.
+- **`include_requested_entities_as_labels`** (default `true`): GLiNER supports ad-hoc labels, so by default each instance also considers entity types requested on the `analyze()` call even if they aren't in its own `entity_mapping`. When running multiple instances with *different* `entity_mapping`/`threshold` values side by side, set this to `false` on each instance so a requested entity type can't "leak" into an instance that wasn't configured for it and get evaluated against the wrong threshold. The example above sets it explicitly for this reason — omit it (or set `true`) for a single general-purpose instance where that behavior is desired.
+

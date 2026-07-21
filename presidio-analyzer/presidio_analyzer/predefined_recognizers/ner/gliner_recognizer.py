@@ -42,6 +42,7 @@ class GLiNERRecognizer(LocalRecognizer):
         text_chunker: Optional[BaseTextChunker] = None,
         load_onnx_model: bool = False,
         onnx_model_file: str = "model.onnx",
+        include_requested_entities_as_labels: bool = True,
         **model_kwargs,
     ):
         """GLiNER model based entity recognizer.
@@ -76,6 +77,20 @@ class GLiNERRecognizer(LocalRecognizer):
         :param model_kwargs: Additional keyword arguments to pass to
             GLiNER.from_pretrained(). This allows passing future parameters
             to the GLiNER model without explicit support in this recognizer.
+        :param include_requested_entities_as_labels: GLiNER supports ad-hoc
+            labels, so by default this recognizer appends any entity types
+            requested on the `analyze()` call (via `AnalyzerEngine.analyze`)
+            to the labels sent to the model, even if they aren't in this
+            recognizer's own `entity_mapping`/`supported_entities`. This is
+            useful for a single, general-purpose GLiNER instance, but when
+            multiple `GLiNERRecognizer` instances are configured side by side
+            with different `entity_mapping`s and thresholds, a globally
+            requested entity type can "leak" into an instance that wasn't
+            configured for it and get evaluated against that instance's
+            threshold instead of the intended one. Set this to `False` to
+            restrict this instance to only ever return entity types declared
+            in its own `entity_mapping`/`supported_entities`. Defaults to
+            `True` to preserve existing behavior.
 
 
         """
@@ -116,6 +131,7 @@ class GLiNERRecognizer(LocalRecognizer):
         self.threshold = threshold
         self.load_onnx_model = load_onnx_model
         self.onnx_model_file = onnx_model_file
+        self.include_requested_entities_as_labels = include_requested_entities_as_labels
         self.model_kwargs = model_kwargs
 
         # Use provided chunker or default to in-house character-based chunker
@@ -219,6 +235,8 @@ class GLiNERRecognizer(LocalRecognizer):
     def __create_input_labels(self, entities):
         """Append the entities requested by the user to the list of labels if it's not there."""  # noqa: E501
         labels = list(self.gliner_labels)
+        if not self.include_requested_entities_as_labels:
+            return labels
         for entity in entities:
             if (
                 entity not in self.model_to_presidio_entity_mapping.values()
