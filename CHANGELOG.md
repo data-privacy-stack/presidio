@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [unreleased]
 
 ### Analyzer
+#### Added
+- Korean Corporate Registration Number (KR_CRN) recognizer, complementing the existing Business Registration Number (KR_BRN) recognizer with the court-registry corporate identifier — analogous to AU_ACN and SG_UEN for their jurisdictions. Includes check digit validation for CRNs issued before January 31, 2025 (the check digit was abolished by Supreme Court Rule No. 3173).
+
 #### Fixed
 - `PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS` used `"UK"`, which is not a valid `phonenumbers` (libphonenumber) region code — region codes are ISO 3166-1 alpha-2, where the United Kingdom is `"GB"`. The `"UK"` entry was a no-op, so UK numbers in national/local format (e.g. `020 7946 0958`) were never detected by default; only international-format `+44 …` numbers matched, because they carry the country code and match under any region. Replaced `"UK"` with `"GB"`.
 - Language model recognizers (`BasicLangExtractRecognizer`, `AzureOpenAILangExtractRecognizer`) configured in a recognizer registry YAML now honour `config_path` (and other recognizer-specific kwargs). Previously these entries were validated by the strict `PredefinedRecognizerConfig` schema, which has no `config_path` field and does not allow extra keys, so `config_path` was silently dropped and the recognizer fell back to its bundled default model configuration. Added a `LangExtractRecognizerConfig` model (`extra="allow"`) and registered both recognizer class names in `CONFIG_MODEL_MAP`.
