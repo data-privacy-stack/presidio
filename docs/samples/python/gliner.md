@@ -102,3 +102,33 @@ gliner_recognizer = GLiNERRecognizer(
 
 **Note:** Make sure `onnxruntime` is installed when using this feature. It's included in the `gliner` extra dependencies.
 
+## Configuring multiple GLiNER recognizers via YAML
+
+`GLiNERRecognizer` can also be configured through the [recognizer registry YAML configuration](../../analyzer/recognizer_registry_provider.md). You can define **multiple** `GLiNERRecognizer` instances in the same YAML file (e.g. to use different models, entity mappings or thresholds side by side) by giving each entry a unique `name` while pointing `class_name` at `GLiNERRecognizer`:
+
+```yaml
+recognizers:
+  - name: GLiNERRecognizerMultiPII
+    class_name: GLiNERRecognizer
+    type: predefined
+    supported_language: en
+    model_name: "urchade/gliner_multi_pii-v1"
+    threshold: 0.4
+    entity_mapping:
+      person: PERSON
+      organization: ORGANIZATION
+
+  - name: GLiNERRecognizerSmall
+    class_name: GLiNERRecognizer
+    type: predefined
+    supported_language: en
+    model_name: "gliner-community/gliner_small-v2.5"
+    threshold: 0.25
+    entity_mapping:
+      location: LOCATION
+```
+
+- `name` is the instance name used to identify each recognizer (e.g. in `analysis_explanation.recognizer` on results). It must be unique per entry.
+- `class_name` tells the loader which Python class to instantiate (`GLiNERRecognizer` in both cases above); it can be omitted when `name` itself is a valid class name and only a single instance is needed.
+- Any additional `GLiNERRecognizer` constructor argument (`model_name`, `threshold`, `entity_mapping`, `flat_ner`, `multi_label`, `map_location`, `load_onnx_model`, `onnx_model_file`, ...) can be set per entry.
+

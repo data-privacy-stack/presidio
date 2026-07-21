@@ -104,7 +104,8 @@ The recognizer list comprises of both the predefined and custom recognizers, for
   - `supported_languages`: A list of supported languages that the analyzer will support. In case this field is missing, a recognizer will be created for each supported language provided to the `AnalyzerEngine`. 
   In addition to the language code, this field also contains a list of context words, which increases confidence in the detection in case it is found in the surroundings of a detected entity (as seen in the credit card example above).
   - `type`: this could be either predefined or custom. As this is optional, if not stated otherwise, the default type is custom.
-  - `name`: Different per the type of the recognizer. For predefined recognizers, this is the class name as defined in presidio, while for custom recognizers, it will be set as the name of the recognizer.
+  - `name`: Different per the type of the recognizer. For predefined recognizers, this is the class name as defined in presidio (unless `class_name` is also provided, see below), while for custom recognizers, it will be set as the name of the recognizer.
+  - `class_name`: Optional. Only relevant for predefined recognizers. Explicitly sets the Python class to instantiate, while `name` becomes the recognizer's instance name (e.g. as it appears in `analysis_explanation.recognizer` on results). This is what allows configuring **multiple instances of the same recognizer class** in the same YAML file, each with its own `name` and parameters (e.g. two `GLiNERRecognizer` instances using different models/thresholds, see the [GLiNER sample](../samples/python/gliner.md#configuring-multiple-gliner-recognizers-via-yaml)).
   - `patterns`: a list of objects of type `Pattern` that contains a name, score and regex that define matching patterns.
   - `enabled`: enables or disables the recognizer.
   - `supported_entity`: the detected entity associated by the recognizer.

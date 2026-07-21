@@ -5,7 +5,9 @@ import re
 from pathlib import Path
 from typing import List
 from inspect import signature
+from unittest.mock import MagicMock
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer
+from presidio_analyzer.predefined_recognizers.ner import gliner_recognizer as gliner_recognizer_module
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import RecognizerConfigurationLoader
 from presidio_analyzer import RecognizerRegistry
@@ -115,6 +117,59 @@ def test_recognizer_registry_provider_rejects_invalid_score_thresholds(
                 ],
             }
         )
+
+
+def test_recognizer_registry_provider_multiple_gliner_instances(monkeypatch):
+    """Multiple GLiNERRecognizer instances can be configured via YAML.
+
+    Regression test for https://github.com/microsoft/presidio/issues/1760:
+    two ``predefined`` entries sharing ``class_name: GLiNERRecognizer`` but
+    with distinct ``name`` and model-specific kwargs should both be
+    instantiated with their own configuration.
+
+    The underlying ``GLiNER`` model class is mocked so this test doesn't
+    require the (heavy, optional) ``gliner`` extra to be installed.
+    """
+    monkeypatch.setattr(gliner_recognizer_module, "GLiNER", MagicMock())
+
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [
+                {
+                    "name": "GLiNERRecognizerMultiPII",
+                    "class_name": "GLiNERRecognizer",
+                    "type": "predefined",
+                    "supported_language": "en",
+                    "model_name": "urchade/gliner_multi_pii-v1",
+                    "threshold": 0.4,
+                    "entity_mapping": {"person": "PERSON"},
+                },
+                {
+                    "name": "GLiNERRecognizerSmall",
+                    "class_name": "GLiNERRecognizer",
+                    "type": "predefined",
+                    "supported_language": "en",
+                    "model_name": "gliner-community/gliner_small-v2.5",
+                    "threshold": 0.25,
+                    "entity_mapping": {"location": "LOCATION"},
+                },
+            ],
+        }
+    )
+
+    recognizers = provider.create_recognizer_registry().recognizers
+
+    gliner_recognizers = {r.name: r for r in recognizers if r.name.startswith("GLiNERRecognizer")}
+    assert set(gliner_recognizers) == {"GLiNERRecognizerMultiPII", "GLiNERRecognizerSmall"}
+    assert gliner_recognizers["GLiNERRecognizerMultiPII"].model_name == "urchade/gliner_multi_pii-v1"
+    assert gliner_recognizers["GLiNERRecognizerMultiPII"].threshold == 0.4
+    assert gliner_recognizers["GLiNERRecognizerSmall"].model_name == "gliner-community/gliner_small-v2.5"
+    assert gliner_recognizers["GLiNERRecognizerSmall"].threshold == 0.25
+    assert (
+        gliner_recognizers["GLiNERRecognizerMultiPII"].id
+        != gliner_recognizers["GLiNERRecognizerSmall"].id
+    )
 
 
 def test_recognizer_registry_provider_configuration_file_load_predefined(mandatory_recognizers):

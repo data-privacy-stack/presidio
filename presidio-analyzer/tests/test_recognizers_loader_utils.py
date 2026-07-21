@@ -4,6 +4,7 @@ import copy
 import functools
 import re
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 import yaml
@@ -12,6 +13,7 @@ from presidio_analyzer.predefined_recognizers import (
     CreditCardRecognizer,
     UsSsnRecognizer,
 )
+from presidio_analyzer.predefined_recognizers.ner import gliner_recognizer as gliner_recognizer_module
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerConfigurationLoader,
     RecognizerListLoader,
@@ -193,6 +195,61 @@ def test_same_name_and_language_entries_keep_distinct_thresholds_and_ids():
     assert recognizers[0].name == recognizers[1].name
     assert recognizers[0].supported_language == recognizers[1].supported_language
     assert recognizers[0].id != recognizers[1].id
+
+
+def test_multiple_gliner_instances_load_from_yaml_via_class_name(monkeypatch):
+    """Multiple GLiNERRecognizer instances can be configured via YAML.
+
+    Each entry uses the same ``class_name`` (so the same Python class is
+    instantiated) with a distinct ``name`` and its own model-specific
+    kwargs. See https://github.com/microsoft/presidio/issues/1760.
+
+    The underlying ``GLiNER`` model class is mocked so this test doesn't
+    require the (heavy, optional) ``gliner`` extra to be installed.
+    """
+    monkeypatch.setattr(gliner_recognizer_module, "GLiNER", MagicMock())
+
+    config = [
+        {
+            "name": "GLiNERRecognizerMultiPII",
+            "class_name": "GLiNERRecognizer",
+            "type": "predefined",
+            "supported_language": "en",
+            "model_name": "urchade/gliner_multi_pii-v1",
+            "threshold": 0.4,
+            "entity_mapping": {"person": "PERSON"},
+        },
+        {
+            "name": "GLiNERRecognizerSmall",
+            "class_name": "GLiNERRecognizer",
+            "type": "predefined",
+            "supported_language": "en",
+            "model_name": "gliner-community/gliner_small-v2.5",
+            "threshold": 0.25,
+            "entity_mapping": {"location": "LOCATION"},
+        },
+    ]
+
+    recognizers = load_recognizers(config)
+
+    assert len(recognizers) == 2
+    assert {recognizer.name for recognizer in recognizers} == {
+        "GLiNERRecognizerMultiPII",
+        "GLiNERRecognizerSmall",
+    }
+    assert {recognizer.model_name for recognizer in recognizers} == {
+        "urchade/gliner_multi_pii-v1",
+        "gliner-community/gliner_small-v2.5",
+    }
+
+    multi_pii = next(r for r in recognizers if r.name == "GLiNERRecognizerMultiPII")
+    small = next(r for r in recognizers if r.name == "GLiNERRecognizerSmall")
+
+    assert multi_pii.threshold == 0.4
+    assert small.threshold == 0.25
+    assert multi_pii.model_to_presidio_entity_mapping == {"person": "PERSON"}
+    assert small.model_to_presidio_entity_mapping == {"location": "LOCATION"}
+    assert multi_pii.id != small.id
 
 
 def test_cleanup_none_removes_entity_keys():
