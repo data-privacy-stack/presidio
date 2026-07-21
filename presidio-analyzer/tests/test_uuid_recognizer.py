@@ -20,7 +20,7 @@ def entities():
     "text, expected_len, expected_positions, expected_score_ranges",
     [
         # fmt: off
-        # Versions 4 (random) and 3 (name-based, MD5)
+        # Version 4 (random) - most common
         ("Request ID: 550e8400-e29b-41d4-a716-446655440000",
          1, ((12, 48),), ((0.5, 0.5),)),
         ("User UUID: 6fa459ea-ee8a-3ca4-894e-db77e160355e",
@@ -29,6 +29,10 @@ def entities():
         # Version 1 (time-based)
         ("Trace: f47ac10b-58cc-1372-8567-0e02b2c3d479",
          1, ((7, 43),), ((0.5, 0.5),)),
+
+        # Version 2 (DCE Security, RFC 4122)
+        ("DCE UUID: 550e8400-e29b-21d4-a716-446655440000",
+         1, ((10, 46),), ((0.5, 0.5),)),
 
         # Version 5 (SHA-1 name-based)
         ("Object id 74738ff5-5367-5958-9aee-98fffdcd1876 created",
