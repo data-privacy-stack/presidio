@@ -1,6 +1,8 @@
 import pytest
 
 from presidio_analyzer.predefined_recognizers import NgBvnRecognizer
+from presidio_analyzer.nlp_engine import NlpArtifacts
+from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
 from tests.assertions import assert_result_within_score_range
 
 # Representative 11-digit BVN values used throughout the tests.
@@ -20,12 +22,20 @@ def entities():
     return ["NG_BVN"]
 
 
+@pytest.fixture(scope="module")
+def enhancer():
+    return LemmaContextAwareEnhancer()
+
+
+# ── Tests that call analyze() directly (no context enhancement) ───────────────
+# PatternRecognizer does not apply LemmaContextAwareEnhancer internally, so
+# scores remain at the base pattern score (0.01) regardless of surrounding text.
+# These cases cover bare matches and invalid inputs.
+
 @pytest.mark.parametrize(
     "text, expected_len, expected_positions, expected_score_ranges",
     [
         # fmt: off
-
-        # --- Without context: score stays at pattern base (very low) ---
 
         # Bare BVN, no context — very weak signal
         (
@@ -40,37 +50,6 @@ def entities():
             2,
             ((0, 11), (16, 27)),
             ((0.0, 0.29), (0.0, 0.29)),
-        ),
-
-        # --- With context: score is boosted above the low base ---
-
-        # Exact context word "bvn"
-        (
-            f"bvn: {VALID_BVN_1}",
-            1,
-            ((5, 16),),
-            ((0.3, 1.0),),
-        ),
-        # Full context phrase
-        (
-            f"bank verification number: {VALID_BVN_2}",
-            1,
-            ((26, 37),),
-            ((0.3, 1.0),),
-        ),
-        # Context word in sentence, BVN separated by whitespace
-        (
-            f"Please provide your BVN for KYC. Your BVN is {VALID_BVN_3}.",
-            1,
-            ((46, 57),),
-            ((0.3, 1.0),),
-        ),
-        # NIBSS context word
-        (
-            f"NIBSS BVN record: {VALID_BVN_1}",
-            1,
-            ((18, 29),),
-            ((0.3, 1.0),),
         ),
 
         # --- Invalid inputs: must not be detected ---
@@ -106,7 +85,7 @@ def entities():
         # fmt: on
     ],
 )
-def test_when_bvn_in_text_then_expected_results(
+def test_when_bvn_without_context_then_expected_results(
     text,
     expected_len,
     expected_positions,
@@ -115,6 +94,78 @@ def test_when_bvn_in_text_then_expected_results(
     entities,
 ):
     results = recognizer.analyze(text, entities)
+    assert len(results) == expected_len
+
+    for res, (st_pos, fn_pos), (st_score, fn_score) in zip(
+        results, expected_positions, expected_score_ranges
+    ):
+        assert_result_within_score_range(
+            res, entities[0], st_pos, fn_pos, st_score, fn_score
+        )
+
+
+# ── Tests that verify context-driven score boosts ────────────────────────────
+# LemmaContextAwareEnhancer compares individual spaCy token lemmas against the
+# recognizer's CONTEXT list.  Only single-token context entries (e.g. "bvn",
+# "nibss") trigger a boost; multi-word phrases are never matched against a
+# single lemma.  Every test case below includes at least one such single-token
+# context word so the boost is deterministic.
+
+@pytest.mark.parametrize(
+    "text, expected_len, expected_positions, expected_score_ranges",
+    [
+        # fmt: off
+
+        # Exact context word "bvn"
+        (
+            f"bvn: {VALID_BVN_1}",
+            1,
+            ((5, 16),),
+            ((0.3, 1.0),),
+        ),
+        # "BVN" token alongside the full phrase — "bvn" lemma triggers the boost
+        (
+            f"BVN bank verification number: {VALID_BVN_2}",
+            1,
+            ((30, 41),),
+            ((0.3, 1.0),),
+        ),
+        # Context word "BVN" appears earlier in sentence
+        (
+            f"Please provide your BVN for KYC. Your BVN is {VALID_BVN_3}.",
+            1,
+            ((46, 57),),
+            ((0.3, 1.0),),
+        ),
+        # "nibss" single-token context word
+        (
+            f"NIBSS BVN record: {VALID_BVN_1}",
+            1,
+            ((18, 29),),
+            ((0.3, 1.0),),
+        ),
+        # fmt: on
+    ],
+)
+def test_when_bvn_with_context_then_score_boosted(
+    text,
+    expected_len,
+    expected_positions,
+    expected_score_ranges,
+    recognizer,
+    entities,
+    enhancer,
+    spacy_nlp_engine,
+):
+    if spacy_nlp_engine is None:
+        pytest.skip("spaCy NLP engine not available in this test run")
+
+    nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
+    raw_results = recognizer.analyze(text, entities)
+    results = enhancer.enhance_using_context(
+        text, raw_results, nlp_artifacts, [recognizer]
+    )
+
     assert len(results) == expected_len
 
     for res, (st_pos, fn_pos), (st_score, fn_score) in zip(

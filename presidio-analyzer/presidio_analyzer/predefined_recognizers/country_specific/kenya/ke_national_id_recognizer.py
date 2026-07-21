@@ -38,11 +38,20 @@ class KeNationalIdRecognizer(PatternRecognizer):
     ]
 
     CONTEXT = [
+        # Single-token entries — matched against individual spaCy lemmas by
+        # LemmaContextAwareEnhancer (substring mode). Multi-word phrases alone
+        # are never matched because the enhancer compares against single tokens.
+        "kenya",
+        "kenyan",
+        "national",
+        "nid",
+        "registration",
+        # Multi-word entries — only effective when the enhancer is given
+        # pre-tokenised context via the `context` parameter.
         "national id",
         "national identity",
         "national identity card",
         "id number",
-        "nid",
         "kenyan id",
         "kenya national id",
         "registration number",

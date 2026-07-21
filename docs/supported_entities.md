@@ -118,7 +118,13 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
 | NG_NIN     | The Nigerian National Identification Number (NIN) is a unique 11-digit number issued by the National Identity Management Commission (NIMC). | Pattern match, context, and checksum |
+| NG_BVN     | The Nigerian Bank Verification Number (BVN) is an 11-digit identifier issued by the Central Bank of Nigeria (CBN) and managed by NIBSS. It links every bank account held by an individual to a single biometric record. No public checksum algorithm is documented; confidence is context-driven. | Pattern match and context |
 | NG_VEHICLE_REGISTRATION | Nigerian vehicle registration plate number in the current format (2011+): 3 letters (LGA code), 3 digits (serial), 2 letters (year/batch). | Pattern match and context |
+
+### Kenya
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| KE_NATIONAL_ID | The Kenyan National Identity Card number is a 7- or 8-digit sequential identifier issued by the National Registration Bureau under the Registration of Persons Act (Cap. 107). No public checksum algorithm is documented; confidence is context-driven. | Pattern match and context |
 
 ### Philippines
 | FieldType  | Description                                                                                             | Detection Method                         |
