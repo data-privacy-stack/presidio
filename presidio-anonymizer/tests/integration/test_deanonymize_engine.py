@@ -90,6 +90,61 @@ def test_given_anonymize_with_encrypt_then_text_returned_with_encrypted_content(
     assert decryption.items[0].entity_type == "PERSON"
 
 
+def test_given_encrypted_entity_with_score_then_deanonymized_result_keeps_score():
+    text = "My name is S184CMt9Drj7QaKQ21JTrpYzghnboTF9pn/neN8JME0="
+    encryption_results = [
+        OperatorResult(start=11, end=55, entity_type="PERSON", score=0.88),
+    ]
+    engine = DeanonymizeEngine()
+    decryption = engine.deanonymize(
+        text,
+        encryption_results,
+        {"DEFAULT": OperatorConfig(Decrypt.NAME, {"key": b"WmZq4t7w!z%C&F)J"})},
+    )
+    assert decryption.items[0].score == 0.88
+
+
+def test_given_encrypted_entity_without_score_then_deanonymized_result_score_is_none():
+    text = "My name is S184CMt9Drj7QaKQ21JTrpYzghnboTF9pn/neN8JME0="
+    encryption_results = [
+        OperatorResult(start=11, end=55, entity_type="PERSON"),
+    ]
+    engine = DeanonymizeEngine()
+    decryption = engine.deanonymize(
+        text,
+        encryption_results,
+        {"DEFAULT": OperatorConfig(Decrypt.NAME, {"key": b"WmZq4t7w!z%C&F)J"})},
+    )
+    assert decryption.items[0].score is None
+
+
+def test_given_anonymize_then_deanonymize_score_survives_the_round_trip():
+    """The score set on the original RecognizerResult should survive through
+    anonymize (encrypt) and remain readable on the anonymized OperatorResult,
+    then be preserved through deanonymize (decrypt) as well."""
+    unencrypted_text = "My name is "
+    expected_encrypted_text = "Chloë"
+    text = unencrypted_text + expected_encrypted_text
+    start_index = 11
+    end_index = 16
+    key = "WmZq4t7w!z%C&F)J"
+    analyzer_results = [RecognizerResult("PERSON", start_index, end_index, 0.73)]
+    anonymizers_config = {"PERSON": OperatorConfig("encrypt", {"key": key})}
+
+    actual_anonymize_result = AnonymizerEngine().anonymize(
+        text, analyzer_results, anonymizers_config
+    )
+    assert actual_anonymize_result.items[0].score == 0.73
+
+    engine = DeanonymizeEngine()
+    decryption = engine.deanonymize(
+        actual_anonymize_result.text,
+        actual_anonymize_result.items,
+        {"PERSON": OperatorConfig(Decrypt.NAME, {"key": key})},
+    )
+    assert decryption.items[0].score == 0.73
+
+
 def test_given_request_deanonymizers_return_list():
     engine = DeanonymizeEngine()
     expected_list = ["deanonymize_keep", "decrypt"]

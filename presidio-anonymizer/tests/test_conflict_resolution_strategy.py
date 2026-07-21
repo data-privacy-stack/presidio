@@ -70,8 +70,8 @@ def test_when_merge_similar_or_contained_selected_then_default_conflict_handled(
                 ),
                 items=[
                     OperatorResult(17, 36, 'CREDIT_CARD',
-                                   '4151 3217 6243 3448', 'keep'),
-                    OperatorResult(36, 40, 'URL', '.com', 'keep')
+                                   '4151 3217 6243 3448', 'keep', 1),
+                    OperatorResult(36, 40, 'URL', '.com', 'keep', 0.5)
                 ]
             )
         ),
@@ -92,8 +92,8 @@ def test_when_merge_similar_or_contained_selected_then_default_conflict_handled(
                     "that overlaps with nonexisting URL."
                 ),
                 items=[
-                    OperatorResult(17, 32, 'CREDIT_CARD', '4151 3217 6243 ', 'keep'),
-                    OperatorResult(32, 40, 'URL', '3448.com', 'keep')
+                    OperatorResult(17, 32, 'CREDIT_CARD', '4151 3217 6243 ', 'keep', 0.8),
+                    OperatorResult(32, 40, 'URL', '3448.com', 'keep', 1)
                 ]
             )
         ),
@@ -115,8 +115,8 @@ def test_when_merge_similar_or_contained_selected_then_default_conflict_handled(
                 ),
                 items=[
                     OperatorResult(17, 36, 'CREDIT_CARD',
-                                   '4151 3217 6243 3448', 'keep'),
-                    OperatorResult(36, 40, 'URL', '.com', 'keep')
+                                   '4151 3217 6243 3448', 'keep', 0.8),
+                    OperatorResult(36, 40, 'URL', '.com', 'keep', 0.8)
                 ]
             )
         ),
@@ -139,8 +139,8 @@ def test_when_merge_similar_or_contained_selected_then_default_conflict_handled(
                     "that overlaps with nonexisting URL."
                 ),
                 items=[
-                    OperatorResult(31, 42, 'Ent1', ' 3448.com t', 'keep'),
-                    OperatorResult(17, 31, 'CREDIT_CARD', '4151 3217 6243',  'keep')
+                    OperatorResult(31, 42, 'Ent1', ' 3448.com t', 'keep', 0.9),
+                    OperatorResult(17, 31, 'CREDIT_CARD', '4151 3217 6243',  'keep', 0.8)
                 ]
             )
         )

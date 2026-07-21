@@ -67,12 +67,17 @@ class EngineBase(ABC):
             # The following creates an intermediate list of result entities,
             # ordered from end to start, and the indexes will be normalized
             # from start to end once the loop ends and the text length is deterministic.
+            # `score` is carried over from the originating entity when available
+            # (e.g. a RecognizerResult during anonymize, or an already-scored
+            # OperatorResult during deanonymize). Entities without a score
+            # (e.g. plain PIIEntity) simply yield score=None.
             result_item = OperatorResult(
                 0,
                 index_from_end,
                 entity.entity_type,
                 changed_text,
                 operator_metadata.operator_name,
+                getattr(entity, "score", None),
             )
             engine_result.add_item(result_item)
 

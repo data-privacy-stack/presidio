@@ -27,7 +27,7 @@ def test_given_url_at_the_end_then_we_redact_is_successfully():
     ]
     expected_result = (
         '{"text": "The url is ", "items": [{"start": 11, "end": 11, "entity_type": '
-        '"URL", "text": "", "operator": "redact"}]}'
+        '"URL", "text": "", "operator": "redact", "score": 1.0}]}'
     )
     run_engine_and_validate(text, anonymizer_config, analyzer_results, expected_result)
 
@@ -63,9 +63,9 @@ def test_given_name_and_phone_number_then_we_anonymize_correctly():
     expected_result = (
         '{"text": "hello world, my name is ********. My number is: '
         '03-******4", "items": [{"start": 48, "end": 57, "entity_type": '
-        '"PHONE_NUMBER", "text": "03-******", "operator": "mask"}, '
+        '"PHONE_NUMBER", "text": "03-******", "operator": "mask", "score": 0.95}, '
         '{"start": 24, "end": 32, "entity_type": "NAME", '
-        '"text": "********", "operator": "mask"}]}'
+        '"text": "********", "operator": "mask", "score": 0.8}]}'
     )
     run_engine_and_validate(text, anonymizer_config, analyzer_results, expected_result)
 
@@ -85,9 +85,9 @@ def test_given_name_and_phone_number_without_anonymizers_then_we_use_default():
         '{"text": "hello world, my name is <NAME>. My number is: '
         '<PHONE_NUMBER>4", "items": [{"start": 46, "end": 60, '
         '"entity_type": "PHONE_NUMBER", "text": "<PHONE_NUMBER>", '
-        '"operator": "replace"}, {"start": 24, "end": 30, '
+        '"operator": "replace", "score": 0.95}, {"start": 24, "end": 30, '
         '"entity_type": "NAME", "text": "<NAME>", '
-        '"operator": "replace"}]}'
+        '"operator": "replace", "score": 0.8}]}'
     )
     run_engine_and_validate(text, anonymizer_config, analyzer_results, expected_result)
 
@@ -106,9 +106,9 @@ def test_given_redact_and_replace_then_we_anonymize_successfully():
         '{"text": "hello world, my name is . My number is: '
         '<PHONE_NUMBER>4", "items": [{"start": 40, "end": 54, '
         '"entity_type": "PHONE_NUMBER", "text": "<PHONE_NUMBER>", '
-        '"operator": "replace"}, {"start": 24, "end": 24, '
+        '"operator": "replace", "score": 0.95}, {"start": 24, "end": 24, '
         '"entity_type": "NAME", "text": "", "operator": '
-        '"redact"}]}'
+        '"redact", "score": 0.8}]}'
     )
     run_engine_and_validate(text, anonymizer_config, analyzer_results, expected_result)
 
@@ -128,13 +128,13 @@ def test_given_intersecting_entities_then_we_anonymize_correctly():
         '{"text": "hello world, my name is <FULL_NAME><LAST_NAME> My '
         'number is: <PHONE_NUMBER><SSN>4", "items": [{"start": 75, '
         '"end": 80, "entity_type": "SSN", "text": "<SSN>", '
-        '"operator": "replace"}, {"start": 61, "end": 75, '
+        '"operator": "replace", "score": 0.8}, {"start": 61, "end": 75, '
         '"entity_type": "PHONE_NUMBER", "text": "<PHONE_NUMBER>", '
-        '"operator": "replace"}, {"start": 35, "end": 46, '
+        '"operator": "replace", "score": 0.95}, {"start": 35, "end": 46, '
         '"entity_type": "LAST_NAME", "text": "<LAST_NAME>", '
-        '"operator": "replace"}, {"start": 24, "end": 35, '
+        '"operator": "replace", "score": 0.6}, {"start": 24, "end": 35, '
         '"entity_type": "FULL_NAME", "text": "<FULL_NAME>", '
-        '"operator": "replace"}]}'
+        '"operator": "replace", "score": 0.6}]}'
     )
     run_engine_and_validate(text, anonymizer_config, analyzer_results, expected_result)
 
@@ -149,7 +149,7 @@ def test_given_intersecting_the_same_entities_then_we_anonymize_correctly():
     expected_result = (
         '{"text": "hello world, my name is <FULL_NAME> My number is: 03-4453334", '
         '"items": [{"start": 24, "end": 35, "entity_type": "FULL_NAME",'
-        ' "text": "<FULL_NAME>", "operator": "replace"}]}'
+        ' "text": "<FULL_NAME>", "operator": "replace", "score": 0.6}]}'
     )
     run_engine_and_validate(text, anonymizer_config, analyzer_results, expected_result)
 

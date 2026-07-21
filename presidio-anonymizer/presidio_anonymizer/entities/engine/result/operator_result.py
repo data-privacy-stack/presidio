@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 from presidio_anonymizer.entities import PIIEntity
 
@@ -13,10 +13,12 @@ class OperatorResult(PIIEntity):
         entity_type: str,
         text: str = None,
         operator: str = None,
+        score: Optional[float] = None,
     ):
         PIIEntity.__init__(self, start, end, entity_type)
         self.text = text
         self.operator = operator
+        self.score = score
 
     def __repr__(self):
         """Return a string representation of the object."""
@@ -43,6 +45,7 @@ class OperatorResult(PIIEntity):
             and self.entity_type == other.entity_type
             and self.operator == other.operator
             and self.text == other.text
+            and self.score == other.score
         )
 
     @classmethod
@@ -58,6 +61,7 @@ class OperatorResult(PIIEntity):
             "entity_type":"PERSON",
             "text":"resulted_text",
             "operator":"encrypt",
+            "score": 0.85,
         }
         """
         start = json.get("start")
@@ -65,10 +69,12 @@ class OperatorResult(PIIEntity):
         entity_type = json.get("entity_type")
         text = json.get("text")
         operator = json.get("operator")
+        score = json.get("score")
         return cls(
             start=start,
             end=end,
             entity_type=entity_type,
             text=text,
             operator=operator,
+            score=score,
         )

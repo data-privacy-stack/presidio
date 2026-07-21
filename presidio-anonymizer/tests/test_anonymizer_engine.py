@@ -173,7 +173,7 @@ def test_given_several_results_then_we_filter_them_and_get_correct_mocked_result
             EngineResult(
                 text="My name is BIP",
                 items=[
-                    OperatorResult(11, 14, "PERSON", "BIP", "replace"),
+                    OperatorResult(11, 14, "PERSON", "BIP", "replace", 0.8),
                 ]
             )
         ),
@@ -186,7 +186,7 @@ def test_given_several_results_then_we_filter_them_and_get_correct_mocked_result
             EngineResult(
                 text="My name is BIP",
                 items=[
-                    OperatorResult(11, 14, "PERSON", "BIP", "replace"),
+                    OperatorResult(11, 14, "PERSON", "BIP", "replace", 0.8),
                 ]
             )
         ),
@@ -199,8 +199,8 @@ def test_given_several_results_then_we_filter_them_and_get_correct_mocked_result
             EngineResult(
                 text="My name is BIP, BIP",
                 items=[
-                    OperatorResult(11, 14, "PERSON", "BIP", "replace"),
-                    OperatorResult(16, 19, "PERSON", "BIP", "replace"),
+                    OperatorResult(11, 14, "PERSON", "BIP", "replace", 0.8),
+                    OperatorResult(16, 19, "PERSON", "BIP", "replace", 0.8),
                 ]
             )
         ),
@@ -215,8 +215,8 @@ def test_given_several_results_then_we_filter_them_and_get_correct_mocked_result
             EngineResult(
                 text="The phone book said: BIP BEEP",
                 items=[
-                    OperatorResult(21, 24, "PERSON", "BIP", "replace"),
-                    OperatorResult(25, 29, "PHONE NUMBER", "BEEP", "replace"),
+                    OperatorResult(21, 24, "PERSON", "BIP", "replace", 0.8),
+                    OperatorResult(25, 29, "PHONE NUMBER", "BEEP", "replace", 0.8),
                 ]
             )
         ),
@@ -275,6 +275,66 @@ def test_given_unsorted_input_then_merged_correctly():
         original_analyzer_results
     )
     assert anonymizer_result.text == "<PERSON> is a person"
+
+
+# ---------------------------------------------------------------------------
+# Tests for score propagation from RecognizerResult to OperatorResult
+# (issue #2057)
+# ---------------------------------------------------------------------------
+
+
+def test_given_analyzer_result_with_score_then_operator_result_carries_score():
+    engine = AnonymizerEngine()
+    text = "please REPLACE ME."
+    analyzer_result = RecognizerResult("SSN", 7, 17, 0.8)
+    result = engine.anonymize(text, [analyzer_result], {})
+    assert len(result.items) == 1
+    assert result.items[0].score == 0.8
+
+
+def test_given_multiple_analyzer_results_then_each_operator_result_keeps_own_score():
+    engine = AnonymizerEngine()
+    text = "The phone book said: Jones 212-555-5555"
+    analyzer_results = [
+        RecognizerResult(start=21, end=26, score=0.7, entity_type="PERSON"),
+        RecognizerResult(start=27, end=39, score=0.95, entity_type="PHONE_NUMBER"),
+    ]
+    result = engine.anonymize(
+        text,
+        analyzer_results,
+        operators={
+            "PERSON": OperatorConfig("replace", {"new_value": "BIP"}),
+            "PHONE_NUMBER": OperatorConfig("replace", {"new_value": "BEEP"}),
+        },
+    )
+    scores_by_type = {item.entity_type: item.score for item in result.items}
+    assert scores_by_type["PERSON"] == 0.7
+    assert scores_by_type["PHONE_NUMBER"] == 0.95
+
+
+def test_given_conflicting_results_of_same_type_then_surviving_entity_keeps_max_score():
+    """The surviving entity should keep its own (max) score, not a dropped one's."""
+    engine = AnonymizerEngine()
+    text = "My name is David Jones"
+    analyzer_results = [
+        RecognizerResult(start=11, end=16, score=0.3, entity_type="PERSON"),
+        RecognizerResult(start=11, end=22, score=0.9, entity_type="PERSON"),
+    ]
+    result = engine.anonymize(
+        text,
+        analyzer_results,
+        operators={"PERSON": OperatorConfig("replace", {"new_value": "BIP"})},
+    )
+    assert len(result.items) == 1
+    assert result.items[0].score == 0.9
+
+
+def test_given_no_score_needed_operator_result_still_backward_compatible():
+    """OperatorResult without an explicit score keeps existing behavior/equality."""
+    result = OperatorResult(11, 14, "PERSON", "BIP", "replace")
+    assert result.score is None
+    # Equality with an identical, explicitly-scored-None instance still holds.
+    assert result == OperatorResult(11, 14, "PERSON", "BIP", "replace", None)
 
 
 def _operate(
