@@ -1,7 +1,6 @@
 import pytest
 
 from presidio_analyzer.predefined_recognizers import KeNationalIdRecognizer
-from presidio_analyzer.nlp_engine import NlpArtifacts
 from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
 from tests.assertions import assert_result_within_score_range
 
@@ -138,7 +137,7 @@ def test_when_ke_national_id_without_context_then_expected_results(
         (
             f"national identity card: {VALID_ID_8}",
             1,
-            ((23, 31),),
+            ((24, 32),),
             ((0.3, 1.0),),
         ),
         # "kenyan" token — single-token context entry

@@ -1,7 +1,6 @@
 import pytest
 
 from presidio_analyzer.predefined_recognizers import NgBvnRecognizer
-from presidio_analyzer.nlp_engine import NlpArtifacts
 from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
 from tests.assertions import assert_result_within_score_range
 
@@ -134,7 +133,7 @@ def test_when_bvn_without_context_then_expected_results(
         (
             f"Please provide your BVN for KYC. Your BVN is {VALID_BVN_3}.",
             1,
-            ((46, 57),),
+            ((45, 56),),
             ((0.3, 1.0),),
         ),
         # "nibss" single-token context word
