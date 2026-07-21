@@ -1,4 +1,3 @@
-import re
 from typing import List, Optional
 
 from presidio_analyzer import Pattern, PatternRecognizer
@@ -70,7 +69,7 @@ class UuidRecognizer(PatternRecognizer):
             return True
 
         groups = pattern_text.split("-")
-        if len(groups) != 5:
+        if len(groups) != 5 or any(not g for g in groups):
             return True
 
         version_nibble = groups[2][0].lower()
