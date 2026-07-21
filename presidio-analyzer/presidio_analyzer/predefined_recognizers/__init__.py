@@ -70,10 +70,14 @@ from .country_specific.korea.kr_passport_recognizer import KrPassportRecognizer
 from .country_specific.korea.kr_rrn_recognizer import KrRrnRecognizer
 
 # Nigeria recognizers
+from .country_specific.nigeria.ng_bvn_recognizer import NgBvnRecognizer
 from .country_specific.nigeria.ng_nin_recognizer import NgNinRecognizer
 from .country_specific.nigeria.ng_vehicle_registration_recognizer import (
     NgVehicleRegistrationRecognizer,
 )
+
+# Kenya recognizers
+from .country_specific.kenya.ke_national_id_recognizer import KeNationalIdRecognizer
 
 # Philippines recognizers
 from .country_specific.philippines.ph_tin_recognizer import PhTinRecognizer
@@ -255,6 +259,8 @@ __all__ = [
     "AzureOpenAILangExtractRecognizer",
     "BasicLangExtractRecognizer",
     "KrPassportRecognizer",
+    "KeNationalIdRecognizer",
+    "NgBvnRecognizer",
     "NgNinRecognizer",
     "NgVehicleRegistrationRecognizer",
     "MedicalNERRecognizer",
