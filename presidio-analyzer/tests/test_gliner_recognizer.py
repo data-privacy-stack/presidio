@@ -323,3 +323,110 @@ def test_when_model_kwargs_then_passes_to_from_pretrained():
         assert call_kwargs["custom_param2"] == 42
 
 
+# ---------------------------------------------------------------------------
+# Tests for include_requested_entities_as_labels (issue #1760 comment thread:
+# entity/threshold leakage across GLiNERRecognizer instances with different
+# entity_mapping values)
+# ---------------------------------------------------------------------------
+
+
+def _labels_scoped_predict_entities(text, labels, **kwargs):
+    """Simulate GLiNER faithfully: only ever return a label it was asked for.
+
+    The real bug reproduction depends on this — a mock that returns a fixed
+    value regardless of the ``labels`` argument wouldn't actually exercise
+    the fix, since the fix works by controlling which labels are sent to
+    GLiNER in the first place, not by filtering results after the fact.
+    """
+    if "ORGANIZATION" in labels:
+        return [{"label": "ORGANIZATION", "start": 0, "end": 5, "score": 0.7}]
+    return []
+
+
+def test_default_true_reproduces_cross_instance_leakage(mock_gliner):
+    """Regression test for the bug reported in issue #1760: with the
+    default (include_requested_entities_as_labels=True), a recognizer
+    configured only for ADDRESS can still return an ORGANIZATION result
+    when ORGANIZATION is requested globally, because it gets appended as
+    an ad-hoc GLiNER label.
+    """
+    if sys.version_info < (3, 10):
+        pytest.skip("gliner requires Python >= 3.10")
+
+    mock_gliner.predict_entities.side_effect = _labels_scoped_predict_entities
+
+    address_recognizer = GLiNERRecognizer(
+        entity_mapping={"Address": "ADDRESS"},
+        threshold=0.65,
+    )
+    address_recognizer.gliner = mock_gliner
+
+    results = address_recognizer.analyze(
+        "Apple delivers the iPhone to London.",
+        entities=["ORGANIZATION", "PRODUCT", "ADDRESS"],
+    )
+
+    assert len(results) == 1
+    assert results[0].entity_type == "ORGANIZATION"
+
+
+def test_include_requested_entities_as_labels_false_prevents_leakage(mock_gliner):
+    """With the opt-out flag set, this instance never asks GLiNER to
+    consider entity types outside its own entity_mapping, so the leak
+    from the test above cannot occur.
+    """
+    if sys.version_info < (3, 10):
+        pytest.skip("gliner requires Python >= 3.10")
+
+    mock_gliner.predict_entities.side_effect = _labels_scoped_predict_entities
+
+    address_recognizer = GLiNERRecognizer(
+        entity_mapping={"Address": "ADDRESS"},
+        threshold=0.65,
+        include_requested_entities_as_labels=False,
+    )
+    address_recognizer.gliner = mock_gliner
+
+    results = address_recognizer.analyze(
+        "Apple delivers the iPhone to London.",
+        entities=["ORGANIZATION", "PRODUCT", "ADDRESS"],
+    )
+
+    assert results == []
+
+
+def test_include_requested_entities_as_labels_false_still_returns_own_entities(
+    mock_gliner,
+):
+    """The opt-out flag must not suppress this instance's own entity type."""
+    if sys.version_info < (3, 10):
+        pytest.skip("gliner requires Python >= 3.10")
+
+    def predict_entities(text, labels, **kwargs):
+        if "Address" in labels:
+            return [{"label": "Address", "start": 0, "end": 6, "score": 0.9}]
+        return []
+
+    mock_gliner.predict_entities.side_effect = predict_entities
+
+    address_recognizer = GLiNERRecognizer(
+        entity_mapping={"Address": "ADDRESS"},
+        threshold=0.65,
+        include_requested_entities_as_labels=False,
+    )
+    address_recognizer.gliner = mock_gliner
+
+    results = address_recognizer.analyze(
+        "London delivers packages daily.",
+        entities=["ORGANIZATION", "PRODUCT", "ADDRESS"],
+    )
+
+    assert len(results) == 1
+    assert results[0].entity_type == "ADDRESS"
+
+
+def test_include_requested_entities_as_labels_defaults_to_true():
+    recognizer = GLiNERRecognizer(entity_mapping={"Address": "ADDRESS"})
+    assert recognizer.include_requested_entities_as_labels is True
+
+

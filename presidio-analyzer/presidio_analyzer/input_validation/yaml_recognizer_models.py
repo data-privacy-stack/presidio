@@ -1,5 +1,6 @@
 """Pydantic models for YAML recognizer configurations."""
 
+import re
 from typing import Any, Dict, List, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -195,6 +196,17 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
 
     model_config = ConfigDict(extra="allow")
 
+    name: Optional[str] = Field(
+        default=None,
+        description=(
+            "Instance name for the recognizer. Optional for GLiNERRecognizer "
+            "entries that specify class_name: if omitted, a name is derived "
+            "automatically from class_name and model_name, so multiple "
+            "GLiNERRecognizer instances (e.g. different models/thresholds) "
+            "can be configured side by side without each requiring an "
+            "explicit unique name."
+        ),
+    )
     model_name: Optional[str] = Field(None, description="GLiNER model name")
     flat_ner: Optional[bool] = Field(None, description="Use flat NER")
     multi_label: Optional[bool] = Field(
@@ -205,6 +217,16 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
     load_onnx_model: Optional[bool] = Field(None, description="Load ONNX model")
     onnx_model_file: Optional[str] = Field(None, description="ONNX model file name")
     entity_mapping: Optional[Dict[str, str]] = Field(None, description="Entity mapping")
+    include_requested_entities_as_labels: Optional[bool] = Field(
+        None,
+        description=(
+            "Whether to append analyze()-requested entity types as ad-hoc "
+            "GLiNER labels. Set to false to restrict this instance to only "
+            "return entity types declared in its own entity_mapping when "
+            "configuring multiple GLiNERRecognizer instances with different "
+            "entity_mapping/threshold values."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_entity_mapping_and_supported_entities(self):
@@ -215,6 +237,26 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
                 "'entity_mapping' and 'supported_entities'; these fields are "
                 "mutually exclusive."
             )
+        return self
+
+    @model_validator(mode="after")
+    def default_name_from_class_and_model(self):
+        """Derive a unique instance name when 'name' is omitted.
+
+        Without an explicit name, multiple GLiNERRecognizer entries sharing
+        class_name: GLiNERRecognizer would otherwise all default to the same
+        instance name. Deriving from model_name keeps entries distinct in the
+        common case (different models per instance), which is the actual
+        motivating multi-instance use case; entries that also share the same
+        model_name still need an explicit 'name' to disambiguate.
+        """
+        if not self.name:
+            base = self.class_name or "GLiNERRecognizer"
+            if self.model_name:
+                suffix = re.sub(r"[^A-Za-z0-9]+", "_", self.model_name).strip("_")
+                self.name = f"{base}_{suffix}"
+            else:
+                self.name = base
         return self
 
     def model_dump(self, *args, **kwargs) -> Dict[str, Any]:

@@ -319,3 +319,65 @@ def test_direct_validation_with_missing_global_regex_flags():
     # Verify default value and successful creation
     assert validated["global_regex_flags"] == 26
     assert validated["supported_languages"] == ["en"]
+
+
+def test_multiple_gliner_instances_without_explicit_name_get_distinct_ids(monkeypatch):
+    """End-to-end regression test for issue #1760.
+
+    Two ``class_name: GLiNERRecognizer`` entries with different
+    ``model_name``/``entity_mapping``/``threshold`` values and no explicit
+    ``name`` should each load as a distinct recognizer instance (auto-derived
+    names), with ``include_requested_entities_as_labels: false`` set so
+    neither instance can return entity types outside its own mapping.
+
+    The underlying ``GLiNER`` model class is mocked so this test doesn't
+    require the (heavy, optional) ``gliner`` extra to be installed.
+    """
+    from unittest.mock import MagicMock
+
+    from presidio_analyzer.predefined_recognizers.ner import (
+        gliner_recognizer as gliner_recognizer_module,
+    )
+
+    monkeypatch.setattr(gliner_recognizer_module, "GLiNER", MagicMock())
+
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [
+                {
+                    "class_name": "GLiNERRecognizer",
+                    "type": "predefined",
+                    "supported_language": "en",
+                    "model_name": "urchade/gliner_multi_pii-v1",
+                    "threshold": 0.4,
+                    "entity_mapping": {"person": "PERSON"},
+                    "include_requested_entities_as_labels": False,
+                },
+                {
+                    "class_name": "GLiNERRecognizer",
+                    "type": "predefined",
+                    "supported_language": "en",
+                    "model_name": "gliner-community/gliner_small-v2.5",
+                    "threshold": 0.25,
+                    "entity_mapping": {"location": "LOCATION"},
+                    "include_requested_entities_as_labels": False,
+                },
+            ],
+        }
+    )
+
+    recognizers = provider.create_recognizer_registry().recognizers
+    gliner_recognizers = {
+        r.name: r for r in recognizers if r.name.startswith("GLiNERRecognizer")
+    }
+
+    assert len(gliner_recognizers) == 2
+    assert gliner_recognizers["GLiNERRecognizer_urchade_gliner_multi_pii_v1"].threshold == 0.4
+    assert (
+        gliner_recognizers["GLiNERRecognizer_gliner_community_gliner_small_v2_5"].threshold
+        == 0.25
+    )
+    assert not any(
+        r.include_requested_entities_as_labels for r in gliner_recognizers.values()
+    )
