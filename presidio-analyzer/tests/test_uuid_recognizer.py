@@ -20,7 +20,7 @@ def entities():
     "text, expected_len, expected_positions, expected_score_ranges",
     [
         # fmt: off
-        # Version 4 (random) - most common
+        # Versions 4 (random) and 3 (name-based, MD5)
         ("Request ID: 550e8400-e29b-41d4-a716-446655440000",
          1, ((12, 48),), ((0.5, 0.5),)),
         ("User UUID: 6fa459ea-ee8a-3ca4-894e-db77e160355e",
