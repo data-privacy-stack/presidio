@@ -273,7 +273,15 @@ recognizers:
     country_code: pl
 
   - name: KrBrnRecognizer
-    supported_languages: 
+    supported_languages:
+    - ko
+    - kr
+    type: predefined
+    enabled: false
+    country_code: kr
+
+  - name: KrCrnRecognizer
+    supported_languages:
     - ko
     - kr
     type: predefined
