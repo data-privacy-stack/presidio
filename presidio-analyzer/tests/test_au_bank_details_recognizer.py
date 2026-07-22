@@ -29,6 +29,7 @@ def entities():
         # Invalid formats.
         ("06200012345678", 0, (), (),),
         ("123 456\n789012", 0, (), (),),
+        ("BSB: 062-000\nAccount: 12345678", 0, (), (),),
     ],
 )
 def test_when_all_au_bank_details_then_succeed(

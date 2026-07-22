@@ -6,7 +6,7 @@ from presidio_analyzer import Pattern, PatternRecognizer
 
 class AuBankDetailsRecognizer(PatternRecognizer):
     """
-    Recognizes Australian bank details (BSB and account number).
+    Recognises Australian bank details (BSB and account number).
 
     This recognizer detects Australian bank details where both:
     - a BSB (Bank State Branch) number, and
@@ -32,12 +32,12 @@ class AuBankDetailsRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "AU bank details (High)",
-            r"\b(?:bsb)\s*[:\-]?\s*\d{3}[- ]?\d{3}\s*(?:[,;]\s*)?(?:account(?:\s*number)?|acct|a/c|acc(?:ount)?)\s*[:\-]?\s*\d{6,10}\b",  # noqa: E501
+            r"\b(?:bsb)[^\S\r\n]*[:\-]?[^\S\r\n]*\d{3}[- ]?\d{3}[^\S\r\n]*(?:[,;][^\S\r\n]*)?(?:account(?:[^\S\r\n]*number)?|acct|a/c|acc(?:ount)?)[^\S\r\n]*[:\-]?[^\S\r\n]*\d{6,10}\b",  # noqa: E501
             0.5,
         ),
         Pattern(
             "AU bank details (Medium)",
-            r"\b\d{3}[- ]?\d{3}\s+\d{6,10}\b",
+            r"\b\d{3}[- ]?\d{3}[^\S\r\n]+\d{6,10}\b",
             0.2,
         ),
     ]
