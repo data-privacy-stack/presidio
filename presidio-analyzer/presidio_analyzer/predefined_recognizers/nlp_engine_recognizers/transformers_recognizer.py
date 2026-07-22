@@ -16,7 +16,7 @@ class TransformersRecognizer(SpacyRecognizer):
     but loads the output from the NlpArtifacts
     See:
      - https://huggingface.co/docs/transformers/main/en/index for transformer models
-     - https://github.com/explosion/spacy-huggingface-pipelines on the spaCy wrapper to transformers
+     - https://huggingface.co/docs/transformers/main_classes/pipelines for the pipeline API
     """  # noqa: E501
 
     ENTITIES = [

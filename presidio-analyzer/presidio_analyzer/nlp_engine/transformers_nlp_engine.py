@@ -1,22 +1,149 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, Iterable, Iterator, List, Optional
 
 import spacy
-from spacy.tokens import Doc, Span
+from spacy.language import Language
+from spacy.pipeline import Pipe
+from spacy.tokens import Doc, Span, SpanGroup
 
 try:
-    import spacy_huggingface_pipelines
-    import transformers
+    from transformers import pipeline as hf_pipeline
 except ImportError:
-    spacy_huggingface_pipelines = None
-    transformers = None
+    hf_pipeline = None
 
 from presidio_analyzer.nlp_engine import (
     NerModelConfiguration,
     SpacyNlpEngine,
+    device_detector,
 )
 
 logger = logging.getLogger("presidio-analyzer")
+
+_PIPE_NAME = "presidio_transformers_ner"
+
+
+@Language.factory(
+    _PIPE_NAME,
+    assigns=[],
+    default_config={
+        "model": "",
+        "stride": 14,
+        "aggregation_strategy": "max",
+        "alignment_mode": "expand",
+        "spans_key": "bert-base-ner",
+    },
+)
+def _create_transformers_ner_pipe(
+    nlp: Language,
+    name: str,
+    model: str,
+    stride: Optional[int],
+    aggregation_strategy: str,
+    alignment_mode: str,
+    spans_key: str,
+) -> "_TransformersEntityPipe":
+    if hf_pipeline is None:
+        raise ImportError(
+            "transformers is not installed. Install presidio-analyzer[transformers] "
+            "to use TransformersNlpEngine."
+        )
+    if not model:
+        raise ValueError("A Hugging Face token-classification model is required")
+
+    pipeline_kwargs = {
+        "task": "token-classification",
+        "model": model,
+        "aggregation_strategy": aggregation_strategy,
+        "device": device_detector.get_device(),
+    }
+    if stride is not None:
+        pipeline_kwargs["stride"] = stride
+
+    pipeline = hf_pipeline(**pipeline_kwargs)
+    return _TransformersEntityPipe(
+        name=name,
+        pipeline=pipeline,
+        alignment_mode=alignment_mode,
+        spans_key=spans_key,
+    )
+
+
+class _TransformersEntityPipe(Pipe):
+    """Add Hugging Face token-classification predictions to a spaCy document."""
+
+    def __init__(
+        self,
+        name: str,
+        pipeline: Any,
+        alignment_mode: str,
+        spans_key: str,
+    ) -> None:
+        self.name = name
+        self.pipeline = pipeline
+        self.alignment_mode = alignment_mode
+        self.spans_key = spans_key
+
+    def __call__(self, doc: Doc) -> Doc:
+        return self._add_predictions(doc, self.pipeline(doc.text))
+
+    def pipe(
+        self, stream: Iterable[Doc], *, batch_size: int = 128
+    ) -> Iterator[Doc]:
+        for docs in spacy.util.minibatch(stream, size=batch_size):
+            docs = list(docs)
+            predictions = self.pipeline(
+                [doc.text for doc in docs], batch_size=batch_size
+            )
+            for doc, doc_predictions in zip(docs, predictions, strict=True):
+                yield self._add_predictions(doc, doc_predictions)
+
+    def _add_predictions(
+        self, doc: Doc, predictions: Iterable[Dict[str, Any]]
+    ) -> Doc:
+        spans = SpanGroup(doc, name=self.spans_key, attrs={"scores": []})
+        previous_end = 0
+
+        for prediction in predictions:
+            label = prediction.get("entity_group") or prediction.get("entity")
+            start = prediction.get("start")
+            end = prediction.get("end")
+            if not label or not isinstance(start, int) or not isinstance(end, int):
+                logger.warning(
+                    "Skipping malformed Transformers prediction: %s", prediction
+                )
+                continue
+
+            span = doc.char_span(
+                start,
+                end,
+                label=str(label),
+                alignment_mode=self.alignment_mode,
+            )
+            if span is None or span.start_char < previous_end:
+                logger.warning(
+                    "Skipping unaligned or overlapping Transformers prediction: %s",
+                    prediction,
+                )
+                continue
+
+            spans.append(span)
+            spans.attrs["scores"].append(float(prediction.get("score", 0.0)))
+            previous_end = span.end_char
+
+        doc.spans[self.spans_key] = spans
+        return doc
+
+    def to_bytes(self, **kwargs: Any) -> bytes:
+        return b""
+
+    def from_bytes(self, bytes_data: bytes, **kwargs: Any) -> "_TransformersEntityPipe":
+        return self
+
+    def to_disk(self, path: Any, **kwargs: Any) -> None:
+        return None
+
+    def from_disk(self, path: Any, **kwargs: Any) -> "_TransformersEntityPipe":
+        return self
 
 
 class TransformersNlpEngine(SpacyNlpEngine):
@@ -50,7 +177,7 @@ class TransformersNlpEngine(SpacyNlpEngine):
     """
 
     engine_name = "transformers"
-    is_available = bool(spacy_huggingface_pipelines)
+    is_available = bool(hf_pipeline)
 
     def __init__(
         self,
@@ -89,14 +216,13 @@ class TransformersNlpEngine(SpacyNlpEngine):
 
             pipe_config = {
                 "model": transformers_model,
-                "annotate": "spans",
                 "stride": self.ner_model_configuration.stride,
                 "alignment_mode": self.ner_model_configuration.alignment_mode,
                 "aggregation_strategy": self.ner_model_configuration.aggregation_strategy,  # noqa: E501
-                "annotate_spans_key": self.entity_key,
+                "spans_key": self.entity_key,
             }
 
-            nlp.add_pipe("hf_token_pipe", config=pipe_config)
+            nlp.add_pipe(_PIPE_NAME, config=pipe_config)
             self.nlp[model["lang_code"]] = nlp
 
     @staticmethod
