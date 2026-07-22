@@ -5,7 +5,7 @@
     This example demonstrates how to create a **Presidio Recognizer**.
     To integrate a transformers model as a **Presidio NLP Engine**, see [this documentation](../../../analyzer/nlp_engines/transformers.md).
 
-    We allow these two options, as a user might want to have multiple NER models running in parallel. In this case, one can create multiple `EntityRecognizer` instances, each serving a different model. If you only plan to use one NER model, consider creating a [`TransformersNlpEngine`](../../../analyzer/nlp_engines/transformers.md) instead of the [`TransformersRecognizer`](https://github.com/microsoft/presidio/blob/main/docs/samples/python/transformers_recognizer/transformer_recognizer.py) described in this document.
+    We allow these two options, as a user might want to have multiple NER models running in parallel. In this case, one can create multiple `EntityRecognizer` instances, each serving a different model. If you only plan to use one NER model, consider creating a [`TransformersNlpEngine`](../../../analyzer/nlp_engines/transformers.md) instead of the [`TransformersRecognizer`](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/transformers_recognizer/transformer_recognizer.py) described in this document.
 
 When initializing the `TransformersRecognizer`, choose from the following options:
 
@@ -16,14 +16,14 @@ When initializing the `TransformersRecognizer`, choose from the following option
 3. Provide the path to your own local custom trained model.
 
 !!! note "Note"
-    For each combination of model & dataset, it is recommended to create a configuration object which includes setting necessary parameters for getting the correct results. Please reference this [configuration.py](https://github.com/microsoft/presidio/blob/main/configuration.py) file for examples.
+    For each combination of model & dataset, it is recommended to create a configuration object which includes setting necessary parameters for getting the correct results. Please reference this [configuration.py](https://github.com/data-privacy-stack/presidio/blob/main/configuration.py) file for examples.
 
 ## Example Code
 
 This example code uses a `TransformersRecognizer` for NER, and removes the default `SpacyRecognizer`.
 In order to be able to use spaCy features such as lemmas, we introduce the small (and faster) `en_core_web_sm` model.
 
-[link to full TransformersRecognizer code](https://github.com/microsoft/presidio/blob/main/docs/samples/python/transformers_recognizer/transformer_recognizer.py)
+[link to full TransformersRecognizer code](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/transformers_recognizer/transformer_recognizer.py)
 
 ```python
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry

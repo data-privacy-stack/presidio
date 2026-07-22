@@ -1,4 +1,4 @@
-## Taken from https://github.com/microsoft/presidio/blob/main/docs/samples/python/flair_recognizer.py
+## Taken from https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/flair_recognizer.py
 
 import logging
 from typing import Optional, List, Tuple, Set

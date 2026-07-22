@@ -1,0 +1,604 @@
+/* =========================================================================
+   Data Privacy Stack — Presidio docs theme
+   Violet/indigo brand built around the "Inky" octopus mascot.
+   Light-first, calm neutral canvas; the mascot carries the colour.
+   Type: Plus Jakarta Sans (display), Montserrat (brand byline) + Inter (body).
+   ========================================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Montserrat:wght@400;600&family=Inter:wght@400;500;600;700&display=swap");
+
+/* ---- Brand tokens ------------------------------------------------------- */
+:root {
+  --dps-ink: #11131a;
+  --dps-navy: #131d4a;        /* octopus ink — chrome / header */
+  --dps-navy-light: #2a356b;
+  --dps-navy-dark: #0d1437;
+  --dps-indigo: #4f46e5;      /* primary link accent */
+  --dps-indigo-dark: #4338ca;
+  --dps-violet: #7c3aed;      /* interactive accent */
+  --dps-violet-bright: #8957e8;
+  --dps-cyan: #22d3ee;
+  --dps-muted: #5b6472;
+  --dps-bg: #fbfbfd;
+  --dps-card: #ffffff;
+  --dps-border: #e6e8ee;
+
+  --dps-gradient: linear-gradient(135deg, #7c8be8 0%, #8957e8 100%);
+  --dps-gradient-text: linear-gradient(120deg, #7d4dcb 0%, #6366f1 55%, #81c0f1 100%);
+  --dps-radius: 14px;
+  --dps-shadow: 0 1px 2px rgba(17, 19, 26, 0.04), 0 14px 34px rgba(17, 19, 26, 0.09);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --md-text-font: "Inter";
+}
+
+/* =========================================================================
+   1. Light scheme (default)
+   ========================================================================= */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--dps-navy);
+  --md-primary-fg-color--light: var(--dps-navy-light);
+  --md-primary-fg-color--dark: var(--dps-navy-dark);
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.72);
+
+  --md-accent-fg-color: var(--dps-violet);
+  --md-accent-fg-color--transparent: rgba(124, 58, 237, 0.1);
+
+  --md-default-bg-color: var(--dps-bg);
+  --md-default-fg-color: var(--dps-ink);
+  --md-default-fg-color--light: #3a4252;
+  --md-default-fg-color--lighter: var(--dps-muted);
+  --md-default-fg-color--lightest: var(--dps-border);
+
+  --md-typeset-a-color: var(--dps-indigo);
+  --md-typeset-mark-color: rgba(137, 87, 232, 0.22);
+
+  --md-code-bg-color: #f4f4f9;
+  --md-code-fg-color: #2a2f45;
+
+  --md-footer-bg-color: var(--dps-navy-dark);
+  --md-footer-bg-color--dark: #0a0f24;
+}
+
+/* =========================================================================
+   2. Dark scheme (slate)
+   ========================================================================= */
+[data-md-color-scheme="slate"] {
+  --md-hue: 230;
+
+  --md-primary-fg-color: #0d142e;
+  --md-primary-fg-color--light: #1a2452;
+  --md-primary-fg-color--dark: #080d20;
+  --md-primary-bg-color: #f3f4ff;
+
+  --md-accent-fg-color: #a99dff;
+  --md-accent-fg-color--transparent: rgba(169, 157, 255, 0.12);
+
+  --md-default-bg-color: #0e1116;
+  --md-default-fg-color: #e6e8ef;
+  --md-default-fg-color--light: #c2c7d4;
+  --md-default-fg-color--lighter: #9aa3b2;
+  --md-default-fg-color--lightest: #2a3344;
+
+  --md-typeset-a-color: #8b83ff;
+  --md-typeset-mark-color: rgba(139, 131, 255, 0.28);
+
+  --md-code-bg-color: #161b24;
+  --md-code-fg-color: #d6dae6;
+
+  --md-footer-bg-color: #0a0d12;
+  --md-footer-bg-color--dark: #07090d;
+}
+
+/* dark surface cards */
+[data-md-color-scheme="slate"] {
+  --dps-card: #161b24;
+  --dps-border: #222a38;
+  --dps-bg: #0e1116;
+  --dps-muted: #9aa3b2;
+  --dps-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* =========================================================================
+   3. Typography
+   ========================================================================= */
+body,
+.md-typeset {
+  font-feature-settings: "kern", "liga", "calt";
+  -webkit-font-smoothing: antialiased;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-header__title,
+.dps-hero__title {
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset h2 {
+  font-weight: 700;
+  margin-top: 2.2em;
+}
+
+/* =========================================================================
+   4. Header / nav chrome
+   ========================================================================= */
+.md-header {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.md-header__button.md-logo img {
+  height: 1.7rem;
+  width: auto;
+}
+
+.md-tabs {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.md-tabs__link {
+  opacity: 0.78;
+  transition: opacity 200ms var(--ease-out);
+}
+
+.md-tabs__link:hover,
+.md-tabs__link--active {
+  opacity: 1;
+}
+
+/* Active nav item accent in sidebar */
+.md-nav__link--active,
+.md-nav__item .md-nav__link--active {
+  color: var(--md-typeset-a-color);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   5. Links, focus, selection
+   ========================================================================= */
+.md-typeset a {
+  text-decoration-color: color-mix(in srgb, var(--md-typeset-a-color) 35%, transparent);
+  text-underline-offset: 2px;
+  transition: color 160ms var(--ease-out);
+}
+
+.md-typeset a:hover {
+  color: var(--md-accent-fg-color);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+::selection {
+  background: rgba(137, 87, 232, 0.22);
+}
+
+/* =========================================================================
+   6. Buttons
+   ========================================================================= */
+.md-typeset .md-button {
+  border-radius: 10px;
+  border-width: 1px;
+  font-weight: 600;
+  padding: 0.5em 1.15em;
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out),
+    background-color 180ms var(--ease-out), color 180ms var(--ease-out);
+}
+
+.md-typeset .md-button--primary {
+  background: var(--dps-violet);
+  border-color: var(--dps-violet);
+  color: #fff;
+}
+
+.md-typeset .md-button--primary:hover {
+  background: var(--dps-indigo-dark);
+  border-color: var(--dps-indigo-dark);
+  box-shadow: 0 8px 22px rgba(79, 70, 229, 0.32);
+}
+
+.md-typeset .md-button:not(.md-button--primary):hover {
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-accent-fg-color);
+  background: var(--md-accent-fg-color--transparent);
+}
+
+/* =========================================================================
+   7. Code, tables, admonitions, cards
+   ========================================================================= */
+.md-typeset pre > code,
+.md-typeset .highlight {
+  border-radius: 12px;
+}
+
+.md-typeset code {
+  border-radius: 5px;
+  font-size: 0.84em;
+}
+
+.md-typeset table:not([class]) {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--dps-border);
+  border: none;
+}
+
+.md-typeset table:not([class]) th {
+  background: color-mix(in srgb, var(--md-primary-fg-color) 6%, transparent);
+  font-weight: 600;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: var(--dps-radius);
+  border-left-width: 3px;
+  box-shadow: var(--dps-shadow);
+}
+
+/* Material "grid cards" polish */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border: 1px solid var(--dps-border);
+  border-radius: var(--dps-radius);
+  background: var(--dps-card);
+  box-shadow: var(--dps-shadow);
+  transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  border-color: color-mix(in srgb, var(--md-accent-fg-color) 55%, var(--dps-border));
+  box-shadow: 0 2px 4px rgba(17, 19, 26, 0.05), 0 18px 44px rgba(79, 70, 229, 0.12);
+}
+
+/* =========================================================================
+   8. Footer
+   ========================================================================= */
+.md-footer-meta {
+  background: var(--md-footer-bg-color--dark);
+  --md-default-fg-color: var(--md-primary-bg-color);
+  --md-default-fg-color--light: color-mix(in srgb, var(--md-primary-bg-color) 72%, transparent);
+}
+
+/* =========================================================================
+   9. Home hero
+   ========================================================================= */
+.dps-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.75rem;
+  margin: 0.5rem 0 3rem;
+  padding: 1.75rem 2.5rem;
+  border-radius: 22px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(137, 87, 232, 0.12) 0%, transparent 55%),
+    radial-gradient(120% 140% at 0% 100%, rgba(34, 211, 238, 0.1) 0%, transparent 50%),
+    var(--dps-card);
+  border: 1px solid var(--dps-border);
+  box-shadow: var(--dps-shadow);
+}
+
+.dps-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: "Inter", sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dps-violet);
+  background: rgba(137, 87, 232, 0.1);
+  border: 1px solid rgba(137, 87, 232, 0.22);
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+}
+
+[data-md-color-scheme="slate"] .dps-hero__eyebrow {
+  color: #c7c2ff;
+  background: rgba(169, 157, 255, 0.12);
+  border-color: rgba(169, 157, 255, 0.28);
+}
+
+.dps-hero__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.md-typeset .dps-hero__title {
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
+  font-size: clamp(2.5rem, 11vw, 7rem);
+  font-size: clamp(2.5rem, 21cqi, 8rem);
+  line-height: 0.9;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  margin: 0;
+  background: var(--dps-gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.md-typeset .dps-hero__byline {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.38em;
+  max-width: 100%;
+  font-family: "Montserrat", "Inter", sans-serif;
+  font-size: clamp(0.95rem, 4.6cqi, 1.3rem);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  margin: 0;
+  color: var(--md-default-fg-color--lighter);
+}
+
+.md-typeset .dps-hero__byline-brand {
+  font-family: "Montserrat", "Inter", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--md-default-fg-color--light);
+}
+
+.dps-hero__tagline {
+  font-size: 1.08rem;
+  line-height: 1.55;
+  color: var(--md-default-fg-color--light);
+  max-width: 34ch;
+  margin: 0 0 1.6rem;
+}
+
+.dps-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dps-hero__cta .md-button {
+  margin: 0;
+}
+
+.dps-hero__media {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.md-typeset .dps-hero__mascot {
+  width: 100%;
+  max-width: 140px;
+  height: auto;
+  filter: drop-shadow(0 18px 32px rgba(79, 70, 229, 0.26));
+  animation: dps-float 6s var(--ease-in-out) infinite;
+  will-change: transform;
+}
+
+@keyframes dps-float {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50% { transform: translateY(-14px) rotate(0.6deg); }
+}
+
+/* Feature strip under the hero */
+.dps-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0 0 2.5rem;
+}
+
+.dps-feature {
+  border: 1px solid var(--dps-border);
+  border-radius: var(--dps-radius);
+  background: var(--dps-card);
+  padding: 1.25rem 1.25rem 1.1rem;
+  box-shadow: var(--dps-shadow);
+  transition: transform 200ms var(--ease-out), border-color 200ms var(--ease-out),
+    box-shadow 200ms var(--ease-out);
+}
+
+.dps-feature:hover {
+  border-color: color-mix(in srgb, var(--md-accent-fg-color) 55%, var(--dps-border));
+  box-shadow: 0 2px 4px rgba(17, 19, 26, 0.05), 0 18px 44px rgba(79, 70, 229, 0.12);
+}
+
+.dps-feature__icon {
+  display: inline-flex;
+  width: 2.3rem;
+  height: 2.3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--dps-gradient);
+  color: #fff;
+  margin-bottom: 0.7rem;
+}
+
+.dps-feature__icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.dps-feature h3 {
+  font-size: 1rem;
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+}
+
+.dps-feature p {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--md-default-fg-color--lighter);
+  margin: 0;
+}
+
+/* =========================================================================
+   10. Responsive
+   ========================================================================= */
+@media screen and (max-width: 76.1875em) {
+  .dps-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 2.25rem 1.5rem;
+    gap: 1.5rem;
+  }
+  .dps-hero__media { order: -1; }
+  .md-typeset .dps-hero__mascot { max-width: 120px; }
+  .dps-hero__tagline { margin-inline: auto; }
+  .dps-hero__cta { justify-content: center; }
+  .dps-hero__body { align-items: center; }
+  .dps-features { grid-template-columns: 1fr; }
+}
+
+@media screen and (max-width: 44.984375em) {
+  .dps-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 0.35rem;
+    margin: 0.25rem 0 1.35rem;
+    padding: 0.85rem 1rem;
+    border-radius: 18px;
+  }
+
+  .dps-hero__media {
+    display: flex;
+    order: -1;
+  }
+
+  .md-typeset .dps-hero__mascot {
+    max-width: 48px;
+    filter: drop-shadow(0 8px 14px rgba(79, 70, 229, 0.18));
+  }
+
+  .dps-hero__body {
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .md-typeset .dps-hero__title {
+    font-size: clamp(2rem, 11vw, 2.65rem);
+    line-height: 0.95;
+  }
+
+  .md-typeset .dps-hero__byline {
+    font-size: clamp(0.75rem, 3.8vw, 0.95rem);
+    line-height: 1.25;
+    white-space: normal;
+  }
+}
+
+/* =========================================================================
+   11. Motion preferences
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .dps-hero__mascot { animation: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* =========================================================================
+   12. Converted notebook content (Jupyter → Markdown under Zensical)
+   mkdocs-jupyter used to ship Jupyter's own CSS. Zensical renders the
+   notebook Markdown natively, so pandas tables, figures and cell outputs
+   are styled here with the brand tokens — matching the scheme light + dark.
+   ========================================================================= */
+
+/* Responsive images: safety net so wide plots / DICOM frames never overflow */
+.md-typeset img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Notebook figure outputs (matplotlib / DICOM): frame them so they read as
+   intentional and stay legible against the dark canvas. */
+.md-typeset img[alt="png"],
+.md-typeset img[alt="jpeg"],
+.md-typeset img[alt="svg"] {
+  display: block;
+  margin: 1.3rem auto;
+  padding: 0.65rem;
+  background: #ffffff;
+  border: 1px solid var(--dps-border);
+  border-radius: 12px;
+  box-shadow: var(--dps-shadow);
+}
+
+/* pandas DataFrame tables: they ship as <table class="dataframe" border="1">.
+   Reset the legacy bordered look, adopt the site table treatment, and scroll
+   horizontally so wide frames never break the layout on narrow viewports. */
+.md-typeset table.dataframe {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--dps-border);
+  border-radius: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  box-shadow: 0 0 0 1px var(--dps-border);
+  -webkit-overflow-scrolling: touch;
+}
+
+.md-typeset table.dataframe th,
+.md-typeset table.dataframe td {
+  border: 0;
+  border-bottom: 1px solid var(--dps-border);
+  padding: 0.4rem 0.85rem;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.md-typeset table.dataframe thead th {
+  background: color-mix(in srgb, var(--md-primary-fg-color) 7%, var(--dps-card));
+  color: var(--md-default-fg-color);
+  font-weight: 600;
+  border-bottom: 2px solid color-mix(in srgb, var(--md-accent-fg-color) 35%, var(--dps-border));
+}
+
+.md-typeset table.dataframe tbody th {
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  background: color-mix(in srgb, var(--md-default-fg-color) 3%, transparent);
+}
+
+.md-typeset table.dataframe tbody tr:nth-child(even) > td {
+  background: color-mix(in srgb, var(--md-default-fg-color) 3%, transparent);
+}
+
+.md-typeset table.dataframe tbody tr:hover > td {
+  background: var(--md-accent-fg-color--transparent);
+}
+
+.md-typeset table.dataframe tr:last-child td,
+.md-typeset table.dataframe tr:last-child th {
+  border-bottom: 0;
+}

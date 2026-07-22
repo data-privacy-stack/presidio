@@ -1,3 +1,6 @@
+# ruff: noqa: D103,D200,D205,E501,F841,I001
+
+import copy
 import functools
 import re
 from pathlib import Path
@@ -76,6 +79,120 @@ class ChildForwardsKwargs(StrictParent):
 prepare = functools.partial(
     RecognizerListLoader._prepare_recognizer_kwargs, language_conf={}
 )
+
+
+def load_recognizers(recognizers, languages=("en",)):
+    return list(RecognizerListLoader.get(recognizers, languages, 26))
+
+
+def test_predefined_score_thresholds_attach_without_mutating_config():
+    config = [
+        {
+            "name": "CreditCardRecognizer",
+            "type": "predefined",
+            "supported_language": "en",
+            "score_thresholds": {"default": 0.4, "CREDIT_CARD": 0.7},
+        }
+    ]
+    original = copy.deepcopy(config)
+
+    recognizers = load_recognizers(config)
+
+    assert recognizers[0].score_thresholds == {
+        "default": 0.4,
+        "CREDIT_CARD": 0.7,
+    }
+    assert config == original
+
+
+def test_custom_multilanguage_score_thresholds_attach_to_each_instance():
+    config = [
+        {
+            "name": "custom_thresholds",
+            "type": "custom",
+            "supported_entity": "CUSTOM",
+            "supported_languages": [{"language": "en"}, {"language": "es"}],
+            "patterns": [{"name": "custom", "regex": "x", "score": 0.5}],
+            "score_thresholds": {"default": 0.4, "CUSTOM": 0.6},
+        }
+    ]
+    original = copy.deepcopy(config)
+
+    recognizers = load_recognizers(config, ("en", "es"))
+
+    assert {recognizer.supported_language for recognizer in recognizers} == {"en", "es"}
+    assert all(
+        recognizer.score_thresholds == {"default": 0.4, "CUSTOM": 0.6}
+        for recognizer in recognizers
+    )
+    assert config == original
+
+
+@pytest.mark.parametrize("score_thresholds", [None, {}])
+def test_loader_missing_or_empty_score_thresholds_default_to_empty(score_thresholds):
+    config = {
+        "name": "CreditCardRecognizer",
+        "type": "predefined",
+        "supported_language": "en",
+    }
+    if score_thresholds is not None:
+        config["score_thresholds"] = score_thresholds
+
+    recognizer = load_recognizers([config])[0]
+
+    assert recognizer.score_thresholds == {}
+
+
+def test_loader_explicit_none_score_thresholds_defaults_to_empty():
+    recognizer = load_recognizers(
+        [
+            {
+                "name": "CreditCardRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "score_thresholds": None,
+            }
+        ]
+    )[0]
+
+    assert recognizer.score_thresholds == {}
+
+
+@pytest.mark.parametrize("score_thresholds", [False, 0, "", []])
+def test_loader_rejects_falsey_non_mapping_score_thresholds(score_thresholds):
+    config = [
+        {
+            "name": "CreditCardRecognizer",
+            "type": "predefined",
+            "supported_language": "en",
+            "score_thresholds": score_thresholds,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="must be a mapping"):
+        load_recognizers(config)
+
+
+def test_same_name_and_language_entries_keep_distinct_thresholds_and_ids():
+    config = [
+        {
+            "name": "CreditCardRecognizer",
+            "type": "predefined",
+            "supported_language": "en",
+            "score_thresholds": {"default": threshold},
+        }
+        for threshold in (0.4, 0.8)
+    ]
+
+    recognizers = load_recognizers(config)
+
+    assert [recognizer.score_thresholds for recognizer in recognizers] == [
+        {"default": 0.4},
+        {"default": 0.8},
+    ]
+    assert recognizers[0].name == recognizers[1].name
+    assert recognizers[0].supported_language == recognizers[1].supported_language
+    assert recognizers[0].id != recognizers[1].id
 
 
 def test_cleanup_none_removes_entity_keys():

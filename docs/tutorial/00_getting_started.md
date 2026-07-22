@@ -2,7 +2,7 @@
 
 ## Installation
 
-First, let's install presidio using `pip`. For detailed documentation, see the [installation docs](https://microsoft.github.io/presidio/installation).
+First, let's install presidio using `pip`. For detailed documentation, see the [installation docs](https://data-privacy-stack.github.io/presidio/installation).
 Install from PyPI:
 
 ```sh

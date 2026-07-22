@@ -55,23 +55,24 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
 
     Example:
         >>> from presidio_analyzer import AnalyzerEngine
+        >>> from presidio_analyzer.nlp_engine import NlpEngineProvider
         >>> from presidio_analyzer.predefined_recognizers.ner import (
         ...     HuggingFaceNerRecognizer
         ... )
         >>>
-        >>> # For Korean
-        >>> recognizer = HuggingFaceNerRecognizer(
-        ...     model_name="test-owner/test-model",
-        ...     supported_language="ko"
-        ... )
-        >>>
-        >>> # For English
         >>> recognizer = HuggingFaceNerRecognizer(
         ...     model_name="dslim/bert-base-NER",
         ...     supported_language="en"
         ... )
-        >>>
-        >>> analyzer = AnalyzerEngine()
+        >>> nlp_engine = NlpEngineProvider(
+        ...     nlp_configuration={
+        ...         "nlp_engine_name": "no_op",
+        ...         "models": [{"lang_code": "en", "model_name": "no_op"}],
+        ...     }
+        ... ).create_engine()
+        >>> analyzer = AnalyzerEngine(
+        ...     nlp_engine=nlp_engine, supported_languages=["en"]
+        ... )
         >>> analyzer.registry.add_recognizer(recognizer)
     """
 

@@ -1,6 +1,6 @@
 import os
 from io import BytesIO
-from typing import Optional, Sequence, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 import numpy as np
 from azure.ai.formrecognizer import (
@@ -14,6 +14,9 @@ from PIL import Image
 
 from presidio_image_redactor import OCR
 
+if TYPE_CHECKING:
+    from azure.core.credentials import TokenCredential
+
 
 class DocumentIntelligenceOCR(OCR):
     """OCR class that uses Azure AI Document Intelligence OCR engine.
@@ -21,6 +24,8 @@ class DocumentIntelligenceOCR(OCR):
     :param key: The API key
     :param endpoint: The API endpoint
     :param model_id: Which model to use
+    :param credential: An Azure credential object, such as
+        DefaultAzureCredential or AzureKeyCredential
 
     For details, see
     https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/
@@ -43,24 +48,30 @@ class DocumentIntelligenceOCR(OCR):
         endpoint: Optional[str] = None,
         key: Optional[str] = None,
         model_id: Optional[str] = "prebuilt-document",
+        credential: Optional[Union[AzureKeyCredential, "TokenCredential"]] = None,
     ):
         if model_id not in DocumentIntelligenceOCR.SUPPORTED_MODELS:
             raise ValueError("Unsupported model id: %s" % model_id)
 
+        if credential is not None and key is not None:
+            raise ValueError("Only one of key or credential may be specified")
+
         # If endpoint and/or key are not passed, attempt to get from environment
-        # variables
+        # variables.
         if not endpoint:
             endpoint = os.getenv("DOCUMENT_INTELLIGENCE_ENDPOINT")
 
-        if not key:
-            key = os.getenv("DOCUMENT_INTELLIGENCE_KEY")
+        if credential is None:
+            if not key:
+                key = os.getenv("DOCUMENT_INTELLIGENCE_KEY")
+            if not key or not endpoint:
+                raise ValueError("Endpoint and key must be specified")
+            credential = AzureKeyCredential(key)
 
-        if not key or not endpoint:
-            raise ValueError("Endpoint and key must be specified")
+        if not endpoint:
+            raise ValueError("Endpoint must be specified")
 
-        self.client = DocumentAnalysisClient(
-            endpoint=endpoint, credential=AzureKeyCredential(key)
-        )
+        self.client = DocumentAnalysisClient(endpoint=endpoint, credential=credential)
         self.model_id = model_id
 
     @staticmethod
