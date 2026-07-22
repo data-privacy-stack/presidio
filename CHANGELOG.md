@@ -112,6 +112,9 @@ All notable changes to this project will be documented in this file.
 #### Changed
 - Updated the optional Azure Identity dependency for anonymizer AHDS support (#1983) (Thanks @dependabot)
 
+#### Fixed
+- Custom operator `validate()` no longer calls the user-supplied lambda with a dummy `"PII"` value. Previously, stateful lambdas accumulating a token-to-original-value map for de-anonymization would receive a spurious validation invocation, inserting a junk entry and skewing later token counters. The return-type contract is now enforced in `operate()` when the lambda runs on real data (#2025) (Thanks @HammadSiddiqui)
+
 ### Image Redactor
 #### Added
 - Added Azure SDK credential support to `DocumentIntelligenceOCR` so callers can use Azure Identity credentials instead of API keys (#2085) (Thanks @mturac)
