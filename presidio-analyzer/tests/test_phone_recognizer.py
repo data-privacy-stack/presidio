@@ -51,6 +51,7 @@ def test_when_all_phones_then_succeed(
 
 
 def test_default_supported_regions_are_valid():
+    """Ensure every default phone region is supported by libphonenumber."""
     invalid_regions = (
         set(PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS)
         - phonenumbers.SUPPORTED_REGIONS
@@ -61,6 +62,7 @@ def test_default_supported_regions_are_valid():
 def test_when_gb_national_phone_then_succeed_with_gb_explanation(
     spacy_nlp_engine,
 ):
+    """Ensure a GB national phone number is attributed to the GB region."""
     text = "My UK number is 020 7946 0958"
     nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
     results = PhoneRecognizer().analyze(
