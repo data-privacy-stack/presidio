@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### TCK
+#### Added
+- Added Technology Compatibility Kit (TCK) for deterministic recognizers — portable YAML test suite (74 recognizers, 1478 test cases) with CI validation and GitHub Release packaging
+
 ### Analyzer
 #### Added
 - Added `NoOpNlpEngine` for configurations that do not require NLP engine artifacts, enabling standalone recognizers such as `HuggingFaceNerRecognizer` to run without a spaCy or Stanza model (#2071) (Thanks @ultramancode)
