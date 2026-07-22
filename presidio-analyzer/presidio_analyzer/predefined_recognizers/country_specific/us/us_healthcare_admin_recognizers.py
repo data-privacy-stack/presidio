@@ -35,7 +35,14 @@ class _HealthcareAdminPatternRecognizer(PatternRecognizer):
 
 
 class UsPriorAuthorizationNumberRecognizer(_HealthcareAdminPatternRecognizer):
-    """Recognize US healthcare prior authorization numbers with context."""
+    """Recognize US healthcare prior authorization numbers with context.
+
+    CMS identifies prior authorization and referral numbers as payer-assigned
+    values. There is no universal US syntax; the default pattern is a
+    conservative heuristic for numeric identifiers carrying a ``PA`` prefix.
+
+    Reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/18/index.html
+    """
 
     PATTERNS = [
         Pattern(
@@ -72,7 +79,15 @@ class UsPriorAuthorizationNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
 
 class UsClaimNumberRecognizer(_HealthcareAdminPatternRecognizer):
-    """Recognize US healthcare claim numbers with billing/claims context."""
+    """Recognize US healthcare claim numbers with billing/claims context.
+
+    CMS describes a claim number as the reference number shown on an
+    explanation of benefits, but does not prescribe a universal syntax. The
+    default pattern is a conservative heuristic for numeric identifiers carrying
+    a ``CLM`` prefix.
+
+    Reference: https://www.cms.gov/medical-bill-rights/help/guides/explanation-of-benefits
+    """
 
     PATTERNS = [
         Pattern(
@@ -107,7 +122,15 @@ class UsClaimNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
 
 class UsPrescriptionNumberRecognizer(_HealthcareAdminPatternRecognizer):
-    """Recognize US prescription numbers with pharmacy context."""
+    """Recognize US prescription numbers with pharmacy context.
+
+    CMS defines the prescription/service reference number as a pharmacy-assigned
+    alphanumeric value. Because pharmacies assign these values and there is no
+    universal syntax, the default pattern conservatively requires an ``RX``
+    prefix.
+
+    Reference: https://www.cms.gov/files/document/cms-medicare-part-d-340b-repository-companion-guide-v-1.pdf
+    """
 
     PATTERNS = [
         Pattern(
@@ -143,7 +166,14 @@ class UsPrescriptionNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
 
 class UsReferralNumberRecognizer(_HealthcareAdminPatternRecognizer):
-    """Recognize US healthcare referral numbers with referral context."""
+    """Recognize US healthcare referral numbers with referral context.
+
+    CMS documents referral numbers as payer-assigned values reported in the same
+    CMS-1500 field as prior authorization numbers. There is no universal syntax;
+    the default pattern is a conservative ``REF`` or ``INF`` prefix heuristic.
+
+    Reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/18/index.html
+    """
 
     PATTERNS = [
         Pattern(
@@ -180,7 +210,15 @@ class UsReferralNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
 
 class UsProviderTaxIdRecognizer(_HealthcareAdminPatternRecognizer):
-    """Recognize US provider TIN/EIN values with healthcare provider context."""
+    """Recognize US provider TIN/EIN values with healthcare provider context.
+
+    CMS uses a provider's EIN or SSN as the billing provider tax ID. This
+    recognizer intentionally matches only the IRS-defined EIN format
+    ``XX-XXXXXXX`` to avoid treating SSNs as provider organization IDs.
+
+    CMS reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/12/index.html
+    IRS format reference: https://www.irs.gov/instructions/iss4
+    """
 
     PATTERNS = [
         Pattern(

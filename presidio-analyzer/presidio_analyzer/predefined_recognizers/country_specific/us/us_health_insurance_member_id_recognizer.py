@@ -14,6 +14,12 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
     - a plausible alphanumeric member ID pattern, and
     - nearby healthcare/insurance context.
 
+    CMS consumer guidance illustrates that insurance cards carry payer-defined
+    member numbers. The default regex is therefore a conservative heuristic and
+    can be replaced through the ``patterns`` constructor argument.
+
+    Reference: https://www.cms.gov/files/document/2020-c2c-how-use-health-coverage-slide-deck.pdf
+
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words which increase detection confidence
     :param supported_language: Language this recognizer supports
