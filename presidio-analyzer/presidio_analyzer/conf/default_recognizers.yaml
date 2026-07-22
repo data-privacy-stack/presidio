@@ -167,6 +167,13 @@ recognizers:
     enabled: false
     country_code: au
 
+  - name: AuBankDetailsRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: au
+
   - name: NgNinRecognizer
     supported_languages:
     - en

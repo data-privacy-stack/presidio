@@ -88,6 +88,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |AU_ACN| An Australian Company Number is a unique nine-digit number issued by the Australian Securities and Investments Commission to every company registered under the Commonwealth Corporations Act 2001 as an identifier. | Pattern match, context, and checksum |
 |AU_TFN| The tax file number (TFN) is a unique identifier issued by the Australian Taxation Office to each taxpaying entity | Pattern match, context, and checksum |
 |AU_MEDICARE| Medicare number is a unique identifier issued by Australian Government that enables the cardholder to receive a rebates of medical expenses under Australia's Medicare system| Pattern match, context, and checksum |
+|AU_BANK_DETAILS| Australian bank details where both BSB (6 digits) and account number (6-10 digits) are present together (for example `062-000 12345678`).| Pattern match, context, and structural validation |
 
 ### India
 | FieldType  | Description                                                                                                                                                         |Detection Method|
