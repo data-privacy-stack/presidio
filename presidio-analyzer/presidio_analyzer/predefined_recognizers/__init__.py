@@ -7,6 +7,9 @@ from presidio_analyzer.predefined_recognizers.nlp_engine_recognizers.transformer
 
 from .country_specific.australia.au_abn_recognizer import AuAbnRecognizer
 from .country_specific.australia.au_acn_recognizer import AuAcnRecognizer
+from .country_specific.australia.au_bank_details_recognizer import (
+    AuBankDetailsRecognizer,
+)
 from .country_specific.australia.au_medicare_recognizer import AuMedicareRecognizer
 from .country_specific.australia.au_tfn_recognizer import AuTfnRecognizer
 
@@ -211,6 +214,7 @@ __all__ = [
     "NLP_RECOGNIZERS",
     "AuAbnRecognizer",
     "AuAcnRecognizer",
+    "AuBankDetailsRecognizer",
     "AuTfnRecognizer",
     "AuMedicareRecognizer",
     "TransformersRecognizer",
