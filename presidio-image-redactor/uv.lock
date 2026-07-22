@@ -1791,7 +1791,7 @@ requires-dist = [
     { name = "gunicorn", marker = "extra == 'server'", specifier = ">=25.3.0,<26.0.0" },
     { name = "matplotlib", specifier = ">=3.6.0,<4.0.0" },
     { name = "opencv-python", specifier = ">=4.13.0.92,<5.0.0" },
-    { name = "pillow", specifier = ">=9.0.0,<13.0.0" },
+    { name = "pillow", specifier = ">=12.3.0,<13.0.0" },
     { name = "presidio-analyzer", specifier = ">=2.2.0,<3.0.0" },
     { name = "pydicom", specifier = ">=2.3.0,<4.0.0" },
     { name = "pypng", specifier = ">=0.20220715.0,<1.0.0" },
