@@ -5,21 +5,52 @@ All notable changes to this project will be documented in this file.
 ## [unreleased]
 
 ### Analyzer
+#### Added
+- Added `NoOpNlpEngine` for configurations that do not require NLP engine artifacts, enabling standalone recognizers such as `HuggingFaceNerRecognizer` to run without a spaCy or Stanza model (#2071) (Thanks @ultramancode)
+- Added per-recognizer and per-entity score threshold configuration in the recognizer registry YAML, with the analyzer's global `default_score_threshold` as the fallback (#2116) (Thanks @rodboev)
+- Added `PhUmidRecognizer` for Philippine Unified Multi-Purpose ID (UMID/CRN) numbers in dashed and plain 12-digit formats; disabled by default (#2045) (Thanks @Surya-5555)
+
 #### Fixed
 - `PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS` used `"UK"`, which is not a valid `phonenumbers` (libphonenumber) region code — region codes are ISO 3166-1 alpha-2, where the United Kingdom is `"GB"`. The `"UK"` entry was a no-op, so UK numbers in national/local format (e.g. `020 7946 0958`) were never detected by default; only international-format `+44 …` numbers matched, because they carry the country code and match under any region. Replaced `"UK"` with `"GB"`.
 - Language model recognizers (`BasicLangExtractRecognizer`, `AzureOpenAILangExtractRecognizer`) configured in a recognizer registry YAML now honour `config_path` (and other recognizer-specific kwargs). Previously these entries were validated by the strict `PredefinedRecognizerConfig` schema, which has no `config_path` field and does not allow extra keys, so `config_path` was silently dropped and the recognizer fell back to its bundled default model configuration. Added a `LangExtractRecognizerConfig` model (`extra="allow"`) and registered both recognizer class names in `CONFIG_MODEL_MAP`.
 - `BasicLangExtractRecognizer` now honours values under `langextract.model.provider.language_model_params` (including `timeout` and `num_ctx`). Previously these were silently dropped because `langextract.extract()` ignores its `language_model_params` argument when a pre-built `ModelConfig` is passed via `config=`, causing Ollama-backed recognizers to fall back to langextract's 120s default regardless of the configured timeout. The recognizer now merges `language_model_params` into `ModelConfig.provider_kwargs`, which is the path that reaches the provider constructor. Explicit entries under `provider.kwargs:` still take precedence. Also fixed a `TypeError` when `kwargs:` or `language_model_params:` is `null` in the YAML. (#1943, Thanks @lsternlicht)
+- Fixed `UsSsnRecognizer` over-blocking valid SSNs in the `987654320`-`987654329` range due to an 8-digit instead of full 9-digit prefix in the sample-SSN denylist check (#2074) (Thanks @AUTHENSOR)
+- Fixed `FiHetuRecognizer` and `SgUenRecognizer` dropping valid lower-case identifiers by normalizing the check character to upper case before checksum comparison (#2141) (Thanks @uwezkhan)
+- Fixed `FiHetuRecognizer` incorrectly accepting 29 Feb on non-leap century years by deriving the full 4-digit year from the century-separator character before date validation (#2111) (Thanks @jichaowang02-lang)
+- Fixed `EsNieRecognizer.validate_result` always passing the digit guard because `isdigit` was referenced instead of called, raising a `TypeError` for invalid inputs instead of returning `False` (#2146) (Thanks @MohamedAklamaash)
+- Fixed `DateRecognizer` ISO 8601 pattern accepting impossible month/day values such as month 00, 13-19 or day 00, 32-39 (#2113) (Thanks @jichaowang02-lang)
+- Fixed `EsNifRecognizer` and `EsNieRecognizer` dropping valid lowercase Spanish identifiers by upper-casing the check letter before the mod-23 checksum (#2076) (Thanks @AUTHENSOR)
+- Fixed `AuAbnRecognizer` checksum incorrectly remapping a leading-zero first digit to 9 instead of subtracting 1 per the official ABR algorithm (#2109) (Thanks @jichaowang02-lang)
+- Fixed `NgNinRecognizer` rejecting valid NIINs with a leading zero caused by `int()` conversion stripping the leading zero before Verhoeff checksum validation (#2106) (Thanks @jichaowang02-lang)
+- Fixed Thai TNIN pattern rejecting valid province codes 22, 52, and 58 due to over-narrow character-class ranges (#2107) (Thanks @jichaowang02-lang)
+- Fixed `FiHetuRecognizer` pattern accepting illegal century separators because `+-A` in the character class was interpreted as a range rather than three separate literals (#2108) (Thanks @jichaowang02-lang)
+- Fixed `InVehicleRegistrationRecognizer` under-scoring valid registrations with zero-padded district codes by normalizing to a two-digit string before the district map lookup (#2110) (Thanks @jichaowang02-lang)
+- Fixed `UkNinoRecognizer` pattern matching a numeric suffix character, producing false positives such as `AB 12 34 56 1`, caused by `{1}` quantifier placed inside the character class (#2112) (Thanks @jichaowang02-lang)
+- Fixed `DeFuehrerscheinRecognizer` docstring example that contradicted the recognizer's own regex and tests (#2138) (Thanks @jichaowang02-lang)
+- Fixed documentation incorrectly stating that `IpRecognizer` validates a checksum (#2133) (Thanks @Coshea46)
 
 ### Anonymizer
+#### Security
+- Bumped `cryptography` lower bound to `>=48.0.1` to resolve GHSA-537c-gmf6-5ccf (HIGH, vulnerable OpenSSL statically linked into wheels below 48.0.1) (#2144) (Thanks @Copilot)
+
 ### General
 #### Added
 - Added `BatchDeanonymizeEngine` to complement `BatchAnonymizerEngine` for batch deanonymization over lists and nested dictionaries.
+- Added a `--threshold` flag to `presidio-cli` to override the analyzer confidence threshold directly from the command line (#2114) (Thanks @rodboev)
 
 #### Changed
 - Migrated CI and service-image dependency installation from Poetry to [uv](https://github.com/astral-sh/uv) with committed lockfiles, fixing prolonged dependency-resolution hangs and making builds reproducible.
 - Added Python 3.14 package support for `presidio-anonymizer`, `presidio-image-redactor`, `presidio-cli`, `presidio-structured`, and `presidio` by allowing Python `<3.15` and excluding `spacy==3.8.14` on Python 3.14 where applicable (#2096) (Thanks @Copilot)
+- Added `healthcheck` and `restart: unless-stopped` policies to all services in `docker-compose.yml` so containers auto-recover on crash and report readiness (#2149) (Thanks @hiro-nikaitou)
+- Updated the `LICENSE` file copyright from "Microsoft Corporation" to "Presidio Contributors" (#2134) (Thanks @cobypeled)
+- Replaced `presidio@microsoft.com` author email with `presidio@dataprivacystack.org` in all package `pyproject.toml` files (#2128) (Thanks @Copilot)
+- Improved CI stability by optimizing disk usage, pinning the Ollama Docker image to a specific version, and running Ollama end-to-end tests on arm64 runners (#2167) (Thanks @SharonHart)
+- Updated mobile homepage layout with a compact mascot for smaller screens (#2130) (Thanks @SharonHart)
+
 #### Fixed
 - Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
+- Fixed NLP engine initialization in the GLiNER usage sample (#2135) (Thanks @matteobachini-vianova)
+- Quoted `pip install` extras examples in documentation to prevent shell expansion of bracket expressions (#2093) (Thanks @nyxst4ck)
 
 ## [2.2.363] - 2026-06-28
 ### General

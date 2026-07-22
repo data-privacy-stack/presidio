@@ -4,7 +4,7 @@ requires = ["poetry-core"]
 
 [project]
 name = "presidio_structured"
-version = "0.0.7"
+version = "0.0.8"
 description = "Presidio structured package - analyzes and anonymizes structured and semi-structured data."
 authors = [{name = "Presidio", email = "presidio@dataprivacystack.org"}]
 license = "MIT"
