@@ -1,6 +1,7 @@
-from typing import Iterable, Iterator, Tuple, Dict, List
+import re
+from typing import Dict, Iterable, Iterator, List, Tuple
 
-from presidio_analyzer.nlp_engine import NlpEngine, NlpArtifacts
+from presidio_analyzer.nlp_engine import NlpArtifacts, NlpEngine
 
 
 class NlpEngineMock(NlpEngine):
@@ -42,3 +43,14 @@ class NlpEngineMock(NlpEngine):
 
     def get_supported_languages(self) -> List[str]:
         return ["en"]
+
+
+class ContextAwareNlpEngineMock(NlpEngineMock):
+    """Create lightweight token and lemma artifacts for context unit tests."""
+
+    def process_text(self, text, language):
+        matches = list(re.finditer(r"\b[\w-]+\b", text))
+        tokens = [match.group() for match in matches]
+        token_indices = [match.start() for match in matches]
+        lemmas = [token.lower() for token in tokens]
+        return NlpArtifacts([], tokens, token_indices, lemmas, self, language, [])

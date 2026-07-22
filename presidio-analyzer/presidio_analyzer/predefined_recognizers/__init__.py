@@ -130,15 +130,15 @@ from .country_specific.us.aba_routing_recognizer import AbaRoutingRecognizer
 from .country_specific.us.medical_license_recognizer import MedicalLicenseRecognizer
 from .country_specific.us.us_bank_recognizer import UsBankRecognizer
 from .country_specific.us.us_driver_license_recognizer import UsLicenseRecognizer
+from .country_specific.us.us_health_insurance_member_id_recognizer import (
+    UsHealthInsuranceMemberIdRecognizer,
+)
 from .country_specific.us.us_healthcare_admin_recognizers import (
     UsClaimNumberRecognizer,
     UsPrescriptionNumberRecognizer,
     UsPriorAuthorizationNumberRecognizer,
     UsProviderTaxIdRecognizer,
     UsReferralNumberRecognizer,
-)
-from .country_specific.us.us_health_insurance_member_id_recognizer import (
-    UsHealthInsuranceMemberIdRecognizer,
 )
 from .country_specific.us.us_itin_recognizer import UsItinRecognizer
 from .country_specific.us.us_mbi_recognizer import UsMbiRecognizer

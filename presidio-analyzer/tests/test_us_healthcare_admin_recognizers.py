@@ -1,4 +1,5 @@
 import pytest
+from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_analyzer.predefined_recognizers import (
     UsClaimNumberRecognizer,
     UsPrescriptionNumberRecognizer,
@@ -8,6 +9,20 @@ from presidio_analyzer.predefined_recognizers import (
 )
 
 from tests import assert_result
+from tests.mocks import ContextAwareNlpEngineMock
+
+
+def analyze_with_recognizer(text, entity, recognizer, score_threshold=None):
+    """Analyze text with one recognizer and its configured score threshold."""
+    registry = RecognizerRegistry()
+    registry.add_recognizer(recognizer)
+    analyzer = AnalyzerEngine(registry=registry, nlp_engine=ContextAwareNlpEngineMock())
+    return analyzer.analyze(
+        text=text,
+        language="en",
+        entities=[entity],
+        score_threshold=score_threshold,
+    )
 
 
 @pytest.mark.parametrize(
@@ -17,8 +32,8 @@ from tests import assert_result
         (
             UsPriorAuthorizationNumberRecognizer(),
             "US_PRIOR_AUTHORIZATION_NUMBER",
-            "Prior Authorization Number PA-987654321 approved for treatment.",
-            ((27, 39),),
+            "Prior authorization PA-987654321 approved for treatment.",
+            ((20, 32),),
         ),
         (
             UsClaimNumberRecognizer(),
@@ -50,12 +65,12 @@ from tests import assert_result
 def test_when_us_healthcare_admin_id_has_context_then_detected(
     recognizer, entity, text, expected_positions
 ):
-    """Test that healthcare administrative identifiers are found with context."""
-    results = recognizer.analyze(text, [entity])
-    results = sorted(results, key=lambda x: x.start)
+    """Test context enhancement raises matches above the recognizer threshold."""
+    results = analyze_with_recognizer(text, entity, recognizer)
+    results = sorted(results, key=lambda result: result.start)
     assert len(results) == len(expected_positions)
     for result, (start, end) in zip(results, expected_positions):
-        assert_result(result, entity, start, end, 0.35)
+        assert_result(result, entity, start, end, 0.7)
 
 
 @pytest.mark.parametrize(
@@ -67,34 +82,18 @@ def test_when_us_healthcare_admin_id_has_context_then_detected(
             "US_PRIOR_AUTHORIZATION_NUMBER",
             "PA-987654321",
         ),
-        (
-            UsClaimNumberRecognizer(),
-            "US_CLAIM_NUMBER",
-            "CLM456789123",
-        ),
-        (
-            UsPrescriptionNumberRecognizer(),
-            "US_PRESCRIPTION_NUMBER",
-            "RX789456123",
-        ),
-        (
-            UsReferralNumberRecognizer(),
-            "US_REFERRAL_NUMBER",
-            "INF2025001234",
-        ),
-        (
-            UsProviderTaxIdRecognizer(),
-            "US_PROVIDER_TAX_ID",
-            "12-3456789",
-        ),
+        (UsClaimNumberRecognizer(), "US_CLAIM_NUMBER", "CLM456789123"),
+        (UsPrescriptionNumberRecognizer(), "US_PRESCRIPTION_NUMBER", "RX789456123"),
+        (UsReferralNumberRecognizer(), "US_REFERRAL_NUMBER", "INF2025001234"),
+        (UsProviderTaxIdRecognizer(), "US_PROVIDER_TAX_ID", "12-3456789"),
         # fmt: on
     ],
 )
-def test_when_us_healthcare_admin_id_lacks_context_then_not_detected(
+def test_when_us_healthcare_admin_id_lacks_context_then_below_threshold(
     recognizer, entity, text
 ):
-    """Test that plausible patterns alone are not detected."""
-    assert recognizer.analyze(text, [entity]) == []
+    """Test normal analyzer calls suppress pattern-only matches."""
+    assert analyze_with_recognizer(text, entity, recognizer) == []
 
 
 @pytest.mark.parametrize(
@@ -129,11 +128,42 @@ def test_when_us_healthcare_admin_id_lacks_context_then_not_detected(
         # fmt: on
     ],
 )
-def test_when_us_healthcare_admin_id_has_negative_context_then_not_detected(
+def test_when_us_healthcare_admin_id_has_unrelated_context_then_not_detected(
     recognizer, entity, text
 ):
-    """Test that similar-looking non-healthcare workflow IDs are not detected."""
-    assert recognizer.analyze(text, [entity]) == []
+    """Test similar-looking workflow IDs stay below the threshold."""
+    assert analyze_with_recognizer(text, entity, recognizer) == []
+
+
+@pytest.mark.parametrize(
+    "recognizer, entity, text, expected_score",
+    [
+        # fmt: off
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "PA-987654321",
+            0.35,
+        ),
+        (UsClaimNumberRecognizer(), "US_CLAIM_NUMBER", "CLM456789123", 0.35),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "RX789456123",
+            0.35,
+        ),
+        (UsReferralNumberRecognizer(), "US_REFERRAL_NUMBER", "INF2025001234", 0.35),
+        (UsProviderTaxIdRecognizer(), "US_PROVIDER_TAX_ID", "12-3456789", 0.35),
+        # fmt: on
+    ],
+)
+def test_explicit_request_threshold_can_return_pattern_only_matches(
+    recognizer, entity, text, expected_score
+):
+    """Test callers can opt into raw pattern matches for structured analysis."""
+    results = analyze_with_recognizer(text, entity, recognizer, score_threshold=0)
+    assert len(results) == 1
+    assert_result(results[0], entity, 0, len(text), expected_score)
 
 
 @pytest.mark.parametrize(
@@ -142,83 +172,33 @@ def test_when_us_healthcare_admin_id_has_negative_context_then_not_detected(
         (
             UsPriorAuthorizationNumberRecognizer(),
             "US_PRIOR_AUTHORIZATION_NUMBER",
-            [
-                "prior authorization",
-                "prior auth",
-                "preauthorization",
-                "pre-auth",
-                "authorization number",
-                "auth number",
-                "approval request",
-                "treatment authorization",
-                "drug authorization",
-            ],
+            ["authorization", "auth", "preauthorization", "approval"],
         ),
         (
             UsClaimNumberRecognizer(),
             "US_CLAIM_NUMBER",
-            [
-                "claim number",
-                "claim id",
-                "claim",
-                "healthcare claim",
-                "medical claim",
-                "billing",
-                "billing claim",
-                "claims processing",
-                "processed claim",
-            ],
+            ["claim", "billing"],
         ),
         (
             UsPrescriptionNumberRecognizer(),
             "US_PRESCRIPTION_NUMBER",
-            [
-                "prescription number",
-                "prescription id",
-                "rx number",
-                "rx no",
-                "pharmacy",
-                "prescription",
-                "medication order",
-                "drug order",
-            ],
+            ["prescription", "pharmacy", "medication"],
         ),
         (
             UsReferralNumberRecognizer(),
             "US_REFERRAL_NUMBER",
-            [
-                "referral number",
-                "referral id",
-                "referral",
-                "infusion referral",
-                "infusion therapy",
-                "specialty referral",
-                "specialty care",
-                "referring provider",
-            ],
+            ["referral", "infusion", "specialty", "referring"],
         ),
         (
             UsProviderTaxIdRecognizer(),
             "US_PROVIDER_TAX_ID",
-            [
-                "provider tax id",
-                "provider tin",
-                "provider ein",
-                "tax id",
-                "tin",
-                "ein",
-                "healthcare organization",
-                "provider organization",
-                "billing provider",
-                "rendering provider",
-            ],
+            ["provider"],
         ),
     ],
 )
-def test_us_healthcare_admin_recognizer_metadata(
-    recognizer, entity, expected_context
-):
-    """Test supported entities, language, and context words."""
+def test_us_healthcare_admin_recognizer_metadata(recognizer, entity, expected_context):
+    """Test entity metadata, context, and recognizer threshold."""
     assert recognizer.supported_entities == [entity]
     assert recognizer.supported_language == "en"
     assert recognizer.context == expected_context
+    assert recognizer.score_thresholds == {entity: 0.6}

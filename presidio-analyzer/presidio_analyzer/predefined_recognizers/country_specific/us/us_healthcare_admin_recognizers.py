@@ -1,16 +1,15 @@
 """Recognizers for US healthcare administrative identifiers."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from presidio_analyzer import Pattern, PatternRecognizer, RecognizerResult
+from presidio_analyzer import Pattern, PatternRecognizer
 
 
-class _ContextRequiredPatternRecognizer(PatternRecognizer):
-    """Pattern recognizer which keeps only matches with required context."""
+class _HealthcareAdminPatternRecognizer(PatternRecognizer):
+    """Pattern recognizer using context enhancement and score thresholds."""
 
     COUNTRY_CODE = "us"
-
-    NEGATIVE_CONTEXT: List[str] = []
+    DEFAULT_SCORE_THRESHOLD = 0.6
 
     def __init__(
         self,
@@ -19,9 +18,8 @@ class _ContextRequiredPatternRecognizer(PatternRecognizer):
         supported_entity: str,
         supported_language: str = "en",
         name: Optional[str] = None,
-        context_window: int = 45,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
-        self.context_window = context_window
         super().__init__(
             supported_entity=supported_entity,
             patterns=patterns,
@@ -29,33 +27,14 @@ class _ContextRequiredPatternRecognizer(PatternRecognizer):
             supported_language=supported_language,
             name=name,
         )
-
-    def analyze(
-        self,
-        text: str,
-        entities: List[str],
-        nlp_artifacts=None,
-        regex_flags: Optional[int] = None,
-    ) -> List[RecognizerResult]:
-        """Analyze text and keep only matches with nearby positive context."""
-        results = super().analyze(text, entities, nlp_artifacts, regex_flags)
-        return [
-            result for result in results if self.__has_required_context(text, result)
-        ]
-
-    def __has_required_context(self, text: str, result: RecognizerResult) -> bool:
-        window_text = self.__get_context_window(text, result).lower()
-        if any(context in window_text for context in self.NEGATIVE_CONTEXT):
-            return False
-        return any(context in window_text for context in self.context)
-
-    def __get_context_window(self, text: str, result: RecognizerResult) -> str:
-        start = max(0, result.start - self.context_window)
-        end = min(len(text), result.end + self.context_window)
-        return text[start:end]
+        self.score_thresholds = (
+            score_thresholds
+            if score_thresholds is not None
+            else {supported_entity: self.DEFAULT_SCORE_THRESHOLD}
+        )
 
 
-class UsPriorAuthorizationNumberRecognizer(_ContextRequiredPatternRecognizer):
+class UsPriorAuthorizationNumberRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US healthcare prior authorization numbers with context."""
 
     PATTERNS = [
@@ -67,24 +46,10 @@ class UsPriorAuthorizationNumberRecognizer(_ContextRequiredPatternRecognizer):
     ]
 
     CONTEXT = [
-        "prior authorization",
-        "prior auth",
+        "authorization",
+        "auth",
         "preauthorization",
-        "pre-auth",
-        "authorization number",
-        "auth number",
-        "approval request",
-        "treatment authorization",
-        "drug authorization",
-    ]
-
-    NEGATIVE_CONTEXT = [
-        "order number",
-        "tracking number",
-        "case number",
-        "claim number",
-        "claim id",
-        "invoice number",
+        "approval",
     ]
 
     def __init__(
@@ -94,7 +59,7 @@ class UsPriorAuthorizationNumberRecognizer(_ContextRequiredPatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_PRIOR_AUTHORIZATION_NUMBER",
         name: Optional[str] = None,
-        context_window: int = 45,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         super().__init__(
             patterns=patterns if patterns else self.PATTERNS,
@@ -102,11 +67,11 @@ class UsPriorAuthorizationNumberRecognizer(_ContextRequiredPatternRecognizer):
             supported_entity=supported_entity,
             supported_language=supported_language,
             name=name,
-            context_window=context_window,
+            score_thresholds=score_thresholds,
         )
 
 
-class UsClaimNumberRecognizer(_ContextRequiredPatternRecognizer):
+class UsClaimNumberRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US healthcare claim numbers with billing/claims context."""
 
     PATTERNS = [
@@ -118,24 +83,8 @@ class UsClaimNumberRecognizer(_ContextRequiredPatternRecognizer):
     ]
 
     CONTEXT = [
-        "claim number",
-        "claim id",
         "claim",
-        "healthcare claim",
-        "medical claim",
         "billing",
-        "billing claim",
-        "claims processing",
-        "processed claim",
-    ]
-
-    NEGATIVE_CONTEXT = [
-        "order number",
-        "tracking number",
-        "case number",
-        "referral number",
-        "authorization number",
-        "invoice number",
     ]
 
     def __init__(
@@ -145,7 +94,7 @@ class UsClaimNumberRecognizer(_ContextRequiredPatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_CLAIM_NUMBER",
         name: Optional[str] = None,
-        context_window: int = 45,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         super().__init__(
             patterns=patterns if patterns else self.PATTERNS,
@@ -153,11 +102,11 @@ class UsClaimNumberRecognizer(_ContextRequiredPatternRecognizer):
             supported_entity=supported_entity,
             supported_language=supported_language,
             name=name,
-            context_window=context_window,
+            score_thresholds=score_thresholds,
         )
 
 
-class UsPrescriptionNumberRecognizer(_ContextRequiredPatternRecognizer):
+class UsPrescriptionNumberRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US prescription numbers with pharmacy context."""
 
     PATTERNS = [
@@ -169,23 +118,9 @@ class UsPrescriptionNumberRecognizer(_ContextRequiredPatternRecognizer):
     ]
 
     CONTEXT = [
-        "prescription number",
-        "prescription id",
-        "rx number",
-        "rx no",
-        "pharmacy",
         "prescription",
-        "medication order",
-        "drug order",
-    ]
-
-    NEGATIVE_CONTEXT = [
-        "order number",
-        "tracking number",
-        "case number",
-        "claim number",
-        "claim id",
-        "invoice number",
+        "pharmacy",
+        "medication",
     ]
 
     def __init__(
@@ -195,7 +130,7 @@ class UsPrescriptionNumberRecognizer(_ContextRequiredPatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_PRESCRIPTION_NUMBER",
         name: Optional[str] = None,
-        context_window: int = 45,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         super().__init__(
             patterns=patterns if patterns else self.PATTERNS,
@@ -203,11 +138,11 @@ class UsPrescriptionNumberRecognizer(_ContextRequiredPatternRecognizer):
             supported_entity=supported_entity,
             supported_language=supported_language,
             name=name,
-            context_window=context_window,
+            score_thresholds=score_thresholds,
         )
 
 
-class UsReferralNumberRecognizer(_ContextRequiredPatternRecognizer):
+class UsReferralNumberRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US healthcare referral numbers with referral context."""
 
     PATTERNS = [
@@ -219,23 +154,10 @@ class UsReferralNumberRecognizer(_ContextRequiredPatternRecognizer):
     ]
 
     CONTEXT = [
-        "referral number",
-        "referral id",
         "referral",
-        "infusion referral",
-        "infusion therapy",
-        "specialty referral",
-        "specialty care",
-        "referring provider",
-    ]
-
-    NEGATIVE_CONTEXT = [
-        "order number",
-        "tracking number",
-        "case number",
-        "claim number",
-        "claim id",
-        "invoice number",
+        "infusion",
+        "specialty",
+        "referring",
     ]
 
     def __init__(
@@ -245,7 +167,7 @@ class UsReferralNumberRecognizer(_ContextRequiredPatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_REFERRAL_NUMBER",
         name: Optional[str] = None,
-        context_window: int = 45,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         super().__init__(
             patterns=patterns if patterns else self.PATTERNS,
@@ -253,11 +175,11 @@ class UsReferralNumberRecognizer(_ContextRequiredPatternRecognizer):
             supported_entity=supported_entity,
             supported_language=supported_language,
             name=name,
-            context_window=context_window,
+            score_thresholds=score_thresholds,
         )
 
 
-class UsProviderTaxIdRecognizer(_ContextRequiredPatternRecognizer):
+class UsProviderTaxIdRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US provider TIN/EIN values with healthcare provider context."""
 
     PATTERNS = [
@@ -269,27 +191,7 @@ class UsProviderTaxIdRecognizer(_ContextRequiredPatternRecognizer):
     ]
 
     CONTEXT = [
-        "provider tax id",
-        "provider tin",
-        "provider ein",
-        "tax id",
-        "tin",
-        "ein",
-        "healthcare organization",
-        "provider organization",
-        "billing provider",
-        "rendering provider",
-    ]
-
-    NEGATIVE_CONTEXT = [
-        "employee tax id",
-        "vendor tax id",
-        "company tax id",
-        "order number",
-        "tracking number",
-        "case number",
-        "claim number",
-        "invoice number",
+        "provider",
     ]
 
     def __init__(
@@ -299,7 +201,7 @@ class UsProviderTaxIdRecognizer(_ContextRequiredPatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_PROVIDER_TAX_ID",
         name: Optional[str] = None,
-        context_window: int = 45,
+        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         super().__init__(
             patterns=patterns if patterns else self.PATTERNS,
@@ -307,5 +209,5 @@ class UsProviderTaxIdRecognizer(_ContextRequiredPatternRecognizer):
             supported_entity=supported_entity,
             supported_language=supported_language,
             name=name,
-            context_window=context_window,
+            score_thresholds=score_thresholds,
         )
