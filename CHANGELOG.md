@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### TCK
 #### Added
-- Added Technology Compatibility Kit (TCK) for deterministic recognizers — portable YAML test suite (74 recognizers, 1478 test cases) with CI validation and GitHub Release packaging
+- Added Technology Compatibility Kit (TCK) for deterministic recognizers as a portable YAML test suite (74 recognizers, 1478 test cases)
 
 ### Analyzer
 #### Added
