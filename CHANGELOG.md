@@ -112,18 +112,6 @@ All notable changes to this project will be documented in this file.
 #### Changed
 - Updated the optional Azure Identity dependency for anonymizer AHDS support (#1983) (Thanks @dependabot)
 
-#### Fixed
-- Fixed a false-negative in `CreditCardRecognizer` where real, Luhn-valid cards were passing as clean (no `CREDIT_CARD` result) and leaking unredacted. The PAN regex now also matches Mastercard 2-series cards (BIN range 2221-2720, the first four digits; issued since 2017) and 18-19 digit PANs (ISO/IEC 7812 allows up to 19 digits, e.g. UnionPay/Maestro), in addition to the existing ranges. Luhn (`validate_result`) still gates every match, so the widened range does not introduce false positives on non-card numbers.
-- Fixed an issue where the CreditCardRecognizer regex could incorrectly identify 13-digit Unix timestamps as credit card numbers. Validated that 13 digit numbers that start with `1` and have no separators (e.g. `1748503543012`) are not flagged as credit cards.
-- Enhance NlpEngineProvider with validation methods for NLP engines, configuration, and conf file path.
-- Fixed `PhoneRecognizer._get_recognizer_result` to use the constructor-provided `supported_entity` instead of the hard-coded `"PHONE_NUMBER"` string, making the `supported_entity` parameter from PR #2014 fully functional.
-- Fixed incorrect Prüfziffer algorithm in `DeHealthInsuranceRecognizer` (KVNR); now uses alternating factors [1,2,…,1,2] per § 290 SGB V Anlage 1 (#1972).
-- Fixed incorrect check-digit weights in `DeSocialSecurityRecognizer` (RVNR); now uses VKVV § 4 weights [2,1,2,5,7,1,2,1,2,1,2,1]. Previous weights diverged from the Deutsche Rentenversicherung specification and rejected the canonical DRV example 15070649C103.
-- Fixed incorrect check-digit algorithm in `DeLanrRecognizer`; now uses KBV Arztnummern-Richtlinie weights [4,9,4,9,4,9] without the spurious Quersumme step, and the complement-to-10 formula `(10 − sum mod 10) mod 10`. Previous weights and formula were internally self-consistent only.
-- Enforced post-2016 BZSt repetition rule in `DeTaxIdRecognizer` (no digit may appear more than three times in positions 1–10).
-- Registered `DeLanrRecognizer`, `DeBsnrRecognizer`, `DeVatIdRecognizer` and `DeFuehrerscheinRecognizer` in the default registry (previously imported but missing from `conf/default_recognizers.yaml`, so they were unreachable via the default registry).
-- Custom operator `validate()` no longer calls the user-supplied lambda with a dummy `"PII"` value. Previously, stateful lambdas accumulating a token-to-original-value map for de-anonymization would receive a spurious validation invocation, inserting a junk entry and skewing later token counters. The return-type contract is now enforced in `operate()` when the lambda runs on real data (#2025) (Thanks @HammadSiddiqui)
-
 ### Image Redactor
 #### Added
 - Added Azure SDK credential support to `DocumentIntelligenceOCR` so callers can use Azure Identity credentials instead of API keys (#2085) (Thanks @mturac)
