@@ -84,6 +84,31 @@ dev = [
     "pre-commit",
     "diff-cover",
 ]
+# Detection-quality evaluation harness (tests/evaluation). Kept in its own
+# group — not the `dev` group and not an extra — so the general test matrix
+# does not pull presidio-evaluator's heavy deps into every Python cell. Only
+# the dedicated CI evaluation job installs it (`--group evaluation`).
+# presidio-evaluator supports Python 3.11-3.13; the marker keeps `uv lock`
+# resolvable across the analyzer's wider 3.10-3.14 range.
+evaluation = [
+    "presidio-evaluator (>=0.3,<0.4) ; python_version >= '3.11' and python_version < '3.14'",
+]
+
+[tool.uv]
+# presidio-evaluator (evaluation group) requires transformers>=5, while the
+# `transformers` extra pins transformers<5. They are never installed together
+# — the evaluation CI job uses the default spaCy recipe — so declare them
+# mutually exclusive and let uv resolve them in separate forks.
+conflicts = [
+    [
+        { extra = "transformers" },
+        { group = "evaluation" },
+    ],
+    [
+        { extra = "gliner" },
+        { group = "evaluation" },
+    ],
+]
 
 [tool.coverage.run]
 relative_files = true
