@@ -11,7 +11,7 @@ The samples deploy and use the following Azure Services:
 * Azure Storage - Persistence layer of this sample.
 * Azure Databricks/ Azure App Service - Host presidio to anonymize the data.
 
-The input file used by the samples is hosted on [presidio-research](https://github.com/microsoft/presidio-research/) repository. It is setup as a variable on the provided ARM template and used by Azure Data Factory as the input source.
+The input file used by the samples is hosted on [presidio-research](https://github.com/data-privacy-stack/presidio-research/) repository. It is setup as a variable on the provided ARM template and used by Azure Data Factory as the input source.
 
 ## Option 1: Presidio as an HTTP REST endpoint
 
@@ -23,7 +23,7 @@ By using Presidio as an HTTP endpoint, the user can select which infrastructure 
 
 Create the Azure App Service and the ADF pipeline by clicking the Deploy-to-Azure button, or by running the following script to provision the [provided ARM template](./arm-templates/azure-deploy-adf-app-service.json).
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2Fpresidio%2Fmain%2Fdocs%2Fsamples%2Fdeployments%2Fdata-factory%2Farm-templates%2Fazure-deploy-adf-app-service.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fdata-privacy-stack%2Fpresidio%2Fmain%2Fdocs%2Fsamples%2Fdeployments%2Fdata-factory%2Farm-templates%2Fazure-deploy-adf-app-service.json)
 
 ```bash
 RESOURCE_GROUP=[Name of resource group]

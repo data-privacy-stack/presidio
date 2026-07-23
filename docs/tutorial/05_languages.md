@@ -7,7 +7,7 @@ Two main parts in Presidio handle the text, and should be adapted if a new langu
 
 ## Adapting the NLP engine
 
-As its internal NLP engine, Presidio supports both spaCy and Stanza. Make sure you download the required models from spacy/stanza prior to using them. More details [here](https://microsoft.github.io/presidio/analyzer/languages/#configuring-the-nlp-engine). For example, to download the Spanish medium spaCy model: `python -m spacy download es_core_news_md`
+As its internal NLP engine, Presidio supports both spaCy and Stanza. Make sure you download the required models from spacy/stanza prior to using them. More details [here](https://data-privacy-stack.github.io/presidio/analyzer/languages/#configuring-the-nlp-engine). For example, to download the Spanish medium spaCy model: `python -m spacy download es_core_news_md`
 
 In this example we will configure Presidio to use spaCy as its underlying NLP framework, with NLP models in English and Spanish:
 
@@ -47,7 +47,7 @@ print("Results from English request:")
 print(results_english)
 ```
 
-[See this documentation](https://microsoft.github.io/presidio/analyzer/languages/) for more details on setting up additional NLP models and languages.
+[See this documentation](https://data-privacy-stack.github.io/presidio/analyzer/languages/) for more details on setting up additional NLP models and languages.
 
 ## Using external models/frameworks
 

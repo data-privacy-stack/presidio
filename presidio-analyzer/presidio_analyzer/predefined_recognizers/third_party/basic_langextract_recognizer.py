@@ -62,13 +62,24 @@ class BasicLangExtractRecognizer(LangExtractRecognizer):
 
         self.model_id = model_config.get("model_id")
         self.provider = provider_config.get("name")
-        self.provider_kwargs = provider_config.get("kwargs", {})
+        self.provider_kwargs = dict(provider_config.get("kwargs") or {})
 
         # Not ideal, but update _extract_params now that self.config is fully loaded.
-        self._extract_params.update(provider_config.get("extract_params", {}))
+        self._extract_params.update(provider_config.get("extract_params") or {})
         self._language_model_params.update(
-            provider_config.get("language_model_params", {})
+            provider_config.get("language_model_params") or {}
         )
+
+        # Surface language_model_params on the ModelConfig itself.
+        # langextract.extract() honours `language_model_params` only when
+        # `config` is NOT passed (see langextract/extraction.py elif config:
+        # branch). Because _get_provider_params() returns a pre-built
+        # ModelConfig, values like `timeout` and `num_ctx` would otherwise be
+        # silently dropped. Merge them into provider_kwargs so they reach
+        # the provider constructor (e.g. OllamaLanguageModel(timeout=...)).
+        # `setdefault` ensures explicit `provider.kwargs:` entries always win.
+        for key, value in self._language_model_params.items():
+            self.provider_kwargs.setdefault(key, value)
 
         if not self.provider:
             raise ValueError("Configuration must contain "

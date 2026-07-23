@@ -24,8 +24,14 @@ def entities():
         ("try one of these emails: info@presidio.site or anotherinfo@presidio.site",
             2,
          ((25, 43), (47, 72),),),
+        # valid internationalized (IDN / RFC 3490 punycode) email addresses
+        ("user@xn--80ak6aa92e.com", 1, ((0, 23),),),
+        ("a@xn--d1acufc.xn--p1ai", 1, ((0, 22),),),
+        ("my email is user@xn--80ak6aa92e.com today", 1, ((12, 35),),),
         # invalid email address
         ("my email is info@presidio.", 0, ()),
+        # non-email text is still not matched
+        ("this is not an email: hello-world here", 0, ()),
         # fmt: on
     ],
 )

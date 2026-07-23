@@ -1,9 +1,0 @@
-services:
-  presidio-image-redactor:
-    image: ${REGISTRY_NAME}${IMAGE_PREFIX}presidio-image-redactor${TAG}
-    build:
-      context: ./presidio-image-redactor
-    environment:
-      - PORT=5001
-    ports:
-      - "5003:5001"
