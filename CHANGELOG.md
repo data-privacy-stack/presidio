@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Analyzer
 #### Added
-- Added `UuidRecognizer` (generic, entity type `UUID`) to detect UUIDs in the standard 8-4-4-4-12 hyphenated hexadecimal format, covering RFC 4122 versions 1-5 and RFC 9562 version 7 (timestamp-based). Validates version and variant nibbles and filters the nil UUID to reduce false positives.
+- Added `UuidRecognizer` (generic, entity type `UUID`) to detect UUIDs in the standard 8-4-4-4-12 hyphenated hexadecimal format, covering RFC 4122 versions 1-5 and RFC 9562 versions 6-8. Validates version and variant nibbles and filters the nil UUID to reduce false positives.
 
 #### Fixed
 - Language model recognizers (`BasicLangExtractRecognizer`, `AzureOpenAILangExtractRecognizer`) configured in a recognizer registry YAML now honour `config_path` (and other recognizer-specific kwargs). Previously these entries were validated by the strict `PredefinedRecognizerConfig` schema, which has no `config_path` field and does not allow extra keys, so `config_path` was silently dropped and the recognizer fell back to its bundled default model configuration. Added a `LangExtractRecognizerConfig` model (`extra="allow"`) and registered both recognizer class names in `CONFIG_MODEL_MAP`.

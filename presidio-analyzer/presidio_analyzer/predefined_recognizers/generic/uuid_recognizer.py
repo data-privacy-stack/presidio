@@ -8,8 +8,11 @@ class UuidRecognizer(PatternRecognizer):
     Recognize UUID (Universally Unique Identifier) using regex.
 
     Supports the standard 8-4-4-4-12 hyphenated hexadecimal format for
-    UUID versions 1-5 (RFC 4122) and version 7 (RFC 9562, timestamp-based,
-    increasingly common in modern distributed systems, databases, and logs).
+    UUID versions 1-8: versions 1-5 (RFC 4122, including the nil UUID
+    special case), version 6 (RFC 9562, reordered time-based), version 7
+    (RFC 9562, unix timestamp-based, increasingly common in modern
+    distributed systems, databases, and logs), and version 8
+    (RFC 9562, vendor/implementation-specific).
 
     ref:
     - https://datatracker.ietf.org/doc/html/rfc4122
@@ -26,8 +29,9 @@ class UuidRecognizer(PatternRecognizer):
 
     CONTEXT = ["uuid", "guid", "unique identifier"]
 
-    # Valid version nibble values: 1-5 (RFC 4122) and 7 (RFC 9562)
-    VALID_VERSIONS = {"1", "2", "3", "4", "5", "7"}
+    # Valid version nibble values: 1-8 (versions 1-5 per RFC 4122;
+    # versions 6, 7, 8 per RFC 9562)
+    VALID_VERSIONS = {"1", "2", "3", "4", "5", "6", "7", "8"}
 
     # Valid variant bits (RFC 4122 variant): first hex digit of the
     # 4th group must be 8, 9, a, or b

@@ -25,7 +25,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |PHONE_NUMBER|A telephone number. The `PhoneRecognizer` can be extended programmatically for country-specific detection by configuring `supported_regions` and `supported_entity` (e.g. Philippines: `PhoneRecognizer(supported_regions=["PH"], supported_entity="PH_MOBILE_NUMBER")`, Turkey: `PhoneRecognizer(supported_regions=["TR"], supported_entity="TR_PHONE_NUMBER")`)|Custom logic, pattern match and context|
 |MEDICAL_LICENSE|Common medical license numbers.|Pattern match, context and checksum|
 |URL|A URL (Uniform Resource Locator), unique identifier used to locate a resource on the Internet|Pattern match, context and top level url validation|
-|UUID|A Universally Unique Identifier (UUID) in the standard 8-4-4-4-12 hyphenated hexadecimal format. Covers RFC 4122 versions 1-5 and RFC 9562 version 7 (timestamp-based).|Pattern match, validation of version/variant nibbles, and context|
+|UUID|A Universally Unique Identifier (UUID) in the standard 8-4-4-4-12 hyphenated hexadecimal format. Covers RFC 4122 versions 1-5 and RFC 9562 versions 6-8.|Pattern match, validation of version/variant nibbles, and context|
 
 ### USA
 

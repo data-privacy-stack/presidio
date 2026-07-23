@@ -38,9 +38,17 @@ def entities():
         ("Object id 74738ff5-5367-5958-9aee-98fffdcd1876 created",
          1, ((10, 46),), ((0.5, 0.5),)),
 
+        # Version 6 (reordered time-based, RFC 9562)
+        ("Sortable ID: 1ec9414c-232a-6b00-b3c8-9e6bdeced846",
+         1, ((13, 49),), ((0.5, 0.5),)),
+
         # Version 7 (timestamp-based, RFC 9562)
         ("New record: 018f4f8e-9a3b-7c3d-8e9f-1a2b3c4d5e6f",
          1, ((12, 48),), ((0.5, 0.5),)),
+
+        # Version 8 (vendor/implementation-specific, RFC 9562)
+        ("Custom UUID: 550e8400-e29b-81d4-a716-446655440000",
+         1, ((13, 49),), ((0.5, 0.5),)),
 
         # Uppercase
         ("GUID: 550E8400-E29B-41D4-A716-446655440000",
