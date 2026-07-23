@@ -345,8 +345,8 @@ class EntityRecognizer:
             mergeable = (
                 current.entity_type == nxt.entity_type
                 and current.entity_type in eligible_types
-                and nxt.start >= current.end
-                and text[current.end : nxt.start].strip() == ""
+                and nxt.start > current.end
+                and text[current.end : nxt.start].isspace()
             )
             if mergeable:
                 winner = nxt if nxt.score > current.score else current
