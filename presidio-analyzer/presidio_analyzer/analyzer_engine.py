@@ -290,7 +290,7 @@ class AnalyzerEngine:
             results = EntityRecognizer.merge_adjacent_text_entities(
                 results, text, entity_types=merge_adjacent_entities
             )
-
+            results = EntityRecognizer.remove_duplicates(results)
         if allow_list:
             results = self._remove_allow_list(
                 results, allow_list, text, regex_flags, allow_list_match
