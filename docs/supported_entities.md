@@ -141,6 +141,15 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
 | ZA_ID_NUMBER | The South African identity number is a 13-digit identifier in the `YYMMDDSSSSCAZ` format, where the trailing digit is validated with the Luhn algorithm. | Pattern match, context, and checksum. |
+| ZA_PASSPORT | The South African passport number is a 9-character identifier with prefix letter A, D, M, or T followed by 8 digits. | Pattern match, context, and validation. |
+| ZA_INCOME_TAX_NUMBER | The South African SARS income tax reference number is a 10-digit numeric identifier, commonly starting with 0, 1, 2, 3, or 9. | Pattern match, context, and validation. |
+| ZA_DRIVER_LICENSE | The South African eNaTIS driver's licence number is an alphanumeric identifier of 10–14 characters. | Pattern match, context, and validation. |
+| ZA_VAT_NUMBER | The South African VAT registration number is a 10-digit identifier starting with 4. | Pattern match, context, and validation. |
+| ZA_COMPANY_REGISTRATION | The South African CIPC company registration number uses modern `YYYY/NNNNNN/NN` format or legacy prefixed formats such as CK. | Pattern match, context, and validation. |
+| ZA_TRAFFIC_REGISTER_NUMBER | The South African eNaTIS traffic register number is a 13-digit identifier for foreigners and organisations, disambiguated from ZA_ID_NUMBER via validation. | Pattern match, context, and validation. |
+| ZA_LICENSE_PLATE | The South African vehicle licence plate uses provincial formats such as compact suffix forms (e.g. KD93GKGP) or spaced layouts (e.g. DK 28 LF GP). | Pattern match, context, and validation. |
+| ZA_MOBILE_NUMBER | The South African mobile (cellular) number uses a 9-digit national significant number with country code +27 or domestic trunk prefix 0 (primarily 06x, 07x, and cellular 08x ranges). | `phonenumbers` match, line-type filter, and context. |
+| ZA_TELEPHONE_NUMBER | The South African telephone number covers geographic landlines (01x–05x) and non-mobile service lines such as toll-free (080), sharecall (086), and VoIP (087). | `phonenumbers` match, line-type filter, and context. |
 
 ### Thai
 | FieldType  | Description                                                                                             | Detection Method                         |
