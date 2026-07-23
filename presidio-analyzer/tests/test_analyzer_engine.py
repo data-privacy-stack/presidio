@@ -1280,10 +1280,16 @@ def test_when_merge_adjacent_entities_requested_then_spans_are_merged():
     """merge_adjacent_entities should fuse adjacent same-type spans end-to-end."""
 
     class DaveRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
         def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
             return [RecognizerResult("PERSON", 0, 4, 0.6)]
 
     class JonesRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
         def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
             return [RecognizerResult("PERSON", 5, 10, 0.85)]
 

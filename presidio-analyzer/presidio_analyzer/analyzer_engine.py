@@ -180,6 +180,7 @@ class AnalyzerEngine:
         allow_list_match: Optional[str] = "exact",
         regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
         nlp_artifacts: Optional[NlpArtifacts] = None,
+        *,
         merge_adjacent_entities: Optional[List[str]] = None,
     ) -> List[RecognizerResult]:
         """
