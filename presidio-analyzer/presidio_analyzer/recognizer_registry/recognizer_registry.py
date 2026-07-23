@@ -9,6 +9,7 @@ import yaml
 from presidio_analyzer import EntityRecognizer, PatternRecognizer
 from presidio_analyzer.nlp_engine import (
     NlpEngine,
+    NoOpNlpEngine,
     SpacyNlpEngine,
     StanzaNlpEngine,
     TransformersNlpEngine,
@@ -54,6 +55,23 @@ class RecognizerRegistry:
             supported_languages if supported_languages else ["en"]
         )
 
+    def validate_nlp_engine_compatibility(
+        self, nlp_engine: Optional[NlpEngine]
+    ) -> None:
+        """Validate that registered recognizers can use the selected NLP engine."""
+        if not isinstance(nlp_engine, NoOpNlpEngine):
+            return
+
+        nlp_recognizers = [
+            rec for rec in self.recognizers if isinstance(rec, SpacyRecognizer)
+        ]
+        if nlp_recognizers:
+            names = sorted({rec.__class__.__name__ for rec in nlp_recognizers})
+            raise ValueError(
+                "NoOpNlpEngine cannot be used with NLP engine recognizers. "
+                f"Remove or disable these recognizers: {names}."
+            )
+
     def _create_nlp_recognizer(
         self,
         nlp_engine: Optional[NlpEngine] = None,
@@ -76,6 +94,11 @@ class RecognizerRegistry:
         :param nlp_engine: The NLP engine.
         :return: None
         """
+
+        if isinstance(nlp_engine, NoOpNlpEngine):
+            self.validate_nlp_engine_compatibility(nlp_engine)
+            logger.info("Skipping NLP recognizer registration for no-op NLP engine.")
+            return
 
         if not nlp_engine:
             supported_languages = self.supported_languages
@@ -149,6 +172,8 @@ class RecognizerRegistry:
             return StanzaRecognizer
         if isinstance(nlp_engine, TransformersNlpEngine):
             return TransformersRecognizer
+        if isinstance(nlp_engine, NoOpNlpEngine):
+            raise ValueError("NoOpNlpEngine does not have an NLP recognizer")
         if not nlp_engine or isinstance(nlp_engine, SpacyNlpEngine):
             return SpacyRecognizer
         else:

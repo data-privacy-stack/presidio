@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import warnings
 from collections import Counter
 from typing import Dict, List, Optional
 
@@ -15,7 +16,12 @@ from presidio_analyzer.context_aware_enhancers import (
     ContextAwareEnhancer,
     LemmaContextAwareEnhancer,
 )
-from presidio_analyzer.nlp_engine import NlpArtifacts, NlpEngine, NlpEngineProvider
+from presidio_analyzer.nlp_engine import (
+    NlpArtifacts,
+    NlpEngine,
+    NlpEngineProvider,
+    NoOpNlpEngine,
+)
 from presidio_analyzer.recognizer_registry import (
     RecognizerRegistry,
     RecognizerRegistryProvider,
@@ -98,11 +104,23 @@ class AnalyzerEngine:
             registry.load_predefined_recognizers(
                 nlp_engine=self.nlp_engine, languages=self.supported_languages
             )
+        registry.validate_nlp_engine_compatibility(self.nlp_engine)
 
         self.registry = registry
 
         self.log_decision_process = log_decision_process
         self.default_score_threshold = default_score_threshold
+
+        if isinstance(self.nlp_engine, NoOpNlpEngine) and isinstance(
+            context_aware_enhancer, LemmaContextAwareEnhancer
+        ):
+            warnings.warn(
+                "LemmaContextAwareEnhancer cannot use context words from the analyzed "
+                "text with NoOpNlpEngine because no tokens or lemmas are produced. "
+                "Only context passed explicitly to analyze() can be used.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         if not context_aware_enhancer:
             logger.debug(
