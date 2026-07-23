@@ -1,26 +1,24 @@
-"""Span-level evaluation harness for the Presidio analyzer.
+"""Analyzer detection-quality evaluation for CI.
 
-This package contains a curated golden dataset and a small evaluator that
-measures per-entity precision/recall/F1 and latency for an analyzer
-configuration. See tests/evaluation/README.md for the design and roadmap.
+A thin wrapper around ``presidio-evaluator`` that scores the analyzer against
+a curated golden dataset and produces a per-entity precision/recall/F2 report
+plus baseline regression comparison. See tests/evaluation/README.md.
 """
 
-from tests.evaluation.evaluator import (
-    EntityMetrics,
-    EvaluationResult,
-    EvaluationSample,
-    GoldSpan,
-    SpanEvaluator,
-    SpanMismatch,
-    load_golden_dataset,
+from tests.evaluation.evaluation import (
+    EntityScore,
+    EvaluationReport,
+    Mismatch,
+    default_dataset_path,
+    load_input_samples,
+    run_evaluation,
 )
 
 __all__ = [
-    "EntityMetrics",
-    "EvaluationResult",
-    "EvaluationSample",
-    "GoldSpan",
-    "SpanEvaluator",
-    "SpanMismatch",
-    "load_golden_dataset",
+    "EntityScore",
+    "EvaluationReport",
+    "Mismatch",
+    "default_dataset_path",
+    "load_input_samples",
+    "run_evaluation",
 ]
