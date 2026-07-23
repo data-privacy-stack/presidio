@@ -4,8 +4,8 @@ from typing import List, Optional, Tuple
 import PIL
 import pydicom
 from PIL import Image
-
 from presidio_analyzer import PatternRecognizer
+
 from presidio_image_redactor import (
     OCR,
     BboxProcessor,

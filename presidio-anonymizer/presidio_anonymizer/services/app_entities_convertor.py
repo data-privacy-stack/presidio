@@ -20,7 +20,7 @@ class AppEntitiesConvertor:
         """
         if data is None:
             raise InvalidParamError(
-                "Invalid input, " "request must contain analyzer results"
+                "Invalid input, request must contain analyzer results"
             )
         return [RecognizerResult.from_json(analyzer_result) for analyzer_result in data]
 

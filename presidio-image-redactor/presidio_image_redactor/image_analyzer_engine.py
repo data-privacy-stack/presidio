@@ -6,8 +6,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageChops
-
 from presidio_analyzer import AnalyzerEngine, RecognizerResult
+
 from presidio_image_redactor import OCR, ImagePreprocessor, TesseractOCR
 from presidio_image_redactor.entities import ImageRecognizerResult
 

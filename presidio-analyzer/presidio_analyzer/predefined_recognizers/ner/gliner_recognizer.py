@@ -106,9 +106,7 @@ class GLiNERRecognizer(LocalRecognizer):
         self.model_name = model_name
 
         self.map_location = (
-            map_location
-            if map_location is not None
-            else device_detector.get_device()
+            map_location if map_location is not None else device_detector.get_device()
         )
 
         self.flat_ner = flat_ner

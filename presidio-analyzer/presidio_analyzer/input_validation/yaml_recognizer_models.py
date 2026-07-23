@@ -265,9 +265,7 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
     )
     country_code: Optional[str] = Field(
         default=None,
-        description=(
-            "Optional ISO 3166-1 alpha-2 country tag for country filtering"
-        ),
+        description=("Optional ISO 3166-1 alpha-2 country tag for country filtering"),
     )
     patterns: Optional[List[Dict[str, Any]]] = Field(
         default=None, description="List of patterns"

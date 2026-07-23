@@ -57,4 +57,3 @@ class TextChunkerProvider:
             raise ValueError(
                 f"Invalid configuration for chunker_type '{chunker_type}': {config}"
             ) from exc
-

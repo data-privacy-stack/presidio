@@ -22,11 +22,7 @@ class PIIEntity(ABC):
 
     def __repr__(self):
         """Return a string representation of the object."""
-        return (
-            f"start: {self.start}"
-            f"end: {self.end},"
-            f"entity_type: {self.entity_type}"
-        )
+        return f"start: {self.start}end: {self.end},entity_type: {self.entity_type}"
 
     def __gt__(self, other):
         """Check one entity is greater then other by the text end index."""

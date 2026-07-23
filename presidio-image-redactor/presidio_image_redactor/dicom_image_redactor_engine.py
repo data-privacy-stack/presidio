@@ -9,10 +9,10 @@ import numpy as np
 import pydicom
 from matplotlib import pyplot as plt  # necessary import for PIL typing # noqa: F401
 from PIL import Image, ImageOps
+from presidio_analyzer import PatternRecognizer
 from pydicom.multival import MultiValue
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 
-from presidio_analyzer import PatternRecognizer
 from presidio_image_redactor import (
     ImageAnalyzerEngine,  # noqa: F401
     ImageRedactorEngine,
@@ -77,7 +77,6 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
             # model RGB, has 3x8 bit pixel available to store the value
             image_pil = Image.fromarray(image_np, mode="RGB")
         padded_image_pil = self._add_padding(image_pil, is_greyscale, padding_width)
-
 
         # Detect PII
         analyzer_results = self._get_analyzer_results(
@@ -661,9 +660,7 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
                 value = text_metadata[i]
                 # Flatten MultiValue/list/tuple into individual elements
                 items = (
-                    value
-                    if isinstance(value, (MultiValue, list, tuple))
-                    else [value]
+                    value if isinstance(value, (MultiValue, list, tuple)) else [value]
                 )
                 for item in items:
                     text = str(item).strip()
