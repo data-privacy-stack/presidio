@@ -8,11 +8,10 @@ class UuidRecognizer(PatternRecognizer):
     Recognize UUID (Universally Unique Identifier) using regex.
 
     Supports the standard 8-4-4-4-12 hyphenated hexadecimal format for
-    UUID versions 1-8: versions 1-5 (RFC 4122, including the nil UUID
-    special case), version 6 (RFC 9562, reordered time-based), version 7
-    (RFC 9562, unix timestamp-based, increasingly common in modern
-    distributed systems, databases, and logs), and version 8
-    (RFC 9562, vendor/implementation-specific).
+    RFC 4122 UUID versions 1-5 and RFC 9562 versions 6-8.
+
+    Note: the nil UUID (00000000-0000-0000-0000-000000000000) is explicitly
+    excluded as a non-identifying sentinel value.
 
     ref:
     - https://datatracker.ietf.org/doc/html/rfc4122
