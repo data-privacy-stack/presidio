@@ -1,82 +1,82 @@
 {
   "config": "default (spacy en)",
   "overall": {
-    "precision": 0.7244,
-    "recall": 0.9892,
-    "f1": 0.8364
+    "precision": 0.9512,
+    "recall": 0.975,
+    "f2": 0.9701
   },
   "per_entity": {
     "CREDIT_CARD": {
       "support": 6,
       "precision": 1.0,
       "recall": 1.0,
-      "f1": 1.0
+      "f2": 1.0
     },
     "CRYPTO": {
       "support": 2,
       "precision": 1.0,
       "recall": 1.0,
-      "f1": 1.0
+      "f2": 1.0
     },
     "DATE_TIME": {
-      "support": 12,
-      "precision": 0.55,
-      "recall": 0.9167,
-      "f1": 0.6875
+      "support": 11,
+      "precision": 0.7333,
+      "recall": 1.0,
+      "f2": 0.9322
     },
     "EMAIL_ADDRESS": {
       "support": 11,
       "precision": 1.0,
       "recall": 1.0,
-      "f1": 1.0
+      "f2": 1.0
     },
     "IBAN_CODE": {
       "support": 3,
       "precision": 1.0,
       "recall": 1.0,
-      "f1": 1.0
+      "f2": 1.0
     },
     "IP_ADDRESS": {
-      "support": 8,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "support": 6,
+      "precision": 0.8333,
+      "recall": 0.8333,
+      "f2": 0.8333
     },
     "LOCATION": {
-      "support": 10,
-      "precision": 0.7692,
+      "support": 7,
+      "precision": 0.7,
       "recall": 1.0,
-      "f1": 0.8696
+      "f2": 0.9211
     },
     "PERSON": {
-      "support": 21,
+      "support": 20,
       "precision": 1.0,
       "recall": 1.0,
-      "f1": 1.0
+      "f2": 1.0
     },
     "PHONE_NUMBER": {
       "support": 6,
-      "precision": 0.5,
-      "recall": 1.0,
-      "f1": 0.6667
+      "precision": 0.8333,
+      "recall": 0.8333,
+      "f2": 0.8333
     },
     "UK_NHS": {
       "support": 3,
       "precision": 1.0,
       "recall": 1.0,
-      "f1": 1.0
+      "f2": 1.0
     },
     "URL": {
       "support": 7,
-      "precision": 0.2917,
-      "recall": 1.0,
-      "f1": 0.4516
+      "precision": 1.0,
+      "recall": 0.7143,
+      "f2": 0.7576
     },
     "US_SSN": {
       "support": 4,
       "precision": 1.0,
       "recall": 1.0,
-      "f1": 1.0
+      "f2": 1.0
     }
   }
 }

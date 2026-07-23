@@ -1,22 +1,23 @@
 """Run the golden-dataset evaluation and emit a markdown report.
 
-Usage (from the presidio-analyzer directory)::
+Usage (from the presidio-analyzer directory, with the ``evaluation`` extra
+installed)::
 
     python -m tests.evaluation.run_evaluation [--output report.md] [--iou 0.5]
 
-By default the evaluation runs the default AnalyzerEngine (spaCy NER plus
-the predefined pattern recognizers) and, when the checked-in baseline for
-that configuration exists, adds F1 deltas against it to the report.
+Scoring uses ``presidio-evaluator``'s span-based ``SpanEvaluator`` (character
+IoU, F-beta = 2). By default the default AnalyzerEngine is evaluated and, when
+the checked-in baseline exists, F2 deltas against it are added to the report.
 
 Other analyzer configurations (e.g. transformers, GLiNER) can be evaluated
 with ``--analyzer-conf <yaml>``; pair with ``--baseline`` / ``--write-baseline``
 to track their metrics separately.
 
 Regression enforcement exists but is off by default: pass
-``--fail-on-regression`` to exit non-zero when overall or per-entity F1
-drops more than ``--f1-tolerance`` below the baseline. CI currently runs
-report-only; switching enforcement on is a one-line CI change once the
-numbers have proven stable.
+``--fail-on-regression`` to exit non-zero when overall or per-entity F2 drops
+more than ``--f2-tolerance`` below the baseline. CI currently runs report-only;
+switching enforcement on is a one-line CI change once the numbers have proven
+stable.
 """
 
 import argparse
@@ -25,55 +26,15 @@ from pathlib import Path
 from typing import List, Optional
 
 from tests.evaluation.baseline import (
-    DEFAULT_F1_TOLERANCE,
+    DEFAULT_F2_TOLERANCE,
     compare_to_baseline,
     default_baseline_path,
     load_baseline,
     save_baseline,
 )
-from tests.evaluation.evaluator import (
-    EvaluationResult,
-    SpanEvaluator,
-    default_dataset_path,
-    load_golden_dataset,
-)
+from tests.evaluation.evaluation import run_evaluation
 
 DEFAULT_CONFIG_NAME = "default (spacy en)"
-
-
-def run_golden_evaluation(
-    dataset_path: Optional[Path] = None,
-    iou_threshold: float = 0.5,
-    analyzer_conf: Optional[Path] = None,
-) -> EvaluationResult:
-    """Evaluate an analyzer configuration against the golden dataset.
-
-    :param dataset_path: Dataset file; defaults to the checked-in golden set.
-    :param iou_threshold: Span-overlap threshold passed to the evaluator.
-    :param analyzer_conf: Optional full analyzer YAML configuration; when
-        omitted, the default AnalyzerEngine is used.
-    """
-    from presidio_analyzer import AnalyzerEngine, AnalyzerEngineProvider
-
-    dataset = load_golden_dataset(dataset_path or default_dataset_path())
-    if analyzer_conf:
-        engine = AnalyzerEngineProvider(
-            analyzer_engine_conf_file=analyzer_conf
-        ).create_engine()
-    else:
-        engine = AnalyzerEngine()
-    language = dataset["language"]
-
-    # Warm up so model load time is not attributed to the first sample.
-    engine.analyze(text="warm up", language=language)
-
-    evaluator = SpanEvaluator(
-        entities=dataset["entities"], iou_threshold=iou_threshold
-    )
-    return evaluator.evaluate(
-        samples=dataset["samples"],
-        analyze_fn=lambda text: engine.analyze(text=text, language=language),
-    )
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -105,6 +66,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Character IoU threshold for span matching (default: 0.5)",
     )
     parser.add_argument(
+        "--score-threshold",
+        type=float,
+        default=0.4,
+        help="Minimum analyzer confidence to keep a prediction (default: 0.4)",
+    )
+    parser.add_argument(
         "--baseline",
         type=Path,
         default=None,
@@ -121,29 +88,30 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--fail-on-regression",
         action="store_true",
-        help="Exit non-zero when F1 drops below the baseline by more than "
+        help="Exit non-zero when F2 drops below the baseline by more than "
         "the tolerance (off by default; CI runs report-only)",
     )
     parser.add_argument(
-        "--f1-tolerance",
+        "--f2-tolerance",
         type=float,
-        default=DEFAULT_F1_TOLERANCE,
-        help=f"Allowed F1 drop before a regression is reported "
-        f"(default: {DEFAULT_F1_TOLERANCE})",
+        default=DEFAULT_F2_TOLERANCE,
+        help=f"Allowed F2 drop before a regression is reported "
+        f"(default: {DEFAULT_F2_TOLERANCE})",
     )
     args = parser.parse_args(argv)
 
-    result = run_golden_evaluation(
+    report = run_evaluation(
         dataset_path=args.dataset,
         iou_threshold=args.iou,
         analyzer_conf=args.analyzer_conf,
+        score_threshold=args.score_threshold,
     )
 
     config_name = (
         str(args.analyzer_conf) if args.analyzer_conf else DEFAULT_CONFIG_NAME
     )
     if args.write_baseline:
-        save_baseline(result, config_name=config_name, path=args.write_baseline)
+        save_baseline(report, config_name=config_name, path=args.write_baseline)
         print(f"wrote baseline to {args.write_baseline}")
         return 0
 
@@ -156,15 +124,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     if baseline_path:
         baseline = load_baseline(baseline_path)
 
-    report = result.to_markdown(baseline=baseline)
+    markdown = report.to_markdown(baseline=baseline)
     if args.output:
-        args.output.write_text(report, encoding="utf-8")
+        args.output.write_text(markdown, encoding="utf-8")
     else:
-        sys.stdout.write(report)
+        sys.stdout.write(markdown)
 
     if baseline:
         regressions = compare_to_baseline(
-            result, baseline, f1_tolerance=args.f1_tolerance
+            report, baseline, f2_tolerance=args.f2_tolerance
         )
         if regressions:
             for regression in regressions:
