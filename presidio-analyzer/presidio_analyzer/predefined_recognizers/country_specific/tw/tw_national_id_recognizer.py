@@ -1,9 +1,11 @@
+"""Taiwan National ID Recognizer."""
+
 from typing import List, Optional
 
-from presidio_analyzer import LocalRecognizer, Pattern
+from presidio_analyzer import Pattern, PatternRecognizer
 
 
-class TwNationalIdRecognizer(LocalRecognizer):
+class TwNationalIdRecognizer(PatternRecognizer):
     """Recognize Taiwan National ID using patterns and checksums."""
 
     PATTERNS = [
@@ -24,20 +26,31 @@ class TwNationalIdRecognizer(LocalRecognizer):
 
     def __init__(
         self,
-        supported_entity: str = "TW_NATIONAL_ID",
         patterns: Optional[List[Pattern]] = None,
         context: Optional[List[str]] = None,
         supported_language: str = "zh",
+        supported_entity: str = "TW_NATIONAL_ID",
     ):
+        """Initialize Taiwan National ID Recognizer."""
+        patterns = patterns if patterns is not None else self.PATTERNS
+        context = context if context is not None else self.CONTEXT
         super().__init__(
             supported_entity=supported_entity,
-            patterns=patterns or self.PATTERNS,
-            context=context or self.CONTEXT,
+            patterns=patterns,
+            context=context,
             supported_language=supported_language,
         )
 
-    def invalidate_result(self, text: str) -> bool:
+    def invalidate_result(self, pattern_text: str) -> bool:
         """Reject invalid Taiwan ID structures via Modulus-10 checksum validation."""
+        if len(pattern_text) != 10:
+            return True
+
+        # Presidio uses IGNORECASE by default; explicitly reject lowercase initial letters
+        first_char = pattern_text[0]
+        if not first_char.isupper():
+            return True
+
         letter_codes = {
             'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15, 'G': 16, 'H': 17,
             'I': 34, 'J': 18, 'K': 19, 'L': 20, 'M': 21, 'N': 22, 'O': 35, 'P': 23,
@@ -45,14 +58,10 @@ class TwNationalIdRecognizer(LocalRecognizer):
             'Y': 31, 'Z': 33
         }
 
-        if len(text) != 10:
-            return True
-
-        first_char = text[0].upper()
         if first_char not in letter_codes:
             return True
 
-        if text[1] not in ('1', '2', '8', '9'):
+        if pattern_text[1] not in ('1', '2', '8', '9'):
             return True
 
         try:
@@ -60,7 +69,7 @@ class TwNationalIdRecognizer(LocalRecognizer):
             n1 = code // 10
             n2 = code % 10
 
-            digits = [n1, n2] + [int(char) for char in text[1:]]
+            digits = [n1, n2] + [int(char) for char in pattern_text[1:]]
             weights = [1, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
             total = sum(d * w for d, w in zip(digits, weights))
 
