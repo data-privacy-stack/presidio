@@ -242,17 +242,22 @@ jobs:
       - name: Install dependencies
         working-directory: presidio-analyzer
         run: |
-          # The evaluation runs the default (spaCy) configuration only, so no
-          # extras are needed; dev group provides pytest and pip (spaCy's
-          # model download shells out to pip).
-          uv sync --locked --group dev --python 3.13
+          # The evaluation runs the default (spaCy) recipe only, so install the
+          # base analyzer plus the `evaluation` group (presidio-evaluator) and
+          # `dev` (pip, for spaCy's model download) — no `transformers`/`gliner`
+          # extras, which conflict with presidio-evaluator's transformers>=5.
+          # presidio-evaluator tokenizes with en_core_web_sm and the analyzer's
+          # default NER uses en_core_web_lg.
+          uv sync --locked --group dev --group evaluation --python 3.13
+          uv run --no-sync python -m spacy download en_core_web_sm
           uv run --no-sync python -m spacy download en_core_web_lg
 
       - name: Run golden-dataset evaluation
         working-directory: presidio-analyzer
         run: |
-          # Report-only for now: the report is published to the workflow
-          # summary; regression gating against baselines is a follow-up.
+          # Report-only for now: the presidio-evaluator report is published to
+          # the workflow summary; regression gating against baselines is a
+          # follow-up (the --fail-on-regression flag exists but is not passed).
           uv run --no-sync python -m tests.evaluation.run_evaluation \
             --output evaluation_report.md
           cat evaluation_report.md >> "$GITHUB_STEP_SUMMARY"
