@@ -97,6 +97,8 @@ def test_when_uuids_then_succeed(
     """Verify UuidRecognizer detects valid UUIDs and rejects invalid ones."""
     results = recognizer.analyze(text, entities)
     assert len(results) == expected_len
+    assert len(expected_positions) == expected_len
+    assert len(expected_score_ranges) == expected_len
     for res, (st_pos, fn_pos), (st_score, fn_score) in zip(
         results, expected_positions, expected_score_ranges
     ):
