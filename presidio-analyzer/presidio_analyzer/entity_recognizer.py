@@ -307,6 +307,65 @@ class EntityRecognizer:
         return filtered_results
 
     @staticmethod
+    def merge_adjacent_text_entities(
+        results: List[RecognizerResult],
+        text: str,
+        entity_types: Optional[List[str]] = None,
+    ) -> List[RecognizerResult]:
+        """
+        Merge adjacent results of the same entity type separated only by whitespace.
+
+        Useful for NER models that tokenize multi-word entities into separate
+        spans (e.g. spaCy detecting "Dave" and "Jones" as two PERSON spans
+        instead of one "Dave Jones" span). Merging is opt-in and scoped to the
+        entity types passed in `entity_types`; entity types not listed are left
+        untouched, so pattern-based recognizers (e.g. two adjacent phone numbers)
+        are not silently fused unless explicitly requested.
+
+        The merged span keeps the higher of the two scores, along with the
+        analysis_explanation and recognition_metadata from whichever original
+        span contributed that winning score.
+
+        :param results: List[RecognizerResult]; need not be sorted
+        :param text: the original text that was analyzed
+        :param entity_types: entity types eligible for merging. If None or
+            empty, no merging is performed.
+        :return: List[RecognizerResult] with adjacent same-type spans fused
+        """
+        if not results or not entity_types:
+            return list(results)
+
+        eligible_types = set(entity_types)
+        sorted_results = sorted(results, key=lambda r: (r.start, r.end))
+
+        merged_results: List[RecognizerResult] = []
+        current = sorted_results[0]
+
+        for nxt in sorted_results[1:]:
+            mergeable = (
+                current.entity_type == nxt.entity_type
+                and current.entity_type in eligible_types
+                and nxt.start >= current.end
+                and text[current.end : nxt.start].strip() == ""
+            )
+            if mergeable:
+                winner = nxt if nxt.score > current.score else current
+                current = RecognizerResult(
+                    entity_type=current.entity_type,
+                    start=current.start,
+                    end=nxt.end,
+                    score=max(current.score, nxt.score),
+                    analysis_explanation=winner.analysis_explanation,
+                    recognition_metadata=winner.recognition_metadata,
+                )
+            else:
+                merged_results.append(current)
+                current = nxt
+
+        merged_results.append(current)
+        return merged_results
+
+    @staticmethod
     def sanitize_value(text: str, replacement_pairs: List[Tuple[str, str]]) -> str:
         """
         Cleanse the input string of the replacement pairs specified as argument.
