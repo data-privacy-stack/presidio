@@ -363,7 +363,9 @@ class EntityRecognizer:
                 current = nxt
 
         merged_results.append(current)
-        return merged_results
+        return sorted(
+            merged_results, key=lambda r: (-r.score, r.start, -(r.end - r.start))
+        )
 
     @staticmethod
     def sanitize_value(text: str, replacement_pairs: List[Tuple[str, str]]) -> str:
