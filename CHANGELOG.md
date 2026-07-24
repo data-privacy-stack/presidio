@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Analyzer
 #### Added
+- Danish CPR number (`DK_CPR_NUMBER`) recognizer for the 10-digit personnummer, using pattern matching, context words, century-aware date validation, and a conditional modulus-11 checksum that confirms but never rejects (the checksum became optional in 2007). Disabled by default.
 - South African ID number (`ZA_ID_NUMBER`) recognizer for the 13-digit national identity number, using pattern matching, context words, birth-date validation, and Luhn checksum validation. Disabled by default.
 - South African recognizers for `ZA_PASSPORT`, `ZA_INCOME_TAX_NUMBER`, `ZA_DRIVER_LICENSE`, `ZA_VAT_NUMBER`, `ZA_COMPANY_REGISTRATION`, `ZA_TRAFFIC_REGISTER_NUMBER`, `ZA_LICENSE_PLATE`, `ZA_MOBILE_NUMBER`, and `ZA_TELEPHONE_NUMBER`. All disabled by default.
 - Added `NoOpNlpEngine` for configurations that do not require NLP engine artifacts, enabling standalone recognizers such as `HuggingFaceNerRecognizer` to run without a spaCy or Stanza model (#2071) (Thanks @ultramancode)
