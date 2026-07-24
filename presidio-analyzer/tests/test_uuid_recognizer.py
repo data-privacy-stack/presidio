@@ -34,6 +34,10 @@ def entities():
         ("DCE UUID: 550e8400-e29b-21d4-a716-446655440000",
          1, ((10, 46),), ((0.5, 0.5),)),
 
+        # Version 3 (MD5 name-based, RFC 4122)
+        ("6ba7b810-9dad-31d1-80b4-00c04fd430c8",
+         1, ((0, 36),), ((0.5, 0.5),)),
+
         # Version 5 (SHA-1 name-based)
         ("Object id 74738ff5-5367-5958-9aee-98fffdcd1876 created",
          1, ((10, 46),), ((0.5, 0.5),)),
