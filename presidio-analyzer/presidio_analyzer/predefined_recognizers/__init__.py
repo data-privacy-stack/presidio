@@ -91,6 +91,7 @@ from .country_specific.nigeria.ng_vehicle_registration_recognizer import (
 
 # Philippines recognizers
 from .country_specific.philippines.ph_tin_recognizer import PhTinRecognizer
+from .country_specific.philippines.ph_umid_recognizer import PhUmidRecognizer
 
 # Poland recognizers
 from .country_specific.poland.pl_pesel_recognizer import PlPeselRecognizer
@@ -100,8 +101,33 @@ from .country_specific.singapore.sg_fin_recognizer import SgFinRecognizer
 from .country_specific.singapore.sg_uen_recognizer import SgUenRecognizer
 
 # South Africa recognizers
+from .country_specific.south_africa.za_company_registration_recognizer import (
+    ZaCompanyRegistrationRecognizer,
+)
+from .country_specific.south_africa.za_driver_license_recognizer import (
+    ZaDriverLicenseRecognizer,
+)
 from .country_specific.south_africa.za_id_number_recognizer import (
     ZaIdNumberRecognizer,
+)
+from .country_specific.south_africa.za_income_tax_number_recognizer import (
+    ZaIncomeTaxNumberRecognizer,
+)
+from .country_specific.south_africa.za_license_plate_recognizer import (
+    ZaLicensePlateRecognizer,
+)
+from .country_specific.south_africa.za_passport_recognizer import (
+    ZaPassportRecognizer,
+)
+from .country_specific.south_africa.za_phone_number_recognizer import (
+    ZaMobileNumberRecognizer,
+    ZaTelephoneNumberRecognizer,
+)
+from .country_specific.south_africa.za_traffic_register_number_recognizer import (
+    ZaTrafficRegisterNumberRecognizer,
+)
+from .country_specific.south_africa.za_vat_number_recognizer import (
+    ZaVatNumberRecognizer,
 )
 
 # Spain recognizers
@@ -237,6 +263,7 @@ __all__ = [
     "HuggingFaceNerRecognizer",
     "PhTinRecognizer",
     "PlPeselRecognizer",
+    "PhUmidRecognizer",
     "AzureAILanguageRecognizer",
     "InAadhaarRecognizer",
     "InGstinRecognizer",
@@ -262,7 +289,16 @@ __all__ = [
     "TrLicensePlateRecognizer",
     "TrNationalIdRecognizer",
     "SePersonnummerRecognizer",
+    "ZaCompanyRegistrationRecognizer",
+    "ZaDriverLicenseRecognizer",
     "ZaIdNumberRecognizer",
+    "ZaIncomeTaxNumberRecognizer",
+    "ZaLicensePlateRecognizer",
+    "ZaMobileNumberRecognizer",
+    "ZaPassportRecognizer",
+    "ZaTelephoneNumberRecognizer",
+    "ZaTrafficRegisterNumberRecognizer",
+    "ZaVatNumberRecognizer",
     "LangExtractRecognizer",
     "AzureOpenAILangExtractRecognizer",
     "BasicLangExtractRecognizer",
