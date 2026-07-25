@@ -168,7 +168,7 @@ class AnonymizerEngine(EngineBase):
                 tmp_analyzer_results.append(result)
             else:
                 self.logger.debug(
-                    f"removing element {result} from results list due to merge"
+                    f"removing element {result} from " f"results list due to merge"
                 )
 
         unique_text_metadata_elements = []
@@ -226,7 +226,7 @@ class AnonymizerEngine(EngineBase):
         for result in analyzer_results:
             if prev_result is not None:
                 if prev_result.entity_type == result.entity_type:
-                    if re.search(r"^( )+$", text[prev_result.end : result.start]):
+                    if re.search(r"^( )+$", text[prev_result.end:result.start]):
                         merged_results.remove(prev_result)
                         result.start = prev_result.start
             merged_results.append(result)

@@ -46,7 +46,6 @@ class AESCipher:
         unpadder = padding.PKCS7(128).unpadder()
         decrypted_text = decryptor.update(ct) + decryptor.finalize()
         return (unpadder.update(decrypted_text) + unpadder.finalize()).decode("utf-8")
-
     @staticmethod
     def is_valid_key_size(key: bytes) -> bool:
         """

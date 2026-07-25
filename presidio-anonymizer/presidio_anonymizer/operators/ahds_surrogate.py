@@ -48,131 +48,153 @@ class AHDSSurrogate(Operator):
     INPUT_LOCALE = "input_locale"
     SURROGATE_LOCALE = "surrogate_locale"
 
+
     ENTITY_TYPE_MAPPING = {
         # === GLOBAL PRESIDIO ENTITIES ===
+
         # Person-related entities
-        "PERSON": "PATIENT",  # Global Presidio entity
-        "PATIENT": "PATIENT",
-        "DOCTOR": "DOCTOR",
-        "PHYSICIAN": "DOCTOR",
-        "NURSE": "DOCTOR",  # Medical professional
-        "PRACTITIONER": "DOCTOR",
-        "NRP": "PATIENT",  # Nationality, religious or political group
+        'PERSON': 'PATIENT',  # Global Presidio entity
+        'PATIENT': 'PATIENT',
+        'DOCTOR': 'DOCTOR',
+        'PHYSICIAN': 'DOCTOR',
+        'NURSE': 'DOCTOR',  # Medical professional
+        'PRACTITIONER': 'DOCTOR',
+        'NRP': 'PATIENT',  # Nationality, religious or political group
+
         # Contact information
-        "PHONE_NUMBER": "PHONE",  # Global Presidio entity
-        "PHONE": "PHONE",
-        "FAX_NUMBER": "FAX",
-        "FAX": "FAX",
-        "EMAIL_ADDRESS": "EMAIL",  # Global Presidio entity
-        "EMAIL": "EMAIL",
+        'PHONE_NUMBER': 'PHONE',  # Global Presidio entity
+        'PHONE': 'PHONE',
+        'FAX_NUMBER': 'FAX',
+        'FAX': 'FAX',
+        'EMAIL_ADDRESS': 'EMAIL',  # Global Presidio entity
+        'EMAIL': 'EMAIL',
+
         # Temporal information
-        "DATE_TIME": "DATE",  # Global Presidio entity
-        "DATE": "DATE",
-        "TIME": "DATE",
-        "AGE": "AGE",
+        'DATE_TIME': 'DATE',  # Global Presidio entity
+        'DATE': 'DATE',
+        'TIME': 'DATE',
+        'AGE': 'AGE',
+
         # Location information
-        "LOCATION": "LOCATION_OTHER",  # Global Presidio entity
-        "ADDRESS": "STREET",
-        "STREET_ADDRESS": "STREET",
-        "CITY": "CITY",
-        "STATE": "STATE",
-        "COUNTRY": "COUNTRY_OR_REGION",
-        "ZIP_CODE": "ZIP",
-        "POSTAL_CODE": "ZIP",
+        'LOCATION': 'LOCATION_OTHER',  # Global Presidio entity
+        'ADDRESS': 'STREET',
+        'STREET_ADDRESS': 'STREET',
+        'CITY': 'CITY',
+        'STATE': 'STATE',
+        'COUNTRY': 'COUNTRY_OR_REGION',
+        'ZIP_CODE': 'ZIP',
+        'POSTAL_CODE': 'ZIP',
+
         # Financial/Account information
-        "CREDIT_CARD": "ACCOUNT",  # Global Presidio entity
-        "ACCOUNT_NUMBER": "ACCOUNT",
-        "BANK_ACCOUNT": "ACCOUNT",
-        "ROUTING_NUMBER": "ACCOUNT",
-        "IBAN_CODE": "ACCOUNT",  # Global Presidio entity
-        "CRYPTO": "ACCOUNT",  # Global Presidio entity - cryptocurrency
+        'CREDIT_CARD': 'ACCOUNT',  # Global Presidio entity
+        'ACCOUNT_NUMBER': 'ACCOUNT',
+        'BANK_ACCOUNT': 'ACCOUNT',
+        'ROUTING_NUMBER': 'ACCOUNT',
+        'IBAN_CODE': 'ACCOUNT',  # Global Presidio entity
+        'CRYPTO': 'ACCOUNT',  # Global Presidio entity - cryptocurrency
+
         # Medical/Health related
-        "MEDICAL_LICENSE": "LICENSE",  # Global Presidio entity
-        "LICENSE": "LICENSE",
-        "NPI": "LICENSE",  # National Provider Identifier
-        "DEA_NUMBER": "LICENSE",  # Drug Enforcement Administration number
-        "CONDITION": "PATIENT",  # Medical condition (patient-related)
-        "MEDICATION": "PATIENT",  # Patient-related medical info
-        "PROCEDURE": "PATIENT",  # Medical procedure
-        "TREATMENT": "PATIENT",  # Medical treatment
-        "HEALTH_PLAN": "HEALTH_PLAN",
-        "INSURANCE": "HEALTH_PLAN",
-        "HOSPITAL": "HOSPITAL",
-        "CLINIC": "HOSPITAL",  # Medical institution
-        "MEDICAL_RECORD_NUMBER": "MEDICAL_RECORD",
-        "MRN": "MEDICAL_RECORD",
+        'MEDICAL_LICENSE': 'LICENSE',  # Global Presidio entity
+        'LICENSE': 'LICENSE',
+        'NPI': 'LICENSE',  # National Provider Identifier
+        'DEA_NUMBER': 'LICENSE',  # Drug Enforcement Administration number
+        'CONDITION': 'PATIENT',  # Medical condition (patient-related)
+        'MEDICATION': 'PATIENT',  # Patient-related medical info
+        'PROCEDURE': 'PATIENT',  # Medical procedure
+        'TREATMENT': 'PATIENT',  # Medical treatment
+        'HEALTH_PLAN': 'HEALTH_PLAN',
+        'INSURANCE': 'HEALTH_PLAN',
+        'HOSPITAL': 'HOSPITAL',
+        'CLINIC': 'HOSPITAL',  # Medical institution
+        'MEDICAL_RECORD_NUMBER': 'MEDICAL_RECORD',
+        'MRN': 'MEDICAL_RECORD',
+
         # Technology/Digital
-        "IP_ADDRESS": "IP_ADDRESS",  # Global Presidio entity
-        "URL": "URL",  # Global Presidio entity
-        "USERNAME": "USERNAME",
-        "PASSWORD": "USERNAME",  # No specific password category, use username
-        "DEVICE": "DEVICE",
-        "DEVICE_ID": "DEVICE",
-        "MAC_ADDRESS": "MAC_ADDRESS",
+        'IP_ADDRESS': 'IP_ADDRESS',  # Global Presidio entity
+        'URL': 'URL',  # Global Presidio entity
+        'USERNAME': 'USERNAME',
+        'PASSWORD': 'USERNAME',  # No specific password category, use username
+        'DEVICE': 'DEVICE',
+        'DEVICE_ID': 'DEVICE',
+        'MAC_ADDRESS': 'MAC_ADDRESS',
+
         # Organization/Institution/Profession
-        "ORGANIZATION": "ORGANIZATION",
-        "ORG": "ORGANIZATION",
-        "COMPANY": "ORGANIZATION",
-        "PROFESSION": "PROFESSION",
-        "JOB_TITLE": "PROFESSION",
-        "OCCUPATION": "PROFESSION",
+        'ORGANIZATION': 'ORGANIZATION',
+        'ORG': 'ORGANIZATION',
+        'COMPANY': 'ORGANIZATION',
+        'PROFESSION': 'PROFESSION',
+        'JOB_TITLE': 'PROFESSION',
+        'OCCUPATION': 'PROFESSION',
+
         # Vehicle information
-        "VEHICLE": "VEHICLE",
-        "LICENSE_PLATE": "VEHICLE",
-        "VIN": "VEHICLE",
-        "CAR": "VEHICLE",
+        'VEHICLE': 'VEHICLE',
+        'LICENSE_PLATE': 'VEHICLE',
+        'VIN': 'VEHICLE',
+        'CAR': 'VEHICLE',
+
         # === US-SPECIFIC PRESIDIO ENTITIES ===
-        "US_SSN": "SOCIAL_SECURITY",  # US Social Security Number
-        "US_DRIVER_LICENSE": "ID_NUM",  # US Driver's license
-        "US_PASSPORT": "ID_NUM",  # US Passport
-        "US_ITIN": "ID_NUM",  # US Individual Taxpayer Identification Number
-        "US_BANK_NUMBER": "ACCOUNT",  # US Bank account number
+        'US_SSN': 'SOCIAL_SECURITY',  # US Social Security Number
+        'US_DRIVER_LICENSE': 'ID_NUM',  # US Driver's license
+        'US_PASSPORT': 'ID_NUM',  # US Passport
+        'US_ITIN': 'ID_NUM',  # US Individual Taxpayer Identification Number
+        'US_BANK_NUMBER': 'ACCOUNT',  # US Bank account number
+
         # === UK-SPECIFIC PRESIDIO ENTITIES ===
-        "UK_NHS": "ID_NUM",  # UK NHS number
-        "UK_NINO": "ID_NUM",  # UK National Insurance Number
+        'UK_NHS': 'ID_NUM',  # UK NHS number
+        'UK_NINO': 'ID_NUM',  # UK National Insurance Number
+
         # === SPAIN-SPECIFIC PRESIDIO ENTITIES ===
-        "ES_NIF": "ID_NUM",  # Spanish NIF number
-        "ES_NIE": "ID_NUM",  # Spanish NIE number
+        'ES_NIF': 'ID_NUM',  # Spanish NIF number
+        'ES_NIE': 'ID_NUM',  # Spanish NIE number
+
         # === ITALY-SPECIFIC PRESIDIO ENTITIES ===
-        "IT_FISCAL_CODE": "ID_NUM",  # Italian fiscal code
-        "IT_DRIVER_LICENSE": "ID_NUM",  # Italian driver license
-        "IT_VAT_CODE": "ID_NUM",  # Italian VAT code
-        "IT_PASSPORT": "ID_NUM",  # Italian passport
-        "IT_IDENTITY_CARD": "ID_NUM",  # Italian identity card
+        'IT_FISCAL_CODE': 'ID_NUM',  # Italian fiscal code
+        'IT_DRIVER_LICENSE': 'ID_NUM',  # Italian driver license
+        'IT_VAT_CODE': 'ID_NUM',  # Italian VAT code
+        'IT_PASSPORT': 'ID_NUM',  # Italian passport
+        'IT_IDENTITY_CARD': 'ID_NUM',  # Italian identity card
+
         # === POLAND-SPECIFIC PRESIDIO ENTITIES ===
-        "PL_PESEL": "ID_NUM",  # Polish PESEL number
+        'PL_PESEL': 'ID_NUM',  # Polish PESEL number
+
         # === SINGAPORE-SPECIFIC PRESIDIO ENTITIES ===
-        "SG_NRIC_FIN": "ID_NUM",  # Singapore NRIC/FIN
-        "SG_UEN": "ID_NUM",  # Singapore Unique Entity Number
+        'SG_NRIC_FIN': 'ID_NUM',  # Singapore NRIC/FIN
+        'SG_UEN': 'ID_NUM',  # Singapore Unique Entity Number
+
         # === AUSTRALIA-SPECIFIC PRESIDIO ENTITIES ===
-        "AU_ABN": "ID_NUM",  # Australian Business Number
-        "AU_ACN": "ID_NUM",  # Australian Company Number
-        "AU_TFN": "ID_NUM",  # Australian Tax File Number
-        "AU_MEDICARE": "ID_NUM",  # Australian Medicare number
+        'AU_ABN': 'ID_NUM',  # Australian Business Number
+        'AU_ACN': 'ID_NUM',  # Australian Company Number
+        'AU_TFN': 'ID_NUM',  # Australian Tax File Number
+        'AU_MEDICARE': 'ID_NUM',  # Australian Medicare number
+
         # === INDIA-SPECIFIC PRESIDIO ENTITIES ===
-        "IN_PAN": "ID_NUM",  # Indian Permanent Account Number
-        "IN_AADHAAR": "ID_NUM",  # Indian Aadhaar number
-        "IN_VEHICLE_REGISTRATION": "VEHICLE",  # Indian vehicle registration
-        "IN_VOTER": "ID_NUM",  # Indian voter ID
-        "IN_PASSPORT": "ID_NUM",  # Indian passport
+        'IN_PAN': 'ID_NUM',  # Indian Permanent Account Number
+        'IN_AADHAAR': 'ID_NUM',  # Indian Aadhaar number
+        'IN_VEHICLE_REGISTRATION': 'VEHICLE',  # Indian vehicle registration
+        'IN_VOTER': 'ID_NUM',  # Indian voter ID
+        'IN_PASSPORT': 'ID_NUM',  # Indian passport
+
         # === FINLAND-SPECIFIC PRESIDIO ENTITIES ===
-        "FI_PERSONAL_IDENTITY_CODE": "ID_NUM",  # Finnish personal identity code
+        'FI_PERSONAL_IDENTITY_CODE': 'ID_NUM',  # Finnish personal identity code
+
         # === KOREA-SPECIFIC PRESIDIO ENTITIES ===
-        "KR_RRN": "ID_NUM",  # Korean Resident Registration Number
-        "KR_PASSPORT": "ID_NUM",  # Korean Passport Number
+        'KR_RRN': 'ID_NUM',  # Korean Resident Registration Number
+        'KR_PASSPORT': 'ID_NUM',  # Korean Passport Number
+
         # === GENERIC CATEGORIES ===
-        "ID_NUMBER": "ID_NUM",
-        "PASSPORT": "ID_NUM",
-        "DRIVER_LICENSE": "ID_NUM",
-        "SSN": "SOCIAL_SECURITY",
-        "SOCIAL_SECURITY_NUMBER": "SOCIAL_SECURITY",
-        "BIO_ID": "BIO_ID",
-        "BIOMETRIC_ID": "BIO_ID",
+        'ID_NUMBER': 'ID_NUM',
+        'PASSPORT': 'ID_NUM',
+        'DRIVER_LICENSE': 'ID_NUM',
+        'SSN': 'SOCIAL_SECURITY',
+        'SOCIAL_SECURITY_NUMBER': 'SOCIAL_SECURITY',
+        'BIO_ID': 'BIO_ID',
+        'BIOMETRIC_ID': 'BIO_ID',
+
         # === FALLBACK/UNKNOWN CATEGORIES ===
-        "GENERIC_PII": "UNKNOWN",
-        "PII": "UNKNOWN",
-        "OTHER": "UNKNOWN",
-        "UNKNOWN": "UNKNOWN",
+        'GENERIC_PII': 'UNKNOWN',
+        'PII': 'UNKNOWN',
+        'OTHER': 'UNKNOWN',
+        'UNKNOWN': 'UNKNOWN',
     }
 
     def __init__(self):
@@ -228,13 +250,13 @@ class AHDSSurrogate(Operator):
             # Use environment-aware credential (DefaultAzureCredential for dev,
             # ChainedTokenCredential for production)
             credential = get_azure_credential()
-            client = DeidentificationClient(
-                endpoint, credential, api_version="2025-07-15-preview"
-            )
+            client = DeidentificationClient(endpoint, credential,
+                                            api_version="2025-07-15-preview")
 
             # Create tagged entity collection
             tagged_entity_collection = TaggedPhiEntities(
-                encoding=TextEncodingType.CODE_POINT, entities=tagged_entities
+                encoding=TextEncodingType.CODE_POINT,
+                entities=tagged_entities
             )
 
             customizations = None
@@ -249,7 +271,7 @@ class AHDSSurrogate(Operator):
                 input_text=text,
                 operation_type=DeidentificationOperationType.SURROGATE_ONLY,
                 tagged_entities=tagged_entity_collection,
-                customizations=customizations,
+                customizations=customizations
             )
 
             result = client.deidentify_text(content)
@@ -267,22 +289,24 @@ class AHDSSurrogate(Operator):
 
         for entity in entities:
             # Handle both RecognizerResult objects and dict format
-            if hasattr(entity, "entity_type"):
+            if hasattr(entity, 'entity_type'):
                 # RecognizerResult object
                 category_name = entity.entity_type
                 start = entity.start
                 end = entity.end
             else:
                 # Dict format
-                category_name = entity.get("entity_type", entity.get("category", ""))
-                start = entity.get("start", entity.get("offset", 0))
-                end = entity.get("end", start + entity.get("length", 0))
+                category_name = entity.get('entity_type', entity.get('category', ''))
+                start = entity.get('start', entity.get('offset', 0))
+                end = entity.get('end', start + entity.get('length', 0))
 
             # Map entity type to PhiCategory
             phi_category = self._map_to_phi_category(category_name)
 
             tagged_entity = SimplePhiEntity(
-                category=phi_category, offset=start, length=end - start
+                category=phi_category,
+                offset=start,
+                length=end - start
             )
             tagged_entities.append(tagged_entity)
 
@@ -344,3 +368,4 @@ class AHDSSurrogate(Operator):
     def operator_type(self) -> OperatorType:
         """Return operator type."""
         return OperatorType.Anonymize
+
