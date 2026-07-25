@@ -42,7 +42,10 @@ class TwNationalIdRecognizer(PatternRecognizer):
         )
 
     def invalidate_result(self, pattern_text: str) -> bool:
-        """Reject invalid Taiwan ID structures via Modulus-10 checksum validation."""
+        """Reject invalid Taiwan ID structures via Modulus-10 checksum.
+
+        Validation applies the standard weighted modulus-10 algorithm.
+        """
         if len(pattern_text) != 10:
             return True
 

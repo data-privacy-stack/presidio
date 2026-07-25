@@ -1,5 +1,8 @@
 import pytest
-from presidio_analyzer.predefined_recognizers.country_specific.tw import TwNationalIdRecognizer
+
+from presidio_analyzer.predefined_recognizers.country_specific.tw import (
+    TwNationalIdRecognizer,
+)
 
 
 @pytest.fixture(scope="module")
@@ -19,14 +22,16 @@ def recognizer():
         ("身分證A123456789", 1, ((3, 13),)),
         # Invalid Formats / Non-Matches / Checksum Failures
         ("A323456789", 0, ()),  # Invalid gender code (3)
-        ("A12345678", 0, ()),   # Too short
-        ("A1234567890", 0, ()), # Too long
+        ("A12345678", 0, ()),  # Too short
+        ("A1234567890", 0, ()),  # Too long
         ("1123456789", 0, ()),  # Missing letter
         ("a123456789", 0, ()),  # Lowercase prefix rejected
         ("A123456780", 0, ()),  # Checksum failure
     ],
 )
-def test_tw_national_id_recognizer(text, expected_len, expected_positions, recognizer):
+def test_tw_national_id_recognizer(
+    text, expected_len, expected_positions, recognizer
+):
     results = recognizer.analyze(text, entities=["TW_NATIONAL_ID"])
     assert len(results) == expected_len
     if expected_len > 0:
