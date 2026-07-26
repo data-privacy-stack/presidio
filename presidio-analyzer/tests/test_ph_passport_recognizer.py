@@ -1,6 +1,6 @@
 import pytest
-
 from presidio_analyzer.predefined_recognizers import PhPassportRecognizer
+
 from tests.assertions import assert_result_within_score_range
 
 
@@ -34,16 +34,15 @@ def entities():
         ("Passport: EB1234567 is valid.", 1, ((10, 19),), ((0.1, 0.1),)),
         # Multiple matches
         ("P1234567A and EB1234567", 2, ((0, 9), (14, 23)), ((0.1, 0.1), (0.1, 0.1))),
-
         # Invalid formats
-        ("P123456A", 0, (), ()),       # too short
-        ("P12345678A", 0, (), ()),     # too long
-        ("E1234567", 0, (), ()),       # 1 letter + 7 digits (missing trailing letter)
-        ("EB12345678", 0, (), ()),     # 2 letters + 8 digits
-        ("EB 1234567", 0, (), ()),     # spaces not supported
-        ("P1234567 A", 0, (), ()),     # spaces not supported
-        ("1234567A", 0, (), ()),       # missing prefix letter(s)
-        ("", 0, (), ()),               # empty string
+        ("P123456A", 0, (), ()),  # too short
+        ("P12345678A", 0, (), ()),  # too long
+        ("E1234567", 0, (), ()),  # 1 letter + 7 digits (missing trailing letter)
+        ("EB12345678", 0, (), ()),  # 2 letters + 8 digits
+        ("EB 1234567", 0, (), ()),  # spaces not supported
+        ("P1234567 A", 0, (), ()),  # spaces not supported
+        ("1234567A", 0, (), ()),  # missing prefix letter(s)
+        ("", 0, (), ()),  # empty string
         # fmt: on
     ],
 )
@@ -64,4 +63,3 @@ def test_when_passport_in_text_then_all_ph_passports_found(  # noqa: D103
         assert_result_within_score_range(
             res, entities[0], st_pos, fn_pos, st_score, fn_score
         )
-
