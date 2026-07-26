@@ -20,6 +20,8 @@ class PhTinRecognizer(PatternRecognizer):
     :param supported_entity: The entity this recognizer can detect
     :param replacement_pairs: List of tuples with potential replacement values
     """
+    
+    COUNTRY_CODE = "ph"
 
     PATTERNS = [
         Pattern(
