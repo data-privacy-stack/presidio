@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 #### Fixed
 - `BasicLangExtractRecognizer` now honours values under `langextract.model.provider.language_model_params` (including `timeout` and `num_ctx`). Previously these were silently dropped because `langextract.extract()` ignores its `language_model_params` argument when a pre-built `ModelConfig` is passed via `config=`, causing Ollama-backed recognizers to fall back to langextract's 120s default regardless of the configured timeout. The recognizer now merges `language_model_params` into `ModelConfig.provider_kwargs`, which is the path that reaches the provider constructor. Explicit entries under `provider.kwargs:` still take precedence. Also fixed a `TypeError` when `kwargs:` or `language_model_params:` is `null` in the YAML. (#1943, Thanks @lsternlicht)
 
+#### Added
+- Philippine passport (`PH_PASSPORT`) recognizer with pattern matching and context support. Disabled by default.
+
 ### Anonymizer
 ### General
 #### Changed
@@ -20,8 +23,6 @@ All notable changes to this project will be documented in this file.
 ### General
 #### Added
 - Optional `countries` filter on `RecognizerRegistry.load_predefined_recognizers()` to scope predefined country-specific recognizers to a subset of locales (e.g. `countries=["us", "uk"]`). The same filter is also exposed as a top-level `supported_countries` field in the recognizer-registry YAML, mirroring `supported_languages`, and as an advisory per-recognizer `country_code:` field on every predefined country-specific entry in `default_recognizers.yaml` (cross-checked against the class attribute at load time). Country tagging works via two reconciled paths: the class-level `EntityRecognizer.COUNTRY_CODE` ClassVar (canonical for predefined recognizers) and the new `country_code` constructor kwarg on `EntityRecognizer` / `PatternRecognizer` (the path for custom recognizers without a subclass — flows through `PatternRecognizer.from_dict` so YAML `type: custom` entries can declare `country_code:` directly). Conflicting values raise `ValueError` at construction time so a predefined country recognizer can never be silently re-tagged. The resolved tag is read via the `country_code()` and `is_country_specific()` instance methods, and serialized through `to_dict()` / `from_dict()` for round-tripping. Inputs to the `countries` filter are validated up front (rejects bare strings, non-iterables, non-string elements, and blank codes). Locale-agnostic recognizers and untagged custom recognizers are always loaded regardless of the filter, preserving backwards compatibility. Adds `RecognizerRegistry.get_country_codes()` for introspection and a `WARNING` log when a requested country has no matching recognizer. See `docs/analyzer/filtering_by_country.md`. Fixes #1328.
-- Philippine passport (`PH_PASSPORT`) recognizer with pattern matching and context support. Disabled by default.
-- Canadian SIN (`CA_SIN`) recognizer for the Canadian Social Insurance Number, using regex pattern matching, context words (English and French), and Luhn checksum validation. Disabled by default.
 - Published source distributions alongside wheels in the PyPI release pipeline (#1924) (Thanks @Copilot)
 
 #### Changed
