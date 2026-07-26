@@ -81,7 +81,10 @@ class FiPersonalIdentityCodeRecognizer(PatternRecognizer):
         except ValueError:
             return False
         individual_number = pattern_text[7:10]
-        control_character = pattern_text[-1]
+        # The control character is defined in upper case; the pattern is matched
+        # case-insensitively, so upper-case it before comparing or a valid code
+        # written with a lower-case control character would be rejected.
+        control_character = pattern_text[-1].upper()
         valid_control_characters = "0123456789ABCDEFHJKLMNPRSTUVWXY"
         number_to_check = int(date_part + individual_number)
         return valid_control_characters[number_to_check % 31] == control_character
