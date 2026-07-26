@@ -123,6 +123,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 ### Philippines
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| PH_PASSPORT | Philippine Passport Number. Alphanumeric format, usually 1 letter followed by 7 digits and 1 letter, or 2 letters followed by 7 digits (e.g., P1234567A, EB1234567). | Pattern match and context |
 | PH_TIN     | Philippines Taxpayer Identification Number (TIN). 9 or 12-digit number issued by the Bureau of Internal Revenue (BIR). | Pattern match, context, and checksum |
 
 ### Canada

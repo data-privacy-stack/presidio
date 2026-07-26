@@ -258,12 +258,19 @@ recognizers:
     type: predefined
     country_code: it
 
+  - name: PhPassportRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: ph
     
   - name: PhTinRecognizer
     supported_languages: 
     - en
     type: predefined
     enabled: false
+    country_code: ph
 
 
   - name: PlPeselRecognizer
