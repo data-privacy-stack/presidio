@@ -32,6 +32,9 @@ All notable changes to this project will be documented in this file.
 - Fixed `DeFuehrerscheinRecognizer` docstring example that contradicted the recognizer's own regex and tests (#2138) (Thanks @jichaowang02-lang)
 - Fixed documentation incorrectly stating that `IpRecognizer` validates a checksum (#2133) (Thanks @Coshea46)
 
+#### Added
+- Philippine passport (`PH_PASSPORT`) recognizer with pattern matching and context support. Disabled by default.
+
 ### Anonymizer
 #### Security
 - Bumped `cryptography` lower bound to `>=48.0.1` to resolve GHSA-537c-gmf6-5ccf (HIGH, vulnerable OpenSSL statically linked into wheels below 48.0.1) (#2144) (Thanks @Copilot)
@@ -58,6 +61,7 @@ All notable changes to this project will be documented in this file.
 ## [2.2.363] - 2026-06-28
 ### General
 #### Added
+- Optional `countries` filter on `RecognizerRegistry.load_predefined_recognizers()` to scope predefined country-specific recognizers to a subset of locales (e.g. `countries=["us", "uk"]`). The same filter is also exposed as a top-level `supported_countries` field in the recognizer-registry YAML, mirroring `supported_languages`, and as an advisory per-recognizer `country_code:` field on every predefined country-specific entry in `default_recognizers.yaml` (cross-checked against the class attribute at load time). Country tagging works via two reconciled paths: the class-level `EntityRecognizer.COUNTRY_CODE` ClassVar (canonical for predefined recognizers) and the new `country_code` constructor kwarg on `EntityRecognizer` / `PatternRecognizer` (the path for custom recognizers without a subclass — flows through `PatternRecognizer.from_dict` so YAML `type: custom` entries can declare `country_code:` directly). Conflicting values raise `ValueError` at construction time so a predefined country recognizer can never be silently re-tagged. The resolved tag is read via the `country_code()` and `is_country_specific()` instance methods, and serialized through `to_dict()` / `from_dict()` for round-tripping. Inputs to the `countries` filter are validated up front (rejects bare strings, non-iterables, non-string elements, and blank codes). Locale-agnostic recognizers and untagged custom recognizers are always loaded regardless of the filter, preserving backwards compatibility. Adds `RecognizerRegistry.get_country_codes()` for introspection and a `WARNING` log when a requested country has no matching recognizer. See `docs/analyzer/filtering_by_country.md`. Fixes #1328.
 - Published source distributions alongside wheels in the PyPI release pipeline (#1924) (Thanks @Copilot)
 
 #### Changed

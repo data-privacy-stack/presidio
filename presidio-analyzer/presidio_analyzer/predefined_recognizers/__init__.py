@@ -76,6 +76,7 @@ from .country_specific.nigeria.ng_vehicle_registration_recognizer import (
 )
 
 # Philippines recognizers
+from .country_specific.philippines.ph_passport_recognizer import PhPassportRecognizer
 from .country_specific.philippines.ph_tin_recognizer import PhTinRecognizer
 from .country_specific.philippines.ph_umid_recognizer import PhUmidRecognizer
 
@@ -293,6 +294,7 @@ __all__ = [
     "KrPassportRecognizer",
     "NgNinRecognizer",
     "NgVehicleRegistrationRecognizer",
+    "PhPassportRecognizer",
     "MedicalNERRecognizer",
     # Germany recognizers
     "DeTaxIdRecognizer",
