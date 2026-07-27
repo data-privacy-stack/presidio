@@ -292,18 +292,11 @@ class RecognizerListLoader:
         """
         kwargs = {**recognizer_conf, **language_conf}
 
-        # Cleanup: Remove provided entity arguments if they are explicitly None
-        if (
-            RecognizerListLoader.SUPPORTED_ENTITY in kwargs
-            and kwargs[RecognizerListLoader.SUPPORTED_ENTITY] is None
-        ):
-            kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITY, None)
-
-        if (
-            RecognizerListLoader.SUPPORTED_ENTITIES in kwargs
-            and kwargs[RecognizerListLoader.SUPPORTED_ENTITIES] is None
-        ):
-            kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES, None)
+        # Strip None values so that recognizer constructors use their own
+        # defaults.  Config models override model_dump(exclude_none=True)
+        # but that override is not invoked during parent model serialization,
+        # so None values can leak through.
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
         try:
             params = inspect.signature(recognizer_cls.__init__).parameters
@@ -336,7 +329,19 @@ class RecognizerListLoader:
                         RecognizerListLoader.SUPPORTED_ENTITY, supported_entities[0]
                     )
 
-        # 2. Filter: Remove keys that are NOT in the signature
+        # 2. Convert text_chunker dict to BaseTextChunker instance
+        if "text_chunker" in kwargs and isinstance(kwargs["text_chunker"], dict):
+            from presidio_analyzer.chunkers import TextChunkerProvider
+
+            # Strip None values that may leak from Pydantic model_dump
+            chunker_config = {
+                k: v for k, v in kwargs["text_chunker"].items() if v is not None
+            }
+            kwargs["text_chunker"] = TextChunkerProvider(
+                chunker_config
+            ).create_chunker()
+
+        # 3. Filter: Remove keys that are NOT in the signature
 
         # For supported_entities (plural):
         # If not explicitly accepted, remove unless **kwargs is present (compat).

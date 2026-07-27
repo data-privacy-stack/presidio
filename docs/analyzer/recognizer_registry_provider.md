@@ -124,6 +124,19 @@ The recognizer list comprises of both the predefined and custom recognizers, for
   - `deny_list`: A list of words to detect, in case the recognizer uses a predefined list of words.
   - `deny_list_score`: confidence score for a term identified using a deny-list.
   - `score_thresholds`: optional score thresholds for this recognizer. Use `default` as the recognizer-wide threshold and entity names for overrides. Note that supplying `analyzer_engine.analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request. The precedence is: Presidio Analyzer analyzer.analyze(score_threshold=...) > an entity specific threshold > a recognizer default threshold (`default`) > the Presidio Analyzer `default_score_threshold`.
+  - `text_chunker`: configures how long texts are split for NER recognizers (`GLiNERRecognizer`, `HuggingFaceNerRecognizer`). Accepts a dict with `chunker_type` and params. Available types: `character` (default) and `tokenizer` (uses the model's tokenizer for accurate token-based splitting). Example:
+
+    ```yaml
+    - name: GLiNERRecognizer
+      type: predefined
+      model_name: urchade/gliner_multi_pii-v1
+      text_chunker:
+        chunker_type: tokenizer
+        # max_tokens omitted: auto-derived from the model's tokenizer and
+        # reduced to reserve room for special tokens ([CLS]/[SEP]). Set it
+        # explicitly only if you account for those special tokens yourself.
+        overlap_tokens: 32
+    ```
 
 !!! tip "Configuration Tip: Agglutinative languages (e.g., Korean)"
 
