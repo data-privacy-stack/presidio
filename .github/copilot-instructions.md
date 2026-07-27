@@ -111,7 +111,6 @@ recognizers:
     enabled: false  # Country-specific defaults to false
 
 # 4. docs/supported_entities.md (add row to appropriate table)
-# 5. CHANGELOG.md (under "Unreleased" section)
 ```
 
 **6. Comprehensive Test Coverage:**
@@ -226,7 +225,6 @@ e2e-tests/tests/test_new_endpoint.py
 # 3. Add usage example
 docs/samples/python/new_feature_example.ipynb
 
-# 4. Update CHANGELOG.md
 ```
 
 ### Cross-Component Changes
@@ -314,7 +312,6 @@ def test_case2()
 ```markdown
 When adding a feature, update ALL of:
 
-✅ CHANGELOG.md - Under "Unreleased" section
 ✅ docs/supported_entities.md - For new entity types  
 ✅ docs/api-docs/api-docs.yml - For API changes
 ✅ README.md - For major features
@@ -322,6 +319,10 @@ When adding a feature, update ALL of:
 ✅ docs/samples/ - Usage examples for complex features
 ✅ Update docstrings based on the reST docstring format (:param:, :return:, :raises:, :example:)
 ```
+
+Do not update `CHANGELOG.md` in a PR. Before each version bump, changelog
+entries for the current release are generated from merged PRs. Per-PR changelog
+edits create unnecessary merge conflicts.
 
 **2. Pattern Source Documentation:**
 ```python
@@ -649,12 +650,15 @@ pytest -v  # Run all E2E tests
 **See section 8 in Review Priorities above for comprehensive documentation guidelines.**
 
 When adding features, update:
-- **CHANGELOG.md** - Under "Unreleased" section
 - **docs/supported_entities.md** - For new entity types
 - **docs/api-docs/api-docs.yml** - For API changes
 - **README.md** - For major features
 - **Docstrings** - All public classes and methods (ensure proper formatting for API doc generation)
 - **docs/samples/** - Add usage examples for complex new features
+
+Do not update `CHANGELOG.md` in a PR. Its current-release entries are generated
+from merged PRs before each version bump, avoiding conflicts between concurrent
+contributions.
 
 ## Reference Documentation
 
