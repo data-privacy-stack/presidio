@@ -258,12 +258,19 @@ recognizers:
     type: predefined
     country_code: it
 
+  - name: PhPassportRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: ph
     
   - name: PhTinRecognizer
     supported_languages: 
     - en
     type: predefined
     enabled: false
+    country_code: ph
 
 
   - name: PlPeselRecognizer
@@ -318,7 +325,70 @@ recognizers:
     enabled: false
     country_code: se
 
+  - name: ZaCompanyRegistrationRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaDriverLicenseRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
   - name: ZaIdNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaIncomeTaxNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaLicensePlateRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaMobileNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaPassportRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaTrafficRegisterNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaTelephoneNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaVatNumberRecognizer
     supported_languages:
     - en
     type: predefined
@@ -379,6 +449,9 @@ recognizers:
     country_code: us
 
   - name: MacAddressRecognizer
+    type: predefined
+
+  - name: UuidRecognizer
     type: predefined
 
   - name: PhoneRecognizer
