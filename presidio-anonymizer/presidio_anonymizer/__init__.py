@@ -4,6 +4,7 @@ import logging
 
 from .anonymizer_engine import AnonymizerEngine
 from .batch_anonymizer_engine import BatchAnonymizerEngine
+from .batch_deanonymize_engine import BatchDeanonymizeEngine
 from .deanonymize_engine import DeanonymizeEngine
 from .entities import (
     ConflictResolutionStrategy,
@@ -25,6 +26,7 @@ __all__ = [
     "AnonymizerEngine",
     "DeanonymizeEngine",
     "BatchAnonymizerEngine",
+    "BatchDeanonymizeEngine",
     "InvalidParamError",
     "ConflictResolutionStrategy",
     "PIIEntity",
