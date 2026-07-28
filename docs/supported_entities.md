@@ -12,6 +12,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 
 |Entity Type | Description | Detection Method |
 | --- | --- | --- |
+|API_KEY|A provider-issued API key, access key or bearer token. Covers AWS access key IDs and secret access keys, GitHub tokens, Google API keys, Slack tokens, Stripe live secret and restricted keys, and JSON Web Tokens. Each pattern is anchored on the vendor-documented, case-sensitive prefix.|Case-sensitive pattern match and context|
 |CREDIT_CARD |A credit card number is between 12 to 19 digits. <https://en.wikipedia.org/wiki/Payment_card_number>|Pattern match and checksum|
 |CRYPTO|A Crypto wallet number. Currently only Bitcoin address is supported|Pattern match, context and checksum|
 |DATE_TIME|Absolute or relative dates or periods or times smaller than a day.|Pattern match and context|

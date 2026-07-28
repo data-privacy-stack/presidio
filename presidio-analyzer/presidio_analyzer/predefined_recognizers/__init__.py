@@ -163,6 +163,7 @@ from .country_specific.us.us_passport_recognizer import UsPassportRecognizer
 from .country_specific.us.us_ssn_recognizer import UsSsnRecognizer
 
 # Generic recognizers
+from .generic.api_key_recognizer import ApiKeyRecognizer
 from .generic.credit_card_recognizer import CreditCardRecognizer
 from .generic.crypto_recognizer import CryptoRecognizer
 from .generic.date_recognizer import DateRecognizer
@@ -212,6 +213,7 @@ NLP_RECOGNIZERS = {
 
 __all__ = [
     "AbaRoutingRecognizer",
+    "ApiKeyRecognizer",
     "CaSinRecognizer",
     "CreditCardRecognizer",
     "CryptoRecognizer",

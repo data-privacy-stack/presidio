@@ -429,6 +429,9 @@ recognizers:
     type: predefined
     enabled: false
 
+  - name: ApiKeyRecognizer
+    type: predefined
+
   - name: CryptoRecognizer
     type: predefined
 
