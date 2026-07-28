@@ -1,22 +1,21 @@
+# ruff: noqa: D103,D205,E501,F541,F841,W293
+
 import re
 from pathlib import Path
 from typing import List
 from unittest.mock import patch
 
-from presidio_analyzer import AnalyzerEngineProvider, RecognizerResult, PatternRecognizer
-from presidio_analyzer.nlp_engine import SpacyNlpEngine, NlpArtifacts
-
-
+import pytest
+import yaml
+from install_nlp_models import _install_models_from_nlp_config, install_models
+from presidio_analyzer import AnalyzerEngineProvider, RecognizerResult
+from presidio_analyzer.nlp_engine import NlpArtifacts, SpacyNlpEngine
 from presidio_analyzer.predefined_recognizers import (
     AzureAILanguageRecognizer,
     CreditCardRecognizer,
     SpacyRecognizer,
     StanzaRecognizer,
 )
-
-import pytest
-
-from install_nlp_models import install_models, _install_models_from_nlp_config
 
 
 def get_full_paths(analyzer_yaml, nlp_engine_yaml=None, recognizer_registry_yaml=None):
@@ -38,6 +37,10 @@ def test_analyzer_engine_provider_default_configuration(mandatory_recognizers):
         engine.registry.global_regex_flags == re.DOTALL | re.MULTILINE | re.IGNORECASE
     )
     assert engine.default_score_threshold == 0
+    assert all(
+        recognizer.score_thresholds == {}
+        for recognizer in engine.registry.recognizers
+    )
     names = [recognizer.name for recognizer in engine.registry.recognizers]
     for predefined_recognizer in mandatory_recognizers:
         assert predefined_recognizer in names
@@ -92,8 +95,96 @@ def test_analyzer_engine_provider_configuration_file():
         and recognizer.supported_language == "es"
     ][0]
     assert spanish_recognizer.context == ["tarjeta", "credito"]
+    credit_card = next(
+        recognizer
+        for recognizer in recognizer_registry.recognizers
+        if recognizer.name == "CreditCardRecognizer"
+    )
+    assert credit_card.score_thresholds == {
+        "default": 0.4,
+        "CREDIT_CARD": 0.7,
+    }
     assert isinstance(engine.nlp_engine, SpacyNlpEngine)
     assert engine.nlp_engine.engine_name == "spacy"
+
+
+def test_analyzer_engine_provider_inline_recognizer_thresholds_affect_output(tmp_path):
+    analyzer_yaml, _, _ = get_full_paths("conf/test_analyzer_engine.yaml")
+
+    with open(analyzer_yaml) as file:
+        configuration = yaml.safe_load(file)
+
+    configuration["default_score_threshold"] = 0.9
+    credit_card = configuration["recognizer_registry"]["recognizers"][0]
+    credit_card["score_thresholds"] = {"default": 0.4}
+
+    threshold_yaml = tmp_path / "analyzer_with_thresholds.yaml"
+    threshold_yaml.write_text(yaml.safe_dump(configuration, sort_keys=False))
+
+    provider = AnalyzerEngineProvider(threshold_yaml)
+    engine = provider.create_engine()
+
+    loaded_credit_card = next(
+        recognizer
+        for recognizer in engine.registry.recognizers
+        if recognizer.name == "CreditCardRecognizer"
+    )
+    assert loaded_credit_card.score_thresholds == {"default": 0.4}
+
+    results = engine.analyze(
+        text=" Credit card: 4095-2609-9393-4932",
+        language="en",
+        entities=["CREDIT_CARD"],
+    )
+
+    assert len(results) == 1
+
+
+def test_analyzer_engine_provider_external_registry_thresholds_affect_output(tmp_path):
+    analyzer_yaml = tmp_path / "analyzer.yaml"
+    analyzer_yaml.write_text(
+        yaml.safe_dump(
+            {
+                "supported_languages": ["en"],
+                "default_score_threshold": 0.9,
+                "nlp_configuration": {
+                    "nlp_engine_name": "spacy",
+                    "models": [
+                        {"lang_code": "en", "model_name": "en_core_web_lg"}
+                    ],
+                },
+            }
+        )
+    )
+    registry_yaml = tmp_path / "registry.yaml"
+    registry_yaml.write_text(
+        yaml.safe_dump(
+            {
+                "supported_languages": ["en"],
+                "recognizers": [
+                    {
+                        "name": "RocketRecognizer",
+                        "type": "custom",
+                        "supported_entity": "ROCKET",
+                        "supported_language": "en",
+                        "patterns": [
+                            {"name": "rocket", "regex": "rocket", "score": 0.5}
+                        ],
+                        "score_thresholds": {"default": 0.4},
+                    }
+                ],
+            }
+        )
+    )
+    provider = AnalyzerEngineProvider(
+        analyzer_engine_conf_file=analyzer_yaml,
+        recognizer_registry_conf_file=registry_yaml,
+    )
+
+    engine = provider.create_engine()
+    results = engine.analyze("rocket", "en", entities=["ROCKET"])
+
+    assert [result.entity_type for result in results] == ["ROCKET"]
 
 
 def test_analyzer_engine_provider_defaults(mandatory_recognizers):
@@ -101,6 +192,10 @@ def test_analyzer_engine_provider_defaults(mandatory_recognizers):
     engine = provider.create_engine()
     assert engine.supported_languages == ["en"]
     assert engine.default_score_threshold == 0
+    assert all(
+        recognizer.score_thresholds == {}
+        for recognizer in engine.registry.recognizers
+    )
     recognizer_registry = engine.registry
     assert (
         recognizer_registry.global_regex_flags
@@ -366,8 +461,8 @@ def test_analyzer_engine_provider_get_configuration_with_nonexistent_file():
 
 def test_analyzer_engine_provider_get_configuration_with_invalid_yaml():
     """Test get_configuration handles invalid YAML gracefully."""
-    import tempfile
     import os
+    import tempfile
 
     # Create a temporary file with invalid YAML
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -550,6 +645,15 @@ def test_analyzer_engine_provider_inline_sections_take_priority_over_per_section
     # The registry from the inline section has more than the 6 recognizers
     # in test_recognizer_registry.yaml, confirming the inline section won.
     assert len(engine.registry.recognizers) > 6
+    credit_card = next(
+        recognizer
+        for recognizer in engine.registry.recognizers
+        if recognizer.name == "CreditCardRecognizer"
+    )
+    assert credit_card.score_thresholds == {
+        "default": 0.4,
+        "CREDIT_CARD": 0.7,
+    }
 
 
 def test_analyzer_engine_provider_multiple_languages_support():

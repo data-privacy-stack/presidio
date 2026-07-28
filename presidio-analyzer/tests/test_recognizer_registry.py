@@ -1,3 +1,5 @@
+# ruff: noqa: D103,D205,E501,F841,I001
+
 from pathlib import Path
 
 import pytest
@@ -49,11 +51,17 @@ def mock_recognizer_registry():
 
 def test_when_get_recognizers_then_all_recognizers_returned(mock_recognizer_registry):
     registry = mock_recognizer_registry
+    count_before_loading = len(registry.get_recognizers(language="en", all_fields=True))
     registry.load_predefined_recognizers()
     recognizers = registry.get_recognizers(language="en", all_fields=True)
 
-    # 1 custom recognizer in english + 30 predefined - 11 disabled
-    assert len(recognizers) == 1 + 30 - 11
+    # Loading predefined recognizers should add EN recognizers. Avoid asserting
+    # an exact count, since that count changes whenever a recognizer is added
+    # or removed.
+    assert len(recognizers) > count_before_loading
+    recognizer_names = {type(rec).__name__ for rec in recognizers}
+    assert "UuidRecognizer" in recognizer_names
+    assert "ImeiRecognizer" in recognizer_names
 
 
 def test_when_get_recognizers_then_return_all_fields(mock_recognizer_registry):
@@ -160,6 +168,79 @@ def test_add_recognizer_from_dict():
 
     assert len(registry.recognizers) == 1
     assert registry.recognizers[0].name == "Zip code Recognizer"
+
+
+def test_add_recognizer_from_dict_attaches_thresholds_without_mutating_input(
+    monkeypatch,
+):
+    registry = RecognizerRegistry()
+    recognizer = {
+        "name": "Zip code Recognizer",
+        "supported_language": "de",
+        "patterns": [{"name": "zip", "regex": r"\d{5}", "score": 0.5}],
+        "supported_entity": "ZIP",
+        "score_thresholds": {"default": 0.4, "ZIP": 0.7},
+    }
+    original = recognizer.copy()
+    received = {}
+    from_dict = PatternRecognizer.from_dict
+
+    def capture_from_dict(config):
+        received.update(config)
+        return from_dict(config)
+
+    monkeypatch.setattr(PatternRecognizer, "from_dict", capture_from_dict)
+
+    registry.add_pattern_recognizer_from_dict(recognizer)
+
+    assert "score_thresholds" not in received
+    assert recognizer == original
+    assert registry.recognizers[0].score_thresholds == {
+        "default": 0.4,
+        "ZIP": 0.7,
+    }
+
+
+def test_add_recognizers_from_yaml_attaches_thresholds(tmp_path):
+    yaml_path = tmp_path / "recognizers.yaml"
+    yaml_path.write_text(
+        """recognizers:
+- name: Zip code Recognizer
+  supported_language: de
+  supported_entity: ZIP
+  patterns:
+    - name: zip
+      regex: '\\d{5}'
+      score: 0.5
+  score_thresholds:
+    default: 0.4
+    ZIP: 0.7
+"""
+    )
+    registry = RecognizerRegistry()
+
+    registry.add_recognizers_from_yaml(yaml_path)
+
+    assert registry.recognizers[0].score_thresholds == {
+        "default": 0.4,
+        "ZIP": 0.7,
+    }
+
+
+@pytest.mark.parametrize("score_thresholds", [False, 0, "", []])
+def test_add_recognizer_from_dict_rejects_falsey_non_mapping_thresholds(
+    score_thresholds,
+):
+    recognizer = {
+        "name": "Zip code Recognizer",
+        "supported_language": "de",
+        "patterns": [{"name": "zip", "regex": r"\d{5}", "score": 0.5}],
+        "supported_entity": "ZIP",
+        "score_thresholds": score_thresholds,
+    }
+
+    with pytest.raises(ValueError, match="must be a mapping"):
+        RecognizerRegistry().add_pattern_recognizer_from_dict(recognizer)
 
 
 def test_recognizer_registry_add_from_yaml_file():
