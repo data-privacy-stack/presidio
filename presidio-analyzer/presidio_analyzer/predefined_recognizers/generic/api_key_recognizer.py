@@ -14,12 +14,22 @@ from presidio_analyzer import Pattern, PatternRecognizer
 # variable-length lookbehind, so the anchor can be excluded from the reported
 # span and only the secret itself is returned.
 AWS_SECRET_ANCHOR = (
-    r"(?<=(?i:aws_secret_access_key)[\"']?[ \t]{0,8}[:=][ \t]{0,8}[\"']?)"  # noqa: E501
+    r"(?<=(?i:aws_secret_access_key)[\"']?[ \t]{0,8}[:=][ \t]{0,8}[\"']?)"
 )
 
 
 def _case_sensitive(regex: str) -> str:
-    """Keep credential formats case-sensitive under registry-level regex flags."""
+    """Keep credential formats case-sensitive under registry-level regex flags.
+
+    ``RecognizerListLoader.get`` assigns the registry's ``global_regex_flags``
+    to every ``PatternRecognizer`` *after* construction, and the shipped
+    registry configuration includes ``re.IGNORECASE``. Constructor flags
+    therefore cannot keep a vendor prefix case-sensitive; the scoped
+    ``(?-i:...)`` group can, because it travels with the pattern itself.
+
+    Remove this only together with the flag assignment in
+    ``recognizer_registry/recognizers_loader_utils.py``.
+    """
     return rf"(?-i:{regex})"
 
 
@@ -80,6 +90,15 @@ class ApiKeyRecognizer(PatternRecognizer):
             _case_sensitive(r"\b(?:ABIA|ACCA|AKIA|ASIA)[0-9A-Z]{16}\b"),
             0.9,
         ),
+        # The value keeps the full base64 alphabet including ``=``. Thirty random
+        # bytes would encode to 40 characters with no padding, which would make
+        # ``=`` impossible -- but AWS documents the length only, not the
+        # generation algorithm, and its own credential-scanning guidance has used
+        # ``[A-Za-z0-9/+=]{40}``. Narrowing the set on an inferred format would
+        # trade a rare false positive (a run of padding after the credential
+        # name) for a false negative on a real secret, which is the worse error
+        # here. ``=`` stays in the right-boundary lookahead so the documented
+        # exact length is still enforced.
         Pattern(
             "AWS secret access key",
             _case_sensitive(
@@ -97,9 +116,23 @@ class ApiKeyRecognizer(PatternRecognizer):
             _case_sensitive(r"\bgh[pour]_[A-Za-z0-9]{36}\b"),
             0.9,
         ),
+        # GitHub's recommended ``ghs_[A-Za-z0-9.\-_]{36,}`` is written for
+        # validation, where a right boundary is unnecessary. Presidio reports a
+        # span, so the match must not end on ``.``: it is both a JWT segment
+        # separator and ordinary sentence punctuation, and a greedy match would
+        # otherwise report the period that ends a sentence as part of the
+        # credential. ``-`` and ``_`` stay admissible at the end because a
+        # base64url signature may legitimately end with either, and clipping one
+        # would under-report a real token.
+        #
+        # The 36-character minimum is spelled ``{35,}`` plus one final character
+        # so that the length is counted on what is *reported*. Asserting the
+        # length in a lookahead instead would count trailing dots that the
+        # consuming part then backtracks away, letting a short body such as
+        # ``ghs_A....`` be reported.
         Pattern(
             "GitHub App installation token",
-            _case_sensitive(r"\bghs_[A-Za-z0-9.\-_]{36,}(?![A-Za-z0-9.\-_])"),
+            _case_sensitive(r"\bghs_[A-Za-z0-9._-]{35,}[A-Za-z0-9_-]"),
             0.9,
         ),
         Pattern(

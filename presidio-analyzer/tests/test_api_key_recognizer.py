@@ -28,9 +28,19 @@ STRIPE_TEST_KEY = "sk" + "_test_0000EXAMPLEkey0000EXAMPLE00"
 STRIPE_TEST_RESTRICTED_KEY = "rk" + "_test_0000EXAMPLEkey0000EXAMPLE00"
 STRIPE_TEST_PUBLISHABLE_KEY = "pk" + "_test_0000EXAMPLEkey0000EXAMPLE00"
 GITHUB_OPAQUE_INSTALLATION_TOKEN = "gh" + "s_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"
+# The signature segment is 152 characters (152 % 4 == 0) so that its final
+# character is a full 6-bit base64url symbol and every one of the 64 symbols is
+# reachable there. At 150 characters (150 % 4 == 2) the last character carries
+# only 2 significant bits -- canonical unpadded base64url could then end only in
+# A, Q, g or w, so the "-"/"_" fixtures below would not represent real tokens.
 GITHUB_STATELESS_TOKEN = (
-    "gh" + "s_123456789_" + "eyJ" + "A" * 140 + ".eyJ" + "B" * 200 + "." + "C" * 150
+    "gh" + "s_123456789_" + "eyJ" + "A" * 140 + ".eyJ" + "B" * 200 + "." + "C" * 152
 )
+# A stateless installation token ends in a base64url signature, which may
+# legitimately end with "-" or "_". Pinning the span to alphanumeric would
+# under-report these by one character.
+GITHUB_STATELESS_TOKEN_DASH_END = GITHUB_STATELESS_TOKEN[:-1] + "-"
+GITHUB_STATELESS_TOKEN_UNDERSCORE_END = GITHUB_STATELESS_TOKEN[:-1] + "_"
 
 
 @pytest.fixture(scope="module")
@@ -106,6 +116,26 @@ def default_registry_recognizer():
             ((0.9, 0.9),),
         ),
         (GITHUB_STATELESS_TOKEN, 1, ((0, len(GITHUB_STATELESS_TOKEN)),), ((0.9, 0.9),)),
+        # "." is in the installation-token character set, so a greedy match must
+        # not report the period that ends the sentence as part of the token.
+        (
+            f"Rotate {GITHUB_OPAQUE_INSTALLATION_TOKEN}.",
+            1,
+            ((7, 7 + len(GITHUB_OPAQUE_INSTALLATION_TOKEN)),),
+            ((0.9, 0.9),),
+        ),
+        (
+            GITHUB_STATELESS_TOKEN_DASH_END,
+            1,
+            ((0, len(GITHUB_STATELESS_TOKEN_DASH_END)),),
+            ((0.9, 0.9),),
+        ),
+        (
+            GITHUB_STATELESS_TOKEN_UNDERSCORE_END,
+            1,
+            ((0, len(GITHUB_STATELESS_TOKEN_UNDERSCORE_END)),),
+            ((0.9, 0.9),),
+        ),
         (
             "github_pat_11ABCDEFG0EXAMPLEexamp_"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456",
@@ -176,6 +206,11 @@ def default_registry_recognizer():
         # The documented secret length is exact; do not return a partial span.
         ("AWS_SECRET_ACCESS_KEY=" + "A" * 39, 0, (), ()),
         ("AWS_SECRET_ACCESS_KEY=" + "A" * 41, 0, (), ()),
+        # The value keeps the documented base64 alphabet including "=", so the
+        # exact-length right boundary is what rejects a longer padded run
+        # instead of reporting its first 40 characters.
+        ("AWS_SECRET_ACCESS_KEY=" + "A" * 40 + "=", 0, (), ()),
+        ("AWS_SECRET_ACCESS_KEY=" + "A" * 40 + "/", 0, (), ()),
         # IAM unique ID prefixes identify roles/users, not credentials.
         ("AROADBQP57FF2AEXAMPLE is a role unique id", 0, (), ()),
         ("AIDACKCEVSQ6C2EXAMPLE is a user unique id", 0, (), ()),
@@ -188,6 +223,12 @@ def default_registry_recognizer():
         # Wrong lengths.
         ("ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p", 0, (), ()),
         ("AKIAIOSFODNN7EXAMPL", 0, (), ()),
+        # The installation-token minimum must be counted on the reported span,
+        # not on characters that trailing-"." backtracking gives back. Both of
+        # these reach 36 characters only by including dots that cannot end the
+        # span, so neither may be reported.
+        ("gh" + "s_" + "A" * 35 + ".", 0, (), ()),
+        ("gh" + "s_A" + "." * 35, 0, (), ()),
         # Dotted base64 whose payload is not a JSON object is not a JWT.
         ("eyJhbGciOiJIUzI1NiJ9.bm90LWEtanNvbi1wYXlsb2Fk.c2lnbmF0dXJlaGVyZQ", 0, (), ()),
         # fmt: on
@@ -242,3 +283,68 @@ def test_when_loaded_from_default_registry_then_prefixes_remain_case_sensitive(
     """Registry-level IGNORECASE must not override credential prefix casing."""
     assert default_registry_recognizer.global_regex_flags & re.IGNORECASE
     assert default_registry_recognizer.analyze(text, entities) == []
+
+
+def _case_scope_spans_whole_pattern(regex: str) -> bool:
+    """Return True if a leading ``(?-i:`` group closes only at the very end.
+
+    Checking the prefix alone would accept a group that closes early, leaving
+    the rest of the pattern case-insensitive again under registry flags. Walk
+    the regex tracking parenthesis depth, skipping escapes and character
+    classes, and require the opening group to close on the last character.
+    """
+    if not regex.startswith("(?-i:"):
+        return False
+
+    depth = 0
+    in_class = False
+    escaped = False
+    for index, char in enumerate(regex):
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif in_class:
+            if char == "]":
+                in_class = False
+        elif char == "[":
+            in_class = True
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return index == len(regex) - 1
+    return False
+
+
+def test_every_default_pattern_scopes_case_sensitivity():
+    """A pattern added without the case-sensitive wrapper would silently widen.
+
+    The scoping is applied per pattern, so an unwrapped addition still passes
+    every positive test while matching lowercase prose once the registry
+    applies IGNORECASE. Assert the invariant structurally instead.
+    """
+    unscoped = [
+        pattern.name
+        for pattern in ApiKeyRecognizer.PATTERNS
+        if not _case_scope_spans_whole_pattern(pattern.regex)
+    ]
+    assert unscoped == []
+
+
+@pytest.mark.parametrize(
+    "regex, expected",
+    [
+        (r"(?-i:\bAKIA[0-9A-Z]{16}\b)", True),
+        (r"(?-i:(?:a|b)c)", True),
+        (r"(?-i:[)])", True),
+        (r"(?-i:\))", True),
+        # Closes early: everything after the group is case-insensitive again.
+        (r"(?-i:\bAKIA)[0-9A-Z]{16}", False),
+        (r"\bAKIA[0-9A-Z]{16}\b", False),
+    ],
+)
+def test_case_scope_detection(regex, expected):
+    """The scope check must reject a group that does not enclose the pattern."""
+    assert _case_scope_spans_whole_pattern(regex) is expected
