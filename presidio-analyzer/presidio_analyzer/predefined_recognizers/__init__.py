@@ -205,7 +205,6 @@ PREDEFINED_RECOGNIZERS = [
     "ImeiRecognizer",
     "MedicalLicenseRecognizer",
     "UrlRecognizer",
-    "VinRecognizer",
 ]
 
 NLP_RECOGNIZERS = {

@@ -62,6 +62,7 @@ def test_when_get_recognizers_then_all_recognizers_returned(mock_recognizer_regi
     recognizer_names = {type(rec).__name__ for rec in recognizers}
     assert "UuidRecognizer" in recognizer_names
     assert "ImeiRecognizer" in recognizer_names
+    assert "VinRecognizer" not in recognizer_names
 
 
 def test_when_get_recognizers_then_return_all_fields(mock_recognizer_registry):

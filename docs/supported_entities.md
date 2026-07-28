@@ -27,7 +27,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |MEDICAL_LICENSE|Common medical license numbers.|Pattern match, context and checksum|
 |URL|A URL (Uniform Resource Locator), unique identifier used to locate a resource on the Internet|Pattern match, context and top level url validation|
 |UUID|A Universally Unique Identifier (UUID) in the standard 8-4-4-4-12 hyphenated hexadecimal format. Covers RFC 4122 versions 1-5 and RFC 9562 versions 6-8; the nil UUID (all zeros) is excluded as a non-identifying sentinel.|Pattern match, validation of version/variant nibbles, and context|
-|VIN|Vehicle Identification Number, a 17-character identifier assigned to motor vehicles per ISO 3779.|Pattern match, context and checksum|
+|VIN|Vehicle Identification Number, a 17-character identifier assigned to motor vehicles per ISO 3779. Disabled by default.|Pattern match, context and checksum|
 
 ### USA
 
