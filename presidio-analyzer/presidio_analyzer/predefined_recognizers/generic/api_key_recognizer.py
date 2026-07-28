@@ -90,14 +90,22 @@ class ApiKeyRecognizer(PatternRecognizer):
             r"\bAIza[0-9A-Za-z_-]{35}\b",
             0.9,
         ),
+        # Slack documents xoxb (bot), xoxp (user), xoxe (rotation), xapp
+        # (app-level) and xwfp (workflow). The legacy xoxa/xoxr/xoxs prefixes
+        # are not in the current documentation and are left out.
         Pattern(
             "Slack token",
-            r"\bxox[abeprs]-[0-9A-Za-z-]{10,}",
+            r"\bxox[bep]-[0-9A-Za-z-]{10,}",
             0.85,
         ),
         Pattern(
             "Slack app-level token",
             r"\bxapp-[0-9A-Za-z-]{10,}",
+            0.85,
+        ),
+        Pattern(
+            "Slack workflow token",
+            r"\bxwfp-[0-9A-Za-z-]{10,}",
             0.85,
         ),
         # Only live-mode secret (sk_) and restricted (rk_) keys. Publishable

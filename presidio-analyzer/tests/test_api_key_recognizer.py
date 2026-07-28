@@ -13,6 +13,8 @@ from tests import assert_result_within_score_range
 # string identical while leaving nothing for a scanner to match in the source.
 SLACK_BOT_TOKEN = "xox" + "b-123456789012-1234567890123-EXAMPLEexampleEXAMPLEexam"
 SLACK_APP_TOKEN = "xap" + "p-1-A01BCDEFGHI-1234567890123-EXAMPLEexample"
+SLACK_WORKFLOW_TOKEN = "xwf" + "p-1-A01BCDEFGHI-1234567890123-EXAMPLEexample"
+SLACK_LEGACY_TOKEN = "xox" + "s-123456789012-1234567890123-EXAMPLEexample"
 STRIPE_SECRET_KEY = "sk" + "_live_0000EXAMPLEkey0000EXAMPLE00"
 STRIPE_RESTRICTED_KEY = "rk" + "_live_0000EXAMPLEkey0000EXAMPLE00"
 STRIPE_PUBLISHABLE_KEY = "pk" + "_live_0000EXAMPLEkey0000EXAMPLE00"
@@ -78,6 +80,8 @@ def entities():
          1, ((0, 57),), ((0.85, 0.85),)),
         (SLACK_APP_TOKEN,
          1, ((0, 47),), ((0.85, 0.85),)),
+        (SLACK_WORKFLOW_TOKEN,
+         1, ((0, 47),), ((0.85, 0.85),)),
 
         # --- Stripe ------------------------------------------------------
         (STRIPE_SECRET_KEY,
@@ -121,6 +125,9 @@ def entities():
          0, (), ()),
         # Stripe publishable keys are documented as safe to expose, and
         # test-mode keys reach sandbox data only.
+        # Legacy Slack prefixes are not in the current documentation.
+        (SLACK_LEGACY_TOKEN,
+         0, (), ()),
         (f"{STRIPE_PUBLISHABLE_KEY} publishable",
          0, (), ()),
         (f"{STRIPE_TEST_KEY} sandbox",
