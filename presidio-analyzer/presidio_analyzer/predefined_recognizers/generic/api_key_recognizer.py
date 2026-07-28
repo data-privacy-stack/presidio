@@ -13,23 +13,29 @@ from presidio_analyzer import Pattern, PatternRecognizer
 # PatternRecognizer matches with the ``regex`` module, which supports
 # variable-length lookbehind, so the anchor can be excluded from the reported
 # span and only the secret itself is returned.
-AWS_SECRET_ANCHOR = r"(?<=(?i:aws_secret_access_key)[\"']?[ \t]{0,8}[:=][ \t]{0,8}[\"']?)"  # noqa: E501
+AWS_SECRET_ANCHOR = (
+    r"(?<=(?i:aws_secret_access_key)[\"']?[ \t]{0,8}[:=][ \t]{0,8}[\"']?)"  # noqa: E501
+)
+
+
+def _case_sensitive(regex: str) -> str:
+    """Keep credential formats case-sensitive under registry-level regex flags."""
+    return rf"(?-i:{regex})"
 
 
 class ApiKeyRecognizer(PatternRecognizer):
     """
     Recognize provider-issued API keys, access keys and bearer tokens.
 
-    Every pattern is anchored on a vendor-assigned, case-sensitive prefix (or,
-    for the AWS secret access key, on the credential name AWS documents). Only
-    credential formats whose prefix is stated in vendor documentation are
-    included, so that a match is driven by an unambiguous structural marker
-    rather than by string length or entropy.
+    Every pattern is anchored on a vendor-assigned, case-sensitive prefix, a
+    documented credential name, or a standards-defined structural marker.
+    String length and entropy are supporting evidence rather than the primary
+    signal.
 
-    Note: the patterns are matched case-sensitively. Every prefix below is
-    case-sensitive at the vendor, and matching case-insensitively (the
-    PatternRecognizer default) would make markers such as ``AKIA`` or ``eyJ``
-    fire on ordinary lowercase text.
+    Note: case sensitivity is encoded inside every default pattern. The
+    recognizer registry applies its global regex flags after constructing
+    predefined recognizers, so constructor flags alone cannot preserve
+    case-sensitive vendor prefixes in the default configuration.
 
     ref:
     - AWS access key ID prefixes (``AKIA``, ``ASIA``):
@@ -37,12 +43,18 @@ class ApiKeyRecognizer(PatternRecognizer):
     - AWS credential names (``aws_secret_access_key`` /
       ``AWS_SECRET_ACCESS_KEY``):
       https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+    - AWS access key lengths:
+      https://docs.aws.amazon.com/AmazonS3/latest/developerguide/MakingRequests.html
     - GitHub token prefixes and base62 body:
       https://github.blog/engineering/platform-security/behind-githubs-new-authentication-token-formats/
+    - GitHub stateless installation tokens:
+      https://github.blog/changelog/2026-05-15-github-app-installation-tokens-per-request-override-header/
     - Google API keys:
       https://cloud.google.com/docs/authentication/api-keys
     - Slack token prefixes:
       https://docs.slack.dev/authentication/tokens/
+    - Slack token rotation formats:
+      https://docs.slack.dev/authentication/using-token-rotation/
     - Stripe secret and restricted keys:
       https://docs.stripe.com/keys
     - JSON Web Token structure (RFC 7519, section 3):
@@ -65,63 +77,88 @@ class ApiKeyRecognizer(PatternRecognizer):
         # credentials, and are deliberately excluded.
         Pattern(
             "AWS access key ID",
-            r"\b(?:ABIA|ACCA|AKIA|ASIA)[0-9A-Z]{16}\b",
+            _case_sensitive(r"\b(?:ABIA|ACCA|AKIA|ASIA)[0-9A-Z]{16}\b"),
             0.9,
         ),
         Pattern(
             "AWS secret access key",
-            AWS_SECRET_ANCHOR + r"[A-Za-z0-9/+=]{40}",
+            _case_sensitive(
+                AWS_SECRET_ANCHOR + r"[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])"
+            ),
             0.8,
         ),
         # ghp_/gho_/ghu_/ghs_/ghr_ followed by 30 characters of base62 entropy
-        # and a 6 character base62 CRC32 checksum.
+        # and a 6 character base62 CRC32 checksum. GitHub App installation
+        # tokens (ghs_) are separate because GitHub also issues a stateless,
+        # JWT-format token and recommends accepting 36 or more characters from
+        # its documented character set.
         Pattern(
             "GitHub token",
-            r"\bgh[pousr]_[A-Za-z0-9]{36}\b",
+            _case_sensitive(r"\bgh[pour]_[A-Za-z0-9]{36}\b"),
+            0.9,
+        ),
+        Pattern(
+            "GitHub App installation token",
+            _case_sensitive(r"\bghs_[A-Za-z0-9.\-_]{36,}(?![A-Za-z0-9.\-_])"),
             0.9,
         ),
         Pattern(
             "GitHub fine-grained personal access token",
-            r"\bgithub_pat_[A-Za-z0-9_]{82}\b",
+            _case_sensitive(r"\bgithub_pat_[A-Za-z0-9_]{82}\b"),
             0.9,
         ),
         Pattern(
             "Google API key",
-            r"\bAIza[0-9A-Za-z_-]{35}\b",
+            _case_sensitive(r"\bAIza[0-9A-Za-z_-]{35}\b"),
             0.9,
         ),
-        # Slack documents xoxb (bot), xoxp (user), xoxe (rotation), xapp
-        # (app-level) and xwfp (workflow). The legacy xoxa/xoxr/xoxs prefixes
-        # are not in the current documentation and are left out.
+        # Slack documents xoxb (bot), xoxp (user), xoxe- (rotation refresh),
+        # xoxe.xoxb-/xoxe.xoxp- (rotated access), xapp (app-level), and xwfp
+        # (workflow). The legacy xoxa/xoxr/xoxs prefixes are not in the current
+        # documentation and are left out.
         Pattern(
-            "Slack token",
-            r"\bxox[bep]-[0-9A-Za-z-]{10,}",
+            "Slack bot or user token",
+            _case_sensitive(r"\bxox[bp]-[0-9A-Za-z-]{10,}"),
+            0.85,
+        ),
+        Pattern(
+            "Slack refresh token",
+            _case_sensitive(r"\bxoxe-[0-9A-Za-z-]{10,}"),
+            0.85,
+        ),
+        Pattern(
+            "Slack rotated access token",
+            _case_sensitive(r"\bxoxe\.xox[bp]-[0-9A-Za-z-]{10,}"),
             0.85,
         ),
         Pattern(
             "Slack app-level token",
-            r"\bxapp-[0-9A-Za-z-]{10,}",
+            _case_sensitive(r"\bxapp-[0-9A-Za-z-]{10,}"),
             0.85,
         ),
         Pattern(
             "Slack workflow token",
-            r"\bxwfp-[0-9A-Za-z-]{10,}",
+            _case_sensitive(r"\bxwfp-[0-9A-Za-z-]{10,}"),
             0.85,
         ),
-        # Only live-mode secret (sk_) and restricted (rk_) keys. Publishable
-        # keys (pk_) are documented as safe to expose, and test-mode keys reach
-        # sandbox data only.
+        # Secret (sk_) and restricted (rk_) keys are private in both live and
+        # sandbox modes. Publishable keys (pk_) are documented as safe to
+        # expose.
         Pattern(
-            "Stripe secret key",
-            r"\b(?:sk|rk)_live_[0-9A-Za-z]{24,}",
+            "Stripe secret or restricted key",
+            _case_sensitive(r"\b(?:sk|rk)_(?:live|test)_[0-9A-Za-z]{24,}"),
             0.9,
         ),
-        # A JWT header and payload are base64url-encoded JSON objects, so both
-        # begin with "eyJ" (the encoding of '{"'). Requiring the marker on both
-        # segments keeps ordinary dotted base64 out.
+        # This intentionally covers the common compact signed JWT subset whose
+        # header and claims set both begin with '{"'. RFC 7519 also permits
+        # other JSON serialization and JWE forms; those do not have an equally
+        # precise textual marker and are outside this pattern's scope.
         Pattern(
-            "JSON Web Token",
-            r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}",
+            "Common compact signed JSON Web Token",
+            _case_sensitive(
+                r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\."
+                r"[A-Za-z0-9_-]{8,}"
+            ),
             0.6,
         ),
     ]
