@@ -505,3 +505,10 @@ recognizers:
     type: predefined
     enabled: false
     country_code: ca
+
+  - name: CaPostalCodeRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: ca

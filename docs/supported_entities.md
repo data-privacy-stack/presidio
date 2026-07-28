@@ -130,6 +130,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |FieldType|Description|Detection Method|
 |--- |--- |--- |
 |CA_SIN|A Canadian Social Insurance Number (SIN) is a 9-digit number issued by Employment and Social Development Canada (ESDC) to administer government programs. The last digit is a Luhn check digit. SINs starting with 0 or 8 are reserved and not issued.|Pattern match, context, and checksum|
+|CA_POSTAL_CODE|A Canadian postal code in the standard A1A 1A1 format (letter-digit-letter, space, digit-letter-digit). The letters D, F, I, O, Q, U are never used in any letter position; W and Z are additionally excluded from the first letter position.|Pattern match and context|
 
 ### Sweden
 | FieldType  | Description                                                                                             | Detection Method                         |
