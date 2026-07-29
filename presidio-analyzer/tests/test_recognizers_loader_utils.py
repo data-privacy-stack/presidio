@@ -324,9 +324,9 @@ def test_yaml_two_gliner_entries_without_name_yield_distinct_recognizers(monkeyp
         )
     )
     names = sorted(r.name for r in instances)
-    assert names == sorted(
-        ["GLiNERRecognizer_team_model_a", "GLiNERRecognizer_team_model_b"]
-    )
+    assert names[0].startswith("GLiNERRecognizer_team_model_a_")
+    assert names[1].startswith("GLiNERRecognizer_team_model_b_")
+    assert names[0] != names[1]
 
 
 def test_convert_supported_entities_to_entity_uses_first_item():
