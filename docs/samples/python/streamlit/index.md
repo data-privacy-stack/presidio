@@ -33,4 +33,4 @@ ALLOW_OTHER_MODELS=true #true if the user could download new models
 ```
 ## Output
 Output should be similar to this screenshot:
-![image](https://github.com/microsoft/presidio/assets/3776619/7d0eadf1-e750-4747-8b59-8203aa43cac8)
+![image](https://github.com/data-privacy-stack/presidio/assets/3776619/7d0eadf1-e750-4747-8b59-8203aa43cac8)

@@ -1,6 +1,6 @@
-# Microsoft Presidio Development Instructions
+# Presidio Development Instructions
 
-Microsoft Presidio is a Python-based data protection and de-identification SDK with multiple components for detecting and anonymizing PII (Personally Identifiable Information) in text and images.
+Presidio is a Python-based data protection and de-identification SDK with multiple components for detecting and anonymizing PII (Personally Identifiable Information) in text and images.
 
 ## Core Philosophy
 
@@ -111,7 +111,6 @@ recognizers:
     enabled: false  # Country-specific defaults to false
 
 # 4. docs/supported_entities.md (add row to appropriate table)
-# 5. CHANGELOG.md (under "Unreleased" section)
 ```
 
 **6. Comprehensive Test Coverage:**
@@ -226,7 +225,6 @@ e2e-tests/tests/test_new_endpoint.py
 # 3. Add usage example
 docs/samples/python/new_feature_example.ipynb
 
-# 4. Update CHANGELOG.md
 ```
 
 ### Cross-Component Changes
@@ -314,7 +312,6 @@ def test_case2()
 ```markdown
 When adding a feature, update ALL of:
 
-✅ CHANGELOG.md - Under "Unreleased" section
 ✅ docs/supported_entities.md - For new entity types  
 ✅ docs/api-docs/api-docs.yml - For API changes
 ✅ README.md - For major features
@@ -322,6 +319,10 @@ When adding a feature, update ALL of:
 ✅ docs/samples/ - Usage examples for complex features
 ✅ Update docstrings based on the reST docstring format (:param:, :return:, :raises:, :example:)
 ```
+
+Do not update `CHANGELOG.md` in a PR. Before each version bump, changelog
+entries for the current release are generated from merged PRs. Per-PR changelog
+edits create unnecessary merge conflicts.
 
 **2. Pattern Source Documentation:**
 ```python
@@ -570,10 +571,10 @@ Use atomic grouping: (?>a+)b or possessive quantifier a++b"
 
 ### Technology Stack
 - **Python** - Must support all versions
-- **Poetry** - Package manager, not pip
+- **uv** - Dependency management and installation (not pip or Poetry). Each package commits a `uv.lock`; `poetry-core` is retained only as the build backend for now.
 - **Ruff** - Linting and formatting (replaces flake8, black, isort)
 - **spaCy** - Default NLP engine (en_core_web_lg for production), although one can use other NLP engines via provider pattern
-- **Docker** - Deployment via mcr.microsoft.com registry
+- **Docker** - Deployment via GitHub Container Registry (`ghcr.io/data-privacy-stack`)
 
 
 ### Critical Files for Cross-Component Changes
@@ -587,25 +588,33 @@ Use atomic grouping: (?>a+)b or possessive quantifier a++b"
 
 ### Local Development
 ```bash
-# Setup
+# Setup (uv reads the committed uv.lock; --locked fails if it is stale)
 cd presidio-analyzer  # or presidio-anonymizer, presidio-cli, etc.
-poetry install --all-extras
-poetry run python -m spacy download en_core_web_lg  # For analyzer/CLI only
+uv sync --locked --all-extras --group dev
+uv run python -m spacy download en_core_web_lg  # For analyzer/CLI only
 
 # Run tests
-poetry run pytest -xvv  # Stop on first failure with verbose output
-poetry run pytest tests/test_us_ssn_recognizer.py -k "test_valid"  # Specific test
+uv run pytest -xvv  # Stop on first failure with verbose output
+uv run pytest tests/test_us_ssn_recognizer.py -k "test_valid"  # Specific test
 
 # Lint
-ruff check .  # From repo root
-ruff format .  # Auto-format
+uv run ruff check .
+uv run ruff format .
 ```
+
+> **Dependency changes:** whenever you edit a package's `pyproject.toml`
+> dependencies (add/remove/bump `[project]` deps, extras, or
+> `[dependency-groups]`), you MUST regenerate and commit that package's
+> `uv.lock` in the same change (`cd <package> && uv lock`). CI installs with
+> `uv sync --locked` and fails if `pyproject.toml` and `uv.lock` are out of
+> sync, so an updated `pyproject.toml` without its matching `uv.lock` will
+> break the build.
 
 ### Docker Testing
 ```bash
 # Quick test with pre-built images
-docker pull mcr.microsoft.com/presidio-analyzer:latest
-docker run -d -p 5002:3000 --name analyzer mcr.microsoft.com/presidio-analyzer:latest
+docker pull ghcr.io/data-privacy-stack/presidio-analyzer:latest
+docker run -d -p 5002:3000 --name analyzer ghcr.io/data-privacy-stack/presidio-analyzer:latest
 curl http://localhost:5002/health
 
 # Full build from source (takes 15+ minutes)
@@ -624,7 +633,7 @@ pytest -v  # Run all E2E tests
 ## Common Issues to Watch For
 
 ### Build/Test Issues
-- **Poetry version conflicts** - Use `poetry lock --no-update` to preserve versions
+- **Stale `uv.lock`** - If `uv sync --locked` fails with "lockfile needs to be updated", run `uv lock` in that package and commit the result.
 - **Missing spaCy models** - Download en_core_web_lg before running tests
 - **AHDS test skips** - Expected when AHDS_ENDPOINT not set
 - **Transformers test failures** - Expected without HuggingFace access in restricted environments
@@ -641,12 +650,15 @@ pytest -v  # Run all E2E tests
 **See section 8 in Review Priorities above for comprehensive documentation guidelines.**
 
 When adding features, update:
-- **CHANGELOG.md** - Under "Unreleased" section
 - **docs/supported_entities.md** - For new entity types
 - **docs/api-docs/api-docs.yml** - For API changes
 - **README.md** - For major features
 - **Docstrings** - All public classes and methods (ensure proper formatting for API doc generation)
 - **docs/samples/** - Add usage examples for complex new features
+
+Do not update `CHANGELOG.md` in a PR. Its current-release entries are generated
+from merged PRs before each version bump, avoiding conflicts between concurrent
+contributions.
 
 ## Reference Documentation
 

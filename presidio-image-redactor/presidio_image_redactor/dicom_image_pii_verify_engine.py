@@ -164,20 +164,15 @@ class DicomImagePiiVerifyEngine(ImagePiiVerifyEngine, DicomImageRedactorEngine):
         :return: Evaluation comparing redactor engine results vs ground truth.
         """
         # Verify detected PHI
-        verify_image, ocr_results, analyzer_results = self.verify_dicom_instance(
+        # verify_dicom_instance already returns formatted ocr bboxes and analyzer bboxes
+        verify_image, formatted_ocr_results, detected_phi = self.verify_dicom_instance(
             instance,
             padding_width,
             display_image,
-            use_metadata,
+            use_metadata=use_metadata,
             ocr_kwargs=ocr_kwargs,
             ad_hoc_recognizers=ad_hoc_recognizers,
             **text_analyzer_kwargs,
-        )
-        formatted_ocr_results = self.bbox_processor.get_bboxes_from_ocr_results(
-            ocr_results
-        )
-        detected_phi = self.bbox_processor.get_bboxes_from_analyzer_results(
-            analyzer_results
         )
 
         # Remove duplicate entities in results
@@ -212,7 +207,7 @@ class DicomImagePiiVerifyEngine(ImagePiiVerifyEngine, DicomImageRedactorEngine):
         :return: Detected PHI with no duplicate entities.
         """
         dups = []
-        sorted(results, key=lambda x: x["score"], reverse=True)
+        results = sorted(results, key=lambda x: x["score"], reverse=True)
         results_no_dups = []
         dims = ["left", "top", "width", "height"]
 

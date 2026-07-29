@@ -1,3 +1,5 @@
+import time
+
 import pytest
 
 from tests import assert_result
@@ -30,8 +32,8 @@ def entities():
         ("https://www.microsoft.com/store/abc/", 1, ((0, 36),), 0.6,),
         ("microsoft.com", 1, ((0, 13),), 0.5,),
         ("my domains: microsoft.com google.co.il", 2, ((12, 25), (26, 38),), 0.5),
-        ('"https://microsoft.github.io/presidio/"', 1, ((0, 39),), 0.6),  
-        ("'https://microsoft.github.io/presidio/'", 1, ((0, 39),), 0.6),
+        ('"https://presidio.dataprivacystack.org/"', 1, ((0, 40),), 0.6),
+        ("'https://presidio.dataprivacystack.org/'", 1, ((0, 40),), 0.6),
 
         # Invalid URLs
         ("www.microsoft", 0, (), 0),
@@ -47,3 +49,25 @@ def test_when_all_urls_then_succeed(
     assert len(results) == expected_len
     for res, (st_pos, fn_pos) in zip(results, expected_positions):
         assert_result(res, entities[0], st_pos, fn_pos, expected_score)
+
+
+def test_long_valid_hostname_still_detected(recognizer, entities):
+    # The host length bound is the DNS maximum, so a long but well-formed
+    # hostname is matched exactly as before.
+    host = "a." * 60 + "example"  # 127 chars, far below the 253 limit
+    text = f"http://{host}.com/path"
+    results = recognizer.analyze(text, entities)
+    assert len(results) == 1
+    assert_result(results[0], entities[0], 0, len(text), 0.6)
+
+
+def test_repeated_dot_input_does_not_backtrack(recognizer, entities):
+    # The host portion previously used an unbounded run that overlapped the
+    # following dot separator, so a long run of dots backtracked quadratically
+    # against the TLD alternation. It must now finish in time linear in length.
+    text = "." * 3000
+    start = time.time()
+    results = recognizer.analyze(text, entities)
+    elapsed = time.time() - start
+    assert results == []
+    assert elapsed < 15

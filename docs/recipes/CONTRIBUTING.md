@@ -10,7 +10,7 @@ A good recipe should:
 
 2. **Be Reproducible**: Include working code that others can run
 
-3. **Follow the Research Pattern**: Build upon the end-to-end approach from [presidio-research](https://github.com/microsoft/presidio-research), showing:
+3. **Follow the Research Pattern**: Build upon the end-to-end approach from [presidio-research](https://github.com/data-privacy-stack/presidio-research), showing:
    - **Data Synthesis**: How to generate or obtain test data
    - **Configuration**: Your Presidio setup with any custom recognizers
    - **Evaluation**: Metrics (precision, recall, F₂) showing performance
@@ -21,11 +21,11 @@ A good recipe should:
 
 ### Follow Presidio Research Examples
 
-Your recipe should follow the end-to-end evaluation approach from [presidio-research](https://github.com/microsoft/presidio-research).
+Your recipe should follow the end-to-end evaluation approach from [presidio-research](https://github.com/data-privacy-stack/presidio-research).
 
 **Key reference notebooks:**
-- [Evaluate Presidio Analyzer](https://github.com/microsoft/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete evaluation workflow example
-- [Generate Synthetic Data](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Using Presidio Evaluator data generator
+- [Evaluate Presidio Analyzer](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete evaluation workflow example
+- [Generate Synthetic Data](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Using Presidio Evaluator data generator
 
 ### Option 1: Single Jupyter Notebook (Recommended for Simple Cases)
 
@@ -62,7 +62,7 @@ your-recipe-name/
 ### Required Components
 
 Your recipe should include:
-- **Data Synthesis**: Generate synthetic data using [Presidio Evaluator](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) or your own method
+- **Data Synthesis**: Generate synthetic data using [Presidio Evaluator](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) or your own method
 - **Presidio Configuration**: Show your setup (default, custom recognizers, or custom models)
 - **Evaluation**: Measure and report precision, recall, F₂ score, latency
 - **Key Findings**: Brief summary of results and when to use this approach
@@ -90,9 +90,9 @@ Include at minimum:
 ## Examples to Learn From
 
 **Presidio Research Notebooks** (recommended starting point):
-- [Evaluate Presidio Analyzer](https://github.com/microsoft/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete end-to-end evaluation example
-- [Generate Synthetic Data](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Presidio Evaluator data generator
-- [Other presidio-research notebooks](https://github.com/microsoft/presidio-research/tree/master/notebooks) - Additional examples and tools
+- [Evaluate Presidio Analyzer](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete end-to-end evaluation example
+- [Generate Synthetic Data](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Presidio Evaluator data generator
+- [Other presidio-research notebooks](https://github.com/data-privacy-stack/presidio-research/tree/master/notebooks) - Additional examples and tools
 
 **Additional Resources:**
 - [Presidio Samples](../samples/index.md): Integration patterns and usage examples
@@ -100,7 +100,7 @@ Include at minimum:
 ## Questions?
 
 - Open an issue with the `recipe` label
-- Email [presidio@microsoft.com](mailto:presidio@microsoft.com)
+- Email [presidio@dataprivacystack.org](mailto:presidio@dataprivacystack.org)
 - Tag @omri374 in your PR for guidance
 
 ## License

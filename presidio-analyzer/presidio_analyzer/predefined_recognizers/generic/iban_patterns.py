@@ -170,4 +170,16 @@ regex_per_country = {
     "VA": "(VA)" + CK + N4 + N4 + N4 + N4 + N2,
     # Virgin Islands, British   (4c,16n)  VGkk bbbb cccc cccc cccc cccc
     "VG": "(VG)" + CK + C4 + N4 + N4 + N4 + N4,
+    # Egypt (25n) EGkk bbbb ssss cccc cccc cccc ccccc
+    "EG": "(EG)" + CK + N4 + N4 + N4 + N4 + N4 + N4 + N,
+    # Iraq  (4a,15n)  IQkk bbbb sssc cccc cccc ccc
+    "IQ": "(IQ)" + CK + A4 + N4 + N4 + N4 + N3,
+    # Libya (21n) LYkk bbbs ssss cccc cccc c
+    "LY": "(LY)" + CK + N4 + N4 + N4 + N4 + N4 + N,
+    # Saint Lucia   (4a,24c)  LCkk bbbb cccc cccc cccc cccc cccc cccc
+    "LC": "(LC)" + CK + A4 + C4 + C4 + C4 + C4 + C4 + C4,
+    # Seychelles    (4a,20n,3a)   SCkk bbbb ssnn cccc cccc cccc cccm mmm
+    "SC": "(SC)" + CK + A4 + N4 + N4 + N4 + N4 + N4 + A3,
+    # Ukraine   (6n,19c)  UAkk bbbb bbcc cccc cccc cccc cccc c
+    "UA": "(UA)" + CK + N4 + N2 + C4 + C4 + C4 + C4 + C3,
 }

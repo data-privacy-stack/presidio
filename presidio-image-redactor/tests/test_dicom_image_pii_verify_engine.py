@@ -149,12 +149,6 @@ def test_eval_dicom_instance_happy_path(
         "verify_dicom_instance",
         return_value=[None, None, None],
     )
-    mock_get_ocr_bboxes = mocker.patch.object(BboxProcessor, "get_bboxes_from_ocr_results", return_value=None)
-    mock_get_analyzer_bboxes = mocker.patch.object(
-        BboxProcessor,
-        "get_bboxes_from_analyzer_results",
-        return_value=None,
-    )
     mock_remove_dups = mocker.patch.object(DicomImagePiiVerifyEngine, "_remove_duplicate_entities", return_value=None)
     mock_label_positives = mocker.patch.object(DicomImagePiiVerifyEngine, "_label_all_positives", return_value=None)
     mock_precision = mocker.patch.object(DicomImagePiiVerifyEngine, "calculate_precision", return_value=None)
@@ -168,8 +162,6 @@ def test_eval_dicom_instance_happy_path(
     # Assert
     assert type(test_eval_results) == dict
     assert mock_verify_instance.call_count == 1
-    assert mock_get_ocr_bboxes.call_count == 1
-    assert mock_get_analyzer_bboxes.call_count == 1
     assert mock_remove_dups.call_count == 1
     assert mock_label_positives.call_count == 1
     assert mock_precision.call_count == 1
@@ -389,7 +381,7 @@ def test_remove_duplicate_entities_happy_path(
     test_results_no_dups = mock_engine._remove_duplicate_entities(results, tolerance)
 
     # Assert
-    assert test_results_no_dups == expected_results
+    assert sorted(map(lambda d: tuple(sorted(d.items())), test_results_no_dups)) == sorted(map(lambda d: tuple(sorted(d.items())), expected_results))
 
 
 # ------------------------------------------------------
@@ -574,7 +566,7 @@ def test_label_all_positives_happy_path(
     test_all_pos = mock_engine._label_all_positives(mock_gt_single, ocr_results, analyzer_results, tolerance)
 
     # Assert
-    assert test_all_pos == expected_results
+    assert sorted(map(lambda d: tuple(sorted(d.items())), test_all_pos)) == sorted(map(lambda d: tuple(sorted(d.items())), expected_results))
 
 
 # ------------------------------------------------------
@@ -708,3 +700,13 @@ def test_calculate_recall_happy_path(
 
     # Assert
     assert test_recall == expected_result
+
+def test_remove_duplicate_entities_keeps_highest_score():
+    results = [
+        {"entity_type": "DATE_TIME", "score": 0.4, "left": 10, "top": 10, "width": 100, "height": 30},
+        {"entity_type": "PERSON",    "score": 1.0, "left": 10, "top": 10, "width": 100, "height": 30},
+    ]
+    
+    deduped = DicomImagePiiVerifyEngine._remove_duplicate_entities(results, dup_pix_tolerance=5)
+    assert len(deduped) == 1
+    assert deduped[0]["entity_type"] == "PERSON"

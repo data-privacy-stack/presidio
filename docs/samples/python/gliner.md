@@ -43,7 +43,7 @@ nlp_engine = NlpEngineProvider(
 )
 
 # Create an analyzer engine 
-analyzer_engine = AnalyzerEngine()
+analyzer_engine = AnalyzerEngine(nlp_engine=nlp_engine.create_engine())
 
 # Define and create the GLiNER recognizer
 entity_mapping = {
@@ -74,6 +74,37 @@ results = analyzer_engine.analyze(
 
 print(results)
 ```
+
+## Text Chunking
+
+By default, GLiNERRecognizer splits long texts into character-based chunks (250 chars, 50 overlap). You can customize this via `text_chunker`:
+
+**From Python:**
+
+```python
+from presidio_analyzer.chunkers import CharacterBasedTextChunker
+
+gliner_recognizer = GLiNERRecognizer(
+    model_name="urchade/gliner_multi_pii-v1",
+    entity_mapping=entity_mapping,
+    text_chunker=CharacterBasedTextChunker(chunk_size=400, chunk_overlap=60),
+)
+```
+
+**From YAML (using tokenizer-based chunking):**
+
+```yaml
+- name: GLiNERRecognizer
+  type: predefined
+  model_name: urchade/gliner_multi_pii-v1
+  text_chunker:
+    chunker_type: tokenizer
+    overlap_tokens: 32
+```
+
+The `tokenizer` chunker uses the model's own tokenizer (resolved automatically at load time) to split text by token count, respecting the model's token limit instead of approximating with character counts.
+
+`max_tokens` is omitted above so it is auto-derived from the model's tokenizer and reduced to reserve room for special tokens (e.g. `[CLS]`/`[SEP]`). Set it explicitly only if you account for those special tokens yourself, otherwise chunks may overflow the model's real input limit and be truncated.
 
 ## ONNX Runtime Support
 

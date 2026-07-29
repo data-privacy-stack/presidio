@@ -252,6 +252,16 @@ def test_get_pii_bboxes_happy_path(
     "bboxes, show_text_annotation, use_greyscale_cmap",
     [
         (
+            [],
+            False,
+            False,
+        ),
+        (
+            [],
+            False,
+            True,
+        ),
+        (
             [
                 {"left": 50, "top": 0, "width": 30, "height": 10, "is_PII": True},
                 {"left": 3, "top": 17, "width": 14, "height": 8, "is_PII": False},
@@ -329,15 +339,20 @@ def test_add_custom_bboxes_happy_path(
             color_match = False
         return color_match
 
-    for dim in test_img_arr:
-        for pixel in dim:
-            if compare_color(list(pixel), color_red):
-                red_pixels += 1
-            if compare_color(list(pixel), color_blue):
-                blue_pixels += 1
+    if bboxes:
+        for dim in test_img_arr:
+            for pixel in dim:
+                if compare_color(list(pixel), color_red):
+                    red_pixels += 1
+                if compare_color(list(pixel), color_blue):
+                    blue_pixels += 1
 
     # Assert
-    if is_any_PII:
+    if not bboxes:
+        assert test_img is not None
+        assert isinstance(test_img, PIL.Image.Image)
+        assert test_img.size == (100, 100)
+    elif is_any_PII:
         assert red_pixels > 0
     else:
         assert blue_pixels > 0

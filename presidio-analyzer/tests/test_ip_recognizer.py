@@ -81,6 +81,8 @@ def test_when_all_ips_then_succeed(
         ("2001:db8:85a3::8a2e:370", 1, ((0, 23),), ((0.6, 0.81),),),
         ("2001:db8::1", 1, ((0, 11),), ((0.6, 0.81),),),
         ("fe80::1%eth0", 1, ((0, 12),), ((0.6, 0.81),),),
+        # Regression for issue #1476: 1 group before :: must match fully
+        ("A099::09C0:876A:130B", 1, ((0, 20),), ((0.6, 0.81),),),
         # fmt: on
     ],
 )
@@ -326,6 +328,8 @@ def test_when_ip_at_boundary_then_correct_span(
         ("300.168.1.1", 0, (), (),),
         ("12345:db8::1", 0, (), (),),
         ("2001::db8::1", 0, (), (),),
+        # Regression for issue #1476: multiple :: in an address must not match
+        ("2001::25de::cade", 0, (), (),),
         # Zone suffixes are not valid for IPv4
         # IPv4 address substring is valid and should still be matched
         ("192.168.2.1@eth0", 1, ((0, 11),), ((0.6, 0.81),),),
