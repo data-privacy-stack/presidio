@@ -451,6 +451,9 @@ recognizers:
   - name: MacAddressRecognizer
     type: predefined
 
+  - name: UuidRecognizer
+    type: predefined
+
   - name: PhoneRecognizer
     type: predefined
 
@@ -569,6 +572,14 @@ recognizers:
     config_path: presidio_analyzer/conf/langextract_config_basic.yaml
 
   - name: CaSinRecognizer
+    supported_languages:
+    - en
+    - fr
+    type: predefined
+    enabled: false
+    country_code: ca
+
+  - name: CaPostalCodeRecognizer
     supported_languages:
     - en
     - fr
