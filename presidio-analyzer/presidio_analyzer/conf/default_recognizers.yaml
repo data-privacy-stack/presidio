@@ -36,6 +36,9 @@ recognizers:
     - language: it
     - language: pl
     type: predefined
+    # score_thresholds:
+    #   default: 0.4
+    #   CREDIT_CARD: 0.7
 
   - name: UsBankRecognizer
     supported_languages: 
@@ -255,12 +258,19 @@ recognizers:
     type: predefined
     country_code: it
 
+  - name: PhPassportRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: ph
     
   - name: PhTinRecognizer
     supported_languages: 
     - en
     type: predefined
     enabled: false
+    country_code: ph
 
 
   - name: PlPeselRecognizer
@@ -315,7 +325,70 @@ recognizers:
     enabled: false
     country_code: se
 
+  - name: ZaCompanyRegistrationRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaDriverLicenseRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
   - name: ZaIdNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaIncomeTaxNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaLicensePlateRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaMobileNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaPassportRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaTrafficRegisterNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaTelephoneNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: za
+
+  - name: ZaVatNumberRecognizer
     supported_languages:
     - en
     type: predefined
@@ -357,6 +430,13 @@ recognizers:
     enabled: false
     country_code: tr
 
+  - name: PhUmidRecognizer
+    supported_languages:
+      - en
+    type: predefined
+    enabled: false
+    country_code: ph
+
   - name: HuggingFaceNerRecognizer
     supported_languages:
     - en
@@ -383,6 +463,9 @@ recognizers:
     country_code: us
 
   - name: MacAddressRecognizer
+    type: predefined
+
+  - name: UuidRecognizer
     type: predefined
 
   - name: PhoneRecognizer
@@ -503,6 +586,14 @@ recognizers:
     config_path: presidio_analyzer/conf/langextract_config_basic.yaml
 
   - name: CaSinRecognizer
+    supported_languages:
+    - en
+    - fr
+    type: predefined
+    enabled: false
+    country_code: ca
+
+  - name: CaPostalCodeRecognizer
     supported_languages:
     - en
     - fr
