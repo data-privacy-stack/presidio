@@ -12,8 +12,9 @@ class TwPhoneNumberRecognizer(PhoneRecognizer):
     This recognizer intentionally delegates parsing and validation to the
     generic PhoneRecognizer with the supported region restricted to Taiwan.
 
-    Public reference for numbering background:
-    https://www.itu.int/itudoc/itu-t/ob-lists/icc/e164_886.html
+    Public references for numbering background:
+    https://law.moda.gov.tw/EngLawContent.aspx?id=53
+    https://law.moda.gov.tw/EngLawContent.aspx?id=68
 
     :param context: Base context words for enhancing the assurance scores.
     :param supported_language: Language this recognizer supports

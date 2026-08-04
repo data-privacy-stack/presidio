@@ -12,8 +12,9 @@ class TwNationalIdRecognizer(PatternRecognizer):
     a public checksum rule defined by Taiwan's National Identification Card
     numbering scheme.
 
-    Public reference for format and checksum background:
-    https://www.ris.gov.tw/app/portal/3053
+    Public references for format and verification background:
+    https://www.ris.gov.tw/app/portal/188
+    https://www.ris.gov.tw/app/portal/3014
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
@@ -28,7 +29,7 @@ class TwNationalIdRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "TW_NATIONAL_ID",
-            r"\b[A-Z][12]\d{8}\b",
+            r"(?<![A-Za-z0-9])[A-Z][12]\d{8}(?![A-Za-z0-9])",
             0.3,
         ),
     ]
