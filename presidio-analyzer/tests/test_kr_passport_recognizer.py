@@ -1,5 +1,3 @@
-import copy
-import tempfile
 from pathlib import Path
 
 import presidio_analyzer
@@ -80,7 +78,6 @@ def test_when_all_passports_then_succeed(
     for res, (st_pos, fn_pos), (st_score, fn_score) in zip(
         results, expected_positions, expected_score_ranges
     ):
-        print(f"res: {res}, st_pos: {st_pos}, fn_pos: {fn_pos}, st_score: {st_score}, fn_score: {fn_score}")
         if fn_score == "max":
             fn_score = max_score
         assert_result_within_score_range(
@@ -141,26 +138,31 @@ def test_accepts_name_kwarg():
 
 @pytest.mark.parametrize("language", ["ko", "kr"])
 def test_loads_from_default_recognizers_yaml(language):
-    """Recognizer is registered in the default YAML and loads once enabled."""
-    conf = (
-        Path(presidio_analyzer.__file__).parent
-        / "conf"
-        / "default_recognizers.yaml"
-    )
-    recognizers = yaml.safe_load(conf.read_text())["recognizers"]
+    """Recognizer is registered in the default YAML and loads once enabled.
+
+    The constructor default is ``ko`` (see above), but the shipped entry
+    advertises ``kr`` as well, matching the four sibling ``Kr*`` entries already
+    in the file. Both codes are asserted here because an entry that lists a
+    language it cannot serve is the same class of defect this PR fixes.
+    """
+    conf = Path(presidio_analyzer.__file__).parent / "conf" / "default_recognizers.yaml"
+    recognizers = yaml.safe_load(conf.read_text(encoding="utf-8"))["recognizers"]
     entries = [r for r in recognizers if r.get("name") == "KrPassportRecognizer"]
     assert len(entries) == 1, "KrPassportRecognizer missing from YAML"
     entry = entries[0]
     assert entry["country_code"] == "kr"
     assert language in entry["supported_languages"]
 
-    entry = copy.deepcopy(entry)
-    entry["enabled"] = True
-    tmp = Path(tempfile.mkdtemp()) / "conf.yaml"
-    tmp.write_text(
-        yaml.safe_dump({"supported_languages": [language], "recognizers": [entry]})
-    )
-    provider = RecognizerRegistryProvider(conf_file=str(tmp))
-    registry = provider.create_recognizer_registry()
+    # Handed to the provider in memory rather than written to a temporary file:
+    # ``registry_configuration`` takes the same mapping the YAML parses to, so a
+    # round trip through the filesystem would only add a directory to clean up.
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": [language],
+            "recognizers": [dict(entry, enabled=True)],
+        }
+    ).create_recognizer_registry()
+
+    assert [type(r).__name__ for r in registry.recognizers] == ["KrPassportRecognizer"]
     entities = {e for rec in registry.recognizers for e in rec.supported_entities}
     assert "KR_PASSPORT" in entities

@@ -6,10 +6,10 @@ a contract which nothing else enforces: a recognizer can satisfy every one of
 its own unit tests -- which instantiate it directly -- and still be impossible
 to load from a registry configuration.
 
-The gap is specifically in the *disabled* entries. ``default_recognizers.yaml``
-ships ~60 recognizers with ``enabled: false``, and no other test constructs
-them, so a broken constructor stays invisible until a user flips the switch.
-These tests construct every one of them.
+The gap is specifically in the *disabled* entries. Most of what
+``default_recognizers.yaml`` ships is ``enabled: false``, and no other test
+constructs those, so a broken constructor stays invisible until a user flips the
+switch. These tests construct every one of them.
 """
 
 import inspect
@@ -34,6 +34,12 @@ from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 
 DEFAULT_CONF = PACKAGE_ROOT / "presidio_analyzer" / "conf" / "default_recognizers.yaml"
+
+# Parsed once at import. The load test below is parametrized over every shipped
+# entry, so re-reading the file per invocation would parse it a few dozen times
+# to retrieve the same two keys.
+DEFAULT_CONF_DATA = yaml.safe_load(DEFAULT_CONF.read_text(encoding="utf-8"))
+GLOBAL_REGEX_FLAGS = DEFAULT_CONF_DATA["global_regex_flags"]
 
 # Kwargs ``RecognizerListLoader`` passes to every predefined recognizer it
 # builds: ``name`` comes from the YAML entry (or its ``class_name`` alias) and
@@ -79,9 +85,8 @@ def _pattern_recognizer_classes() -> Dict[str, type]:
 
 def _yaml_entries() -> List[Dict]:
     """Normalize the shipped recognizer list to dict entries."""
-    data = yaml.safe_load(DEFAULT_CONF.read_text(encoding="utf-8"))
     entries = []
-    for entry in data["recognizers"]:
+    for entry in DEFAULT_CONF_DATA["recognizers"]:
         entries.append({"name": entry} if isinstance(entry, str) else dict(entry))
     return entries
 
@@ -159,7 +164,11 @@ def test_pattern_recognizer_accepts_loader_kwargs(class_name):
     """
     parameters = inspect.signature(PATTERN_CLASSES[class_name].__init__).parameters
     if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
-        return
+        pytest.skip(
+            f"{class_name}.__init__ takes **kwargs, so the signature cannot show "
+            f"which kwargs it honors. Reported as a skip rather than a silent "
+            f"pass so the gap in coverage stays visible."
+        )
     missing = [kwarg for kwarg in LOADER_KWARGS if kwarg not in parameters]
     assert not missing, (
         f"{class_name}.__init__ does not accept {missing}, which "
@@ -170,8 +179,18 @@ def test_pattern_recognizer_accepts_loader_kwargs(class_name):
 
 @pytest.mark.parametrize("entry", YAML_ENTRIES, ids=_entry_id)
 def test_yaml_entry_class_resolves(entry):
-    """Every shipped entry must name a real recognizer class."""
-    RecognizerListLoader.get_existing_recognizer_cls(recognizer_name=_entry_id(entry))
+    """Every shipped entry must name a real recognizer class.
+
+    The resolved object is asserted to be a recognizer class rather than left to
+    the lookup raising, so an entry that resolves to some unrelated module
+    attribute fails here instead of downstream.
+    """
+    recognizer_cls = RecognizerListLoader.get_existing_recognizer_cls(
+        recognizer_name=_entry_id(entry)
+    )
+    assert isinstance(recognizer_cls, type) and issubclass(
+        recognizer_cls, EntityRecognizer
+    ), f"{_entry_id(entry)} resolves to {recognizer_cls!r}, not a recognizer class"
 
 
 @pytest.mark.parametrize("entry", LOADABLE_YAML_ENTRIES, ids=_entry_id)
@@ -186,13 +205,12 @@ def test_yaml_entry_loads_when_enabled(entry, monkeypatch):
     is therefore a real missing shipped file and is left to fail.
     """
     entry_id = _entry_id(entry)
+    languages = _entry_languages(entry)
     entry = dict(entry, enabled=True)
     monkeypatch.chdir(PACKAGE_ROOT)
     configuration = {
-        "global_regex_flags": yaml.safe_load(DEFAULT_CONF.read_text(encoding="utf-8"))[
-            "global_regex_flags"
-        ],
-        "supported_languages": _entry_languages(entry),
+        "global_regex_flags": GLOBAL_REGEX_FLAGS,
+        "supported_languages": languages,
         "recognizers": [entry],
     }
 
@@ -205,9 +223,14 @@ def test_yaml_entry_loads_when_enabled(entry, monkeypatch):
             raise
         pytest.skip(f"{entry_id} needs an optional dependency: {exc}")
 
-    assert registry.recognizers, (
-        f"{_entry_id(entry)} is listed in default_recognizers.yaml but loaded "
-        f"nothing for languages {_entry_languages(entry)}"
+    # Asserted on the class rather than on ``registry.recognizers`` being
+    # non-empty: the loader drops a recognizer whose language the registry does
+    # not support with a log warning and no exception, so a merely non-empty
+    # registry would not prove that *this* entry is what loaded.
+    loaded = [type(r).__name__ for r in registry.recognizers]
+    assert entry_id in loaded, (
+        f"{entry_id} is listed in default_recognizers.yaml but loaded "
+        f"nothing for languages {languages} (registry holds {loaded})"
     )
 
 
