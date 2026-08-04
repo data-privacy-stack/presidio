@@ -60,6 +60,14 @@ class MyRemoteRecognizer(RemoteRecognizer):
 - NLP/ML-based: `.../predefined_recognizers/nlp_engine_recognizers/` or `.../ner/`
 - Third-party: `.../predefined_recognizers/third_party/`
 
+Directory names are the full lowercase country name (`south_africa`, `philippines`,
+`canada`), not the ISO country code. The only exceptions are the pre-existing `us`
+and `uk` directories. Do not add new abbreviated directories.
+
+Language codes are different: `supported_language` and the YAML `supported_languages`
+key take ISO 639-1 language codes (`ko` for Korean), not country codes (`kr`). A
+mismatch here produces a recognizer that never loads.
+
 **3. Pattern Design Best Practices:**
 ```python
 # ❌ BAD: Too broad - matches month names as persons
@@ -68,14 +76,49 @@ pattern = r"\b[A-Z][a-z]+\b"
 # ✅ GOOD: Specific pattern with context
 PATTERNS = [
     Pattern(
-        "SSN", 
+        "SSN (medium)",
         r"\b\d{3}-\d{2}-\d{4}\b",
-        0.3  # Low base score, context will boost
+        0.3
     )
 ]
 
 CONTEXT = ["ssn", "social security", "tax id"]
 ```
+
+**Score bands.** The score must reflect how much the pattern alone narrows the
+space, independent of any threshold applied downstream.
+
+| Score | Use when | Name the pattern |
+| --- | --- | --- |
+| 0.05 - 0.1 | Bare digit or alphanumeric runs with no structure | `"(very weak)"` |
+| 0.1 - 0.3 | Some structure: delimiters, a prefix, a length constraint | `"(weak)"` |
+| 0.3 - 0.5 | Distinctive format, no validation | `"(medium)"` |
+| 0.5+ | Distinctive format plus checksum or validation | `"(strong)"` |
+
+Assigning 0.3 to a pattern that also matches `covid19` and `sha256` overstates it.
+Compare against existing recognizers before choosing: `UsPassportRecognizer` uses
+0.05 for nine bare digits, `UsBankRecognizer` uses a weak score for 8-17 digits.
+
+**Suppress with thresholds, not by requiring context.** Use `score_thresholds` to
+keep low-confidence matches out of default results. Do not design a recognizer that
+cannot fire without context: `presidio-structured` counts matches per column and has
+no surrounding context to work with.
+
+**Context words are matched as substrings.** `LemmaContextAwareEnhancer` defaults to
+`matching_mode="substring"`, so short context words fire on unrelated tokens.
+
+```python
+# ❌ BAD: "member" matches "remember", "auth" matches "author" and "OAuth",
+#         "claim" matches "disclaimer"
+CONTEXT = ["member", "auth", "claim"]
+
+# ✅ GOOD: long enough to be unambiguous
+CONTEXT = ["member id", "subscriber", "prior authorization"]
+```
+
+Context is prefix-only by default (`context_prefix_count=5`, `context_suffix_count=0`),
+so a context word appearing after the match does not boost the score. Test both
+placements.
 
 **4. Document Pattern Sources:**
 ```python
@@ -108,27 +151,93 @@ recognizers:
   - name: MyRecognizer
     supported_languages: ["en"]
     type: predefined
-    enabled: false  # Country-specific defaults to false
+    enabled: false
+    country_code: us
 
 # 4. docs/supported_entities.md (add row to appropriate table)
 ```
 
-**6. Comprehensive Test Coverage:**
+**Enabled by default or not.** The question is false-positive surface, not which
+country the entity belongs to. Default to `enabled: false` and justify anything else
+in the PR description.
+
+A recognizer may ship enabled only when all of these hold:
+- The pattern is structurally distinctive (delimiters, fixed prefixes, or a checksum
+  that is mandatory rather than regional)
+- A coincidental match on ordinary text is implausible, not merely unlikely
+- Failing validation lowers the score rather than leaving the base score intact
+
+⚠️ A checksum that is optional across part of the entity's range does not qualify. If
+`validate_result` returns `None` on mismatch, the base score stands and every lookalike
+token still surfaces at that score.
+
+**6. Test the Configuration Path, Not Just the Constructor:**
+
+Most predefined recognizers ship `enabled: false`, so the default test run never
+constructs them from configuration. A recognizer that works when built in Python can
+still be unreachable, or crash, when a user enables it in YAML. Every new recognizer
+needs at least one test that goes through the registry.
+
+```python
+def test_recognizer_loads_and_detects_when_enabled_in_yaml(tmp_path):
+    """Detection must work through the path users actually configure."""
+    conf = tmp_path / "recognizers.yaml"
+    conf.write_text(
+        """
+supported_languages:
+  - en
+recognizers:
+  - name: MyRecognizer
+    supported_languages:
+      - en
+    type: predefined
+    enabled: true
+    country_code: us
+"""
+    )
+    registry = RecognizerRegistryProvider(
+        conf_file=conf
+    ).create_recognizer_registry()
+    analyzer = AnalyzerEngine(registry=registry, nlp_engine=nlp_engine)
+
+    results = analyzer.analyze("Member ID ABC123456", language="en")
+
+    assert [result.entity_type for result in results] == ["MY_ENTITY"]
+```
+
+This catches, at minimum:
+- Constructor signatures incompatible with the keys the loader passes (`name`,
+  `supported_entity`, `context`)
+- Class name typos and missing `__init__.py` exports
+- `country_code` mismatches between the class attribute and the YAML entry
+- Class-level defaults (thresholds, context) that configuration silently discards
+- A recognizer whose declared languages are excluded by the top-level
+  `supported_languages` filter, which loads nothing and reports no error
+
+⚠️ **Non-English recognizers:** the top-level `supported_languages` key in the config
+acts as a global filter, and the shipped default is `["en"]`. A recognizer supporting
+only `de` will not load from that config, silently. State the required top-level
+languages in the PR description and cover this in the test above.
+
+**Behavior must not depend on how the recognizer was constructed.** Building it
+directly, adding it with `registry.add_recognizer()`, and loading it from configuration
+must all produce the same recognizer. Any defaulting or validation applied on one path
+belongs on all of them.
+
+**7. Comprehensive Test Coverage:**
 ```python
 @pytest.mark.parametrize("text, expected_len, expected_positions", [
     # True positives - valid formats
-    ("SSN: 123-45-6789", 1, ((5, 16),)),
-    ("My SSN is 123-45-6789", 1, ((10, 21),)),
-    
-    # True negatives - invalid formats  
+    ("SSN: 456-78-9012", 1, ((5, 16),)),
+    ("My SSN is 456-78-9012", 1, ((10, 21),)),
+
+    # True negatives - invalid formats
     ("SSN: 000-00-0000", 0, ()),  # Invalid area
     ("SSN: 666-12-3456", 0, ()),  # Excluded area
-    
+    ("SSN: 123-45-6789", 0, ()),  # Well-known sample SSN, denylisted
+
     # Boundary testing - embedded in text
-    ("Contact: 123-45-6789 for info", 1, ((9, 20),)),
-    
-    # False positive prevention
-    ("ISBN: 123-45-6789", 0, ()),  # Different context
+    ("Contact: 456-78-9012 for info", 1, ((9, 20),)),
 ])
 def test_ssn_detection(text, expected_len, expected_positions, recognizer):
     results = recognizer.analyze(text, ["US_SSN"])
@@ -137,6 +246,60 @@ def test_ssn_detection(text, expected_len, expected_positions, recognizer):
         assert result.start == start
         assert result.end == end
 ```
+
+⚠️ Pick example values that the recognizer actually accepts. Well-known sample values
+(`123-45-6789`, `078-05-1120`) are denylisted by `UsSsnRecognizer`, so a test using them
+as true positives fails, and one using them as a false-positive case passes for the
+wrong reason.
+
+**Assert exact scores, not ranges.** A range assertion passes even when the logic that
+produces the score breaks entirely.
+
+```python
+# ❌ BAD: still passes if checksum promotion stops working
+assert 0.5 <= result.score <= 1.0
+
+# ✅ GOOD: pins the behavior under test
+assert result.score == pytest.approx(EntityRecognizer.MAX_SCORE)
+```
+
+**Include a lookalike negative.** The false-positive surface is the thing worth testing,
+not the happy path. Add a case proving that a plausible non-PII token of the same shape
+is not flagged: a 17-character order ID for a VIN, a legal citation for a bank account
+number, a build tag for an alphanumeric member ID.
+
+**Exercise context enhancement.** A recognizer that defines `CONTEXT` needs a test
+showing the score changes between text with and without a context word. A suite that
+never triggers the enhancer does not test the context words at all.
+
+### Backward Compatibility
+
+Presidio is a library. Changes to shared classes alter results for users who have
+written no new code. Before changing anything outside a new file, state in the PR
+description what existing behavior changes.
+
+These count as behavior changes even without a signature change:
+- Default values on shared base classes (`None` to `[]` changes truthiness for every
+  subclass)
+- Properties on abstract interfaces, since custom implementations inherit the new
+  default and may break
+- Scores, context lists, or patterns on existing recognizers
+- Anything altering which entities are returned for text that previously worked
+
+⚠️ Do not modify an existing recognizer's patterns, scores, or context as a side effect
+of adding a new one. Users depend on current detection behavior.
+
+**Surface new scoring inputs in explainability.** Anything that changes how a score is
+derived (context, negative context, thresholds) must be reflected in
+`AnalysisExplanation`, or users cannot tell why a result scored the way it did.
+
+**Prefer warnings over exceptions when the caller cannot fix the condition.** Raising
+on a configuration a user did not write, and cannot change, turns a degraded result into
+a hard failure. Where a lookup falls back to a default instead of failing, add a debug
+log so the fallback is discoverable.
+
+**Prefer a property on the base class over a maintained list of class names.** Lists
+drift as recognizers are added, and users installing from PyPI cannot extend them.
 
 ### Implementing New Anonymizers (Operators)
 
@@ -479,6 +642,10 @@ Focus on issues in this order of importance:
 - **Missing multilingual tests** - Recognizers claiming multi-language support without language-specific tests
 - **Anonymization reversibility not tested** - No verification that anonymized data can't be de-anonymized
 - **Missing E2E analyzer→anonymizer tests** - Testing components in isolation without integration validation
+- **No configuration-path test for a new recognizer** - Tests construct the recognizer in Python only. Recognizers shipping `enabled: false` are never exercised through `RecognizerRegistryProvider`, which is how users enable them. Require one test that enables the recognizer in a YAML config and asserts detection
+- **Construction paths that disagree** - Behavior differs depending on whether a recognizer is built directly, added via `registry.add_recognizer()`, or loaded from configuration. Flag defaulting or validation logic applied on one path but not the others
+- **Score assertions using ranges** - `assert 0.5 <= score <= 1.0` passes even when checksum promotion or context enhancement breaks. Require exact assertions
+- **No lookalike negative** - Tests cover valid values and malformed values, but not a plausible non-PII token of the same shape, which is the actual false-positive surface
 
 **General Testing:**
 - Missing tests for critical business logic (PII detection, anonymization)
@@ -492,6 +659,10 @@ Focus on issues in this order of importance:
 - Code changes must be reflected in documentation - outdated docs are misleading and dangerous
 - Implementation must not contradict existing documentation - if conflict exists, either update docs or reconsider implementation
 - API documentation is auto-generated from docstrings - formatting errors break the build
+
+**Terminology:**
+- Use "threshold", not "cutoff", to match the codebase
+- Use ISO 639-1 language codes in docs and configuration examples
 
 **Docstring Quality:**
 - All public classes, methods, and functions must have docstrings
@@ -570,7 +741,7 @@ Use atomic grouping: (?>a+)b or possessive quantifier a++b"
 ## Part 3: Repository-Specific Context
 
 ### Technology Stack
-- **Python** - Must support all versions
+- **Python** - `requires-python = ">=3.10,<3.15"`. Code must run on every version in that range
 - **uv** - Dependency management and installation (not pip or Poetry). Each package commits a `uv.lock`; `poetry-core` is retained only as the build backend for now.
 - **Ruff** - Linting and formatting (replaces flake8, black, isort)
 - **spaCy** - Default NLP engine (en_core_web_lg for production), although one can use other NLP engines via provider pattern
@@ -637,6 +808,11 @@ pytest -v  # Run all E2E tests
 - **Missing spaCy models** - Download en_core_web_lg before running tests
 - **AHDS test skips** - Expected when AHDS_ENDPOINT not set
 - **Transformers test failures** - Expected without HuggingFace access in restricted environments
+
+### Configuration Issues
+- **Recognizer enabled in YAML but never loads** - Its declared languages are not in the top-level `supported_languages`, which defaults to `["en"]`. The loader drops it silently
+- **`TypeError: unexpected keyword argument` on registry construction** - The recognizer's `__init__` does not accept a key the loader passes through from the YAML entry, most often `name`
+- **Class defaults missing after loading from YAML** - Check whether the loader assigns the value after construction rather than passing it to `__init__`
 
 ### Code Issues
 - **Logging PII values** - Never log `entity.text`, only `entity.entity_type`
