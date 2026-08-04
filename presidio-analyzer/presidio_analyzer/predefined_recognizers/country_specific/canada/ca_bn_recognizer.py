@@ -22,7 +22,7 @@ class CaBnRecognizer(PatternRecognizer):
     identifiers (e.g. SIN) without context, so the bare form scores low and
     relies on context words.
 
-    Reference: https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/business-registration/business-number-program-account.html
+    Reference: https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/business-registration/business-number-program-account/need-program-accounts.html
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
