@@ -403,6 +403,11 @@ class RecognizerListLoader:
         }
         custom_to_exclude = {"enabled", "type", "class_name", "score_thresholds"}
         for recognizer_conf in predefined:
+            # Only override when the key is present. An absent key means the
+            # configuration says nothing about thresholds, so the value the
+            # recognizer class set for itself must stand. Assigning the
+            # normalized ``None`` (an empty mapping) would silently discard it.
+            has_score_thresholds = "score_thresholds" in recognizer_conf
             score_thresholds = normalize_score_thresholds(
                 recognizer_conf.get("score_thresholds")
             )
@@ -432,11 +437,13 @@ class RecognizerListLoader:
                     )
 
                     recognizer = recognizer_cls(**kwargs)
-                    recognizer.score_thresholds = score_thresholds
+                    if has_score_thresholds:
+                        recognizer.score_thresholds = score_thresholds
                     recognizer_instances.append(recognizer)
 
         for recognizer_conf in custom:
             if RecognizerListLoader.is_recognizer_enabled(recognizer_conf):
+                has_score_thresholds = "score_thresholds" in recognizer_conf
                 score_thresholds = normalize_score_thresholds(
                     recognizer_conf.get("score_thresholds")
                 )
@@ -447,8 +454,9 @@ class RecognizerListLoader:
                     recognizer_conf=new_conf,
                     supported_languages=supported_languages,
                 )
-                for recognizer in custom_recognizers:
-                    recognizer.score_thresholds = score_thresholds
+                if has_score_thresholds:
+                    for recognizer in custom_recognizers:
+                        recognizer.score_thresholds = score_thresholds
                 recognizer_instances.extend(custom_recognizers)
 
         for recognizer_conf in recognizer_instances:
