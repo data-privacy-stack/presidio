@@ -18,7 +18,11 @@ class CaBnRecognizer(PatternRecognizer):
 
     Format: DDDDDDDDD or DDDDDDDDD PP RRRR (spaces optional)
 
-    Reference: https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/registering-your-business/business-number.html
+    A bare 9-digit BN is indistinguishable from other Luhn-checked 9-digit
+    identifiers (e.g. SIN) without context, so the bare form scores low and
+    relies on context words.
+
+    Reference: https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/business-registration/business-number-program-account.html
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
@@ -29,17 +33,23 @@ class CaBnRecognizer(PatternRecognizer):
     COUNTRY_CODE = "ca"
 
     PATTERNS = [
-        # Lookahead suppresses the weak match when the program-account
+        # Lookaround anchors instead of \b: \b would still match a 9-digit
+        # run joined to a larger token by "/", "-" or "." (e.g. serial
+        # numbers like PO-123456782 or decimals like 0.123456782). The
+        # trailing (?!\.\d) blocks decimal continuations while still
+        # allowing a sentence-ending period. The first negative lookahead
+        # in the weak pattern suppresses it when the program-account
         # pattern below matches the same span, so overlapping results are
         # not returned twice.
         Pattern(
             "BN (weak)",
-            r"\b\d{9}\b(?!\s?(?:RT|RP|RC|RM|RR|RZ)\s?\d{4})",
+            r"(?<![\w./-])\d{9}"
+            r"(?!\s?(?:RT|RP|RC|RM|RR|RZ)\s?\d{4})(?![\w/-]|\.\d)",
             0.05,
         ),
         Pattern(
             "BN program account (medium)",
-            r"\b\d{9}\s?(RT|RP|RC|RM|RR|RZ)\s?\d{4}\b",
+            r"(?<![\w./-])\d{9}\s?(RT|RP|RC|RM|RR|RZ)\s?\d{4}(?![\w/-]|\.\d)",
             0.5,
         ),
     ]
