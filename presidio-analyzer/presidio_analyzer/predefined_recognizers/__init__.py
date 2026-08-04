@@ -11,6 +11,7 @@ from .country_specific.australia.au_medicare_recognizer import AuMedicareRecogni
 from .country_specific.australia.au_tfn_recognizer import AuTfnRecognizer
 
 # Canada recognizers
+from .country_specific.canada.ca_postal_code_recognizer import CaPostalCodeRecognizer
 from .country_specific.canada.ca_sin_recognizer import CaSinRecognizer
 
 # Finland recognizers
@@ -182,6 +183,7 @@ from .generic.ip_recognizer import IpRecognizer
 from .generic.mac_recognizer import MacAddressRecognizer
 from .generic.phone_recognizer import PhoneRecognizer
 from .generic.url_recognizer import UrlRecognizer
+from .generic.uuid_recognizer import UuidRecognizer
 
 # NER recognizers
 from .ner.gliner_recognizer import GLiNERRecognizer
@@ -221,6 +223,7 @@ NLP_RECOGNIZERS = {
 
 __all__ = [
     "AbaRoutingRecognizer",
+    "CaPostalCodeRecognizer",
     "CaSinRecognizer",
     "CreditCardRecognizer",
     "CryptoRecognizer",
@@ -231,6 +234,7 @@ __all__ = [
     "NhsRecognizer",
     "MedicalLicenseRecognizer",
     "MacAddressRecognizer",
+    "UuidRecognizer",
     "PhoneRecognizer",
     "SgFinRecognizer",
     "UrlRecognizer",
