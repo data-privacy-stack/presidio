@@ -58,3 +58,9 @@ def test_when_all_rrns_then_succeed(
         assert_result_within_score_range(
             res, entities[0], st_pos, fn_pos, st_score, fn_score
         )
+
+
+def test_when_korean_context_terms_then_present_in_context(recognizer):
+    """Korean terms must be in context so enhancement can fire on Korean text."""
+    for korean_term in ["주민등록번호", "주민번호", "신분증", "본인인증"]:
+        assert korean_term in recognizer.context
