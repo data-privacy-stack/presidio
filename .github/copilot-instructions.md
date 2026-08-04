@@ -93,7 +93,7 @@ space, independent of any threshold applied downstream.
 | 0.05 - 0.1 | Bare digit or alphanumeric runs with no structure | `"(very weak)"` |
 | 0.1 - 0.3 | Some structure: delimiters, a prefix, a length constraint | `"(weak)"` |
 | 0.3 - 0.5 | Distinctive format, no validation | `"(medium)"` |
-| 0.5+ | Distinctive format plus checksum or validation | `"(strong)"` |
+| 0.5+ | Distinctive format | `"(strong)"` |
 
 Assigning 0.3 to a pattern that also matches `covid19` and `sha256` overstates it.
 Compare against existing recognizers before choosing: `UsPassportRecognizer` uses
