@@ -120,7 +120,58 @@ Context is prefix-only by default (`context_prefix_count=5`, `context_suffix_cou
 so a context word appearing after the match does not boost the score. Test both
 placements.
 
-**4. Document Pattern Sources:**
+**4. Validation and Invalidation:**
+
+`PatternRecognizer` gives every pattern two optional hooks. Both operate on the matched
+text alone and neither is required.
+
+| Hook | Return | Effect on the result |
+| --- | --- | --- |
+| `validate_result` | `True` | Score is replaced with `MAX_SCORE` (1.0) |
+| `validate_result` | `False` | Score is replaced with `MIN_SCORE` (0) and the result is dropped |
+| `validate_result` | `None` | Pattern score stands unchanged |
+| `invalidate_result` | `True` | Score is set to `MIN_SCORE` and the result is dropped |
+
+**Most patterns have no checksum, and that is fine.** About 40% of the predefined
+`PatternRecognizer` subclasses do not override `validate_result` at all. Leaving it
+unimplemented is the correct choice when the entity has no verifiable structure: the
+base score carries the signal, and the user filters with a threshold. Do not invent a
+validation rule to appear thorough.
+
+**Return `None`, never `False`, when the check does not apply.** `False` means "this is
+definitely not the entity" and discards the result. If a checksum is mandatory for only
+part of the entity's range, a value outside that range failing the check proves nothing,
+so it must return `None`.
+
+**`True` is not a nudge, it is a jump to full confidence.** Before returning `True`, ask
+what fraction of arbitrary tokens matching the same pattern would pass the check. A
+17-character alphanumeric token has roughly a 1 in 11 chance of satisfying a mod-11 check
+digit, so a recognizer that promotes on that check sends about 9% of coincidental matches
+straight to 1.0, where no threshold can reach them.
+
+```python
+# ❌ BAD: promotes to 1.0 on a check that random tokens pass ~9% of the time,
+#         and cannot invalidate, since the checksum is only mandatory regionally
+def validate_result(self, pattern_text):
+    if self._mod11(pattern_text):
+        return True
+    return None  # cannot say False: the checksum is not universal
+
+# ✅ GOOD: promote only where the checksum is mandatory, and say nothing elsewhere
+def validate_result(self, pattern_text):
+    if not self._checksum_is_mandatory(pattern_text):
+        return None
+    return self._mod11(pattern_text)
+```
+
+If the checksum cannot be scoped that way, leave the score to the pattern and ship the
+recognizer disabled by default.
+
+**Use `invalidate_result` for known non-entities.** Well-known sample values, reserved
+ranges, and formats that collide with the pattern belong here rather than in the regex,
+where they are easier to read and to test.
+
+**5. Document Pattern Sources:**
 ```python
 """
 Recognizes US Social Security Numbers.
@@ -135,7 +186,7 @@ Validation uses SSN format rules: AAA-GG-SSSS
 """
 ```
 
-**5. Required Configuration Updates:**
+**6. Required Configuration Updates:**
 ```python
 # Update all of these:
 # 1. presidio_analyzer/predefined_recognizers/__init__.py
@@ -157,21 +208,25 @@ recognizers:
 # 4. docs/supported_entities.md (add row to appropriate table)
 ```
 
-**Enabled by default or not.** The question is false-positive surface, not which
-country the entity belongs to. Default to `enabled: false` and justify anything else
-in the PR description.
+**Enabled by default or not.** The question is whether the recognizer can produce
+*high-confidence* false positives, not which country the entity belongs to. Default to
+`enabled: false` and justify anything else in the PR description.
 
-A recognizer may ship enabled only when all of these hold:
-- The pattern is structurally distinctive (delimiters, fixed prefixes, or a checksum
-  that is mandatory rather than regional)
-- A coincidental match on ordinary text is implausible, not merely unlikely
-- Failing validation lowers the score rather than leaving the base score intact
+Coincidental matches are expected and acceptable. A generic pattern scored at 0.05
+costs the user nothing, because a confidence threshold removes it, and context or
+validation can still raise it when the match is real. That is the mechanism working as
+designed.
 
-⚠️ A checksum that is optional across part of the entity's range does not qualify. If
-`validate_result` returns `None` on mismatch, the base score stands and every lookalike
-token still surfaces at that score.
+The disqualifier is a false positive that arrives at a score the user cannot filter.
+Once a coincidental match reaches 1.0, no threshold separates it from a true positive.
+So the test for shipping enabled is:
 
-**6. Test the Configuration Path, Not Just the Constructor:**
+- The base score is calibrated to the pattern's specificity (see the score bands above)
+- Nothing promotes a coincidental match to a high score. In particular, `validate_result`
+  must not return `True` for values that random tokens of the same shape pass at a
+  meaningful rate (see Validation and Invalidation below)
+
+**7. Test the Configuration Path, Not Just the Constructor:**
 
 Most predefined recognizers ship `enabled: false`, so the default test run never
 constructs them from configuration. A recognizer that works when built in Python can
@@ -224,7 +279,7 @@ directly, adding it with `registry.add_recognizer()`, and loading it from config
 must all produce the same recognizer. Any defaulting or validation applied on one path
 belongs on all of them.
 
-**7. Comprehensive Test Coverage:**
+**8. Comprehensive Test Coverage:**
 ```python
 @pytest.mark.parametrize("text, expected_len, expected_positions", [
     # True positives - valid formats
