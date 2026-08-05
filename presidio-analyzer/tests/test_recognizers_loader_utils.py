@@ -627,9 +627,16 @@ OPTIONAL_DEPENDENCY_ENTRIES = {"BasicLangExtractRecognizer"}
 def _pattern_recognizer_classes() -> Dict[str, type]:
     """Predefined ``PatternRecognizer`` subclasses, which the YAML loader builds.
 
-    Non-pattern recognizers (NER/LLM/remote wrappers) are excluded: several are
-    not registrable from ``default_recognizers.yaml`` and some deliberately fix
-    their own display name.
+    Swept from the package rather than from the YAML, so that a class is checked
+    *before* it is listed anywhere. That is the direction the defect actually
+    travelled: ``KrPassportRecognizer`` was added in #1814 without ``name`` and
+    consequently could not be added to ``default_recognizers.yaml`` at all, so no
+    YAML-driven check could ever have named it.
+
+    Non-pattern recognizers (NER/LLM/remote wrappers) are not swept here: several
+    are not registrable from ``default_recognizers.yaml`` and some deliberately
+    fix their own display name. The ones that *are* listed come back in via
+    ``_yaml_listed_classes`` below.
     """
     classes = {}
     for attr in dir(predefined):
@@ -674,10 +681,52 @@ LOADABLE_YAML_ENTRIES = [
 ]
 
 
+def _yaml_listed_classes() -> Dict[str, type]:
+    """Classes named by a shipped entry, resolved the way the loader resolves them.
+
+    Adds the entries the package sweep skips because they are not
+    ``PatternRecognizer`` subclasses -- ``PhoneRecognizer``, the two ``Za*``
+    ones, and the NER/LLM wrappers. Being listed is what makes them fair game:
+    the loader passes the kwargs to whatever the YAML names, whatever its base
+    class.
+
+    Most of these are covered more strongly by the load test below, which
+    constructs them outright. The one this reaches that nothing else does is an
+    entry in ``NOT_LOADABLE_FROM_SHIPPED_ENTRY``: excluded from the load test and
+    not a ``PatternRecognizer``, its constructor would otherwise go unchecked.
+
+    An entry that does not resolve is dropped rather than raised on, so a bad
+    entry is reported by ``test_yaml_entry_class_resolves`` as one named failure
+    instead of breaking collection for this whole module.
+    """
+    classes = {}
+    for entry in YAML_ENTRIES:
+        entry_id = _entry_id(entry)
+        try:
+            cls = RecognizerListLoader.get_existing_recognizer_cls(
+                recognizer_name=entry_id
+            )
+        except Exception:  # noqa: BLE001 - reported by the resolve test
+            continue
+        if isinstance(cls, type) and issubclass(cls, EntityRecognizer):
+            classes[entry_id] = cls
+    return classes
+
+
+# Every class the loader may be asked to build: swept from the package (catches a
+# class before it reaches the YAML) and from the shipped YAML (catches a listed
+# class the package sweep skips). Neither source subsumes the other.
+LOADER_BUILT_CLASSES = {**PATTERN_CLASSES, **_yaml_listed_classes()}
+
+
 def test_default_conf_has_entries():
     """Guard the fixtures themselves: an empty parse would pass everything."""
     assert PATTERN_CLASSES, "no predefined PatternRecognizer subclasses found"
     assert YAML_ENTRIES, "no recognizers parsed from default_recognizers.yaml"
+    assert LOADER_BUILT_CLASSES.keys() >= PATTERN_CLASSES.keys(), (
+        "the YAML-listed classes did not resolve, so the union collapsed to less "
+        "than the package sweep alone"
+    )
 
 
 @pytest.mark.parametrize(
@@ -714,15 +763,18 @@ def test_yaml_entry_config_path_points_at_a_shipped_file(entry):
     )
 
 
-@pytest.mark.parametrize("class_name", sorted(PATTERN_CLASSES))
-def test_pattern_recognizer_accepts_loader_kwargs(class_name):
+@pytest.mark.parametrize("class_name", sorted(LOADER_BUILT_CLASSES))
+def test_recognizer_accepts_loader_kwargs(class_name):
     """Constructor must accept every kwarg the YAML loader passes.
 
-    Catches the defect before the recognizer reaches the YAML at all: a class
-    added without ``name`` passes its own unit tests, and only fails once
+    Signature-level on purpose, so it holds for recognizers that cannot be
+    constructed in a test at all -- an ML entry needing configuration, or one
+    whose dependencies are absent -- which the load test below has to exclude or
+    skip. It also catches the defect before the recognizer reaches the YAML: a
+    class added without ``name`` passes its own unit tests and only fails once
     someone tries to register it.
     """
-    parameters = inspect.signature(PATTERN_CLASSES[class_name].__init__).parameters
+    parameters = inspect.signature(LOADER_BUILT_CLASSES[class_name].__init__).parameters
     if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters.values()):
         pytest.skip(
             f"{class_name}.__init__ takes **kwargs, so the signature cannot show "
