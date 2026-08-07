@@ -24,7 +24,7 @@ Follow these steps when starting to work on a Presidio service with uv:
 
 1. Install uv
 
-    - Using the standalone installer
+    - Using the standalone installer (you can inspect [install.sh](https://astral.sh/uv/install.sh) before running it)
 
         ```sh
         curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -63,7 +63,7 @@ Follow these steps when starting to work on a Presidio service with uv:
 
     Command 3 downloads the default spacy model needed for Presidio Analyzer.
 
-#### Alternatively, activate the virtual environment and use the commands using [this method](https://docs.astral.sh/uv/pip/environments/#using-a-virtual-environment).
+#### Alternatively, [activate the virtual environment](https://docs.astral.sh/uv/pip/environments/#using-a-virtual-environment) and run the commands without the `uv run` prefix.
 
 ### Development guidelines
 
