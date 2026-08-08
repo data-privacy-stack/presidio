@@ -61,8 +61,8 @@ class MyRemoteRecognizer(RemoteRecognizer):
 - Third-party: `.../predefined_recognizers/third_party/`
 
 Directory names are the full lowercase country name (`south_africa`, `philippines`,
-`canada`), not the ISO country code. The only exceptions are the pre-existing `us`
-and `uk` directories. Do not add new abbreviated directories.
+`canada`), not the ISO country code. Some pre-existing directories use short forms
+(`us`, `uk`, `thai`); do not imitate them when adding new directories.
 
 Language codes are different: `supported_language` and the YAML `supported_languages`
 key take ISO 639-1 language codes (`ko` for Korean), not country codes (`kr`). A
@@ -105,7 +105,7 @@ cannot fire without context: `presidio-structured` counts matches per column and
 no surrounding context to work with.
 
 **Context words are matched as substrings.** `LemmaContextAwareEnhancer` defaults to
-`matching_mode="substring"`, so short context words fire on unrelated tokens.
+`context_matching_mode="substring"`, so short context words fire on unrelated tokens.
 
 ```python
 # ❌ BAD: "member" matches "remember", "auth" matches "author" and "OAuth",
