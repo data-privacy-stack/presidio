@@ -129,6 +129,10 @@ from .country_specific.sweden.se_organisationsnummer_recognizer import (
 )
 from .country_specific.sweden.se_personnummer_recognizer import SePersonnummerRecognizer
 
+# Taiwan recognizers
+from .country_specific.taiwan.tw_national_id_recognizer import TwNationalIdRecognizer
+from .country_specific.taiwan.tw_phone_number_recognizer import TwPhoneNumberRecognizer
+
 # Thai recognizers
 from .country_specific.thai.th_tnin_recognizer import ThTninRecognizer
 
@@ -277,6 +281,8 @@ __all__ = [
     "KrFrnRecognizer",
     "SeOrganisationsnummerRecognizer",
     "ThTninRecognizer",
+    "TwNationalIdRecognizer",
+    "TwPhoneNumberRecognizer",
     "TrLicensePlateRecognizer",
     "TrNationalIdRecognizer",
     "SePersonnummerRecognizer",

@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 import regex as re
 from presidio_analyzer import (
     AnalyzerEngine,
@@ -12,6 +13,7 @@ from presidio_analyzer import (
     RecognizerRegistry,
 )
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer, UsSsnRecognizer
+from presidio_analyzer.recognizer_registry.recognizers_loader_utils import RecognizerListLoader
 
 
 def create_mock_pattern_recognizer(lang, entity, name):
@@ -696,3 +698,24 @@ def test_load_predefined_recognizers_validates_countries_input():
 # ---------------------------------------------------------------------------
 # YAML ``country_code`` cross-validation
 # ---------------------------------------------------------------------------
+
+
+def test_default_yaml_defines_tw_recognizers_and_loader_can_resolve_classes():
+    """Default YAML should define Taiwan recognizers with matching loader classes."""
+    config_path = Path(__file__).resolve().parents[1] / "presidio_analyzer" / "conf" / "default_recognizers.yaml"
+    config = yaml.safe_load(config_path.read_text())
+
+    recognizer_entries = {
+        entry["name"]: entry for entry in config["recognizers"] if isinstance(entry, dict)
+    }
+
+    tw_national_id = recognizer_entries["TwNationalIdRecognizer"]
+    tw_phone = recognizer_entries["TwPhoneNumberRecognizer"]
+
+    assert tw_national_id["supported_languages"] == ["zh"]
+    assert tw_national_id["country_code"] == "tw"
+    assert tw_phone["supported_languages"] == ["zh"]
+    assert tw_phone["country_code"] == "tw"
+
+    assert RecognizerListLoader.get_existing_recognizer_cls("TwNationalIdRecognizer").__name__ == "TwNationalIdRecognizer"
+    assert RecognizerListLoader.get_existing_recognizer_cls("TwPhoneNumberRecognizer").__name__ == "TwPhoneNumberRecognizer"

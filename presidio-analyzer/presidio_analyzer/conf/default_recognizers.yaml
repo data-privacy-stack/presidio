@@ -410,6 +410,20 @@ recognizers:
     enabled: false
     country_code: th
 
+  - name: TwNationalIdRecognizer
+    supported_languages:
+    - zh
+    type: predefined
+    enabled: false
+    country_code: tw
+
+  - name: TwPhoneNumberRecognizer
+    supported_languages:
+    - zh
+    type: predefined
+    enabled: false
+    country_code: tw
+
   - name: TrNationalIdRecognizer
     supported_languages:
     - tr

@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Analyzer
 #### Added
+- Added Taiwan National ID (`TW_NATIONAL_ID`) predefined recognizer in `presidio-analyzer`.
+- Added Taiwan phone number (`TW_PHONE_NUMBER`) predefined recognizer in `presidio-analyzer`.
 - Added `UuidRecognizer` (generic, entity type `UUID`) to detect UUIDs in the standard 8-4-4-4-12 hyphenated hexadecimal format, covering RFC 4122 versions 1-5 and RFC 9562 versions 6-8. Validates version and variant nibbles and filters the nil UUID to reduce false positives.
 - South African ID number (`ZA_ID_NUMBER`) recognizer for the 13-digit national identity number, using pattern matching, context words, birth-date validation, and Luhn checksum validation. Disabled by default.
 - South African recognizers for `ZA_PASSPORT`, `ZA_INCOME_TAX_NUMBER`, `ZA_DRIVER_LICENSE`, `ZA_VAT_NUMBER`, `ZA_COMPANY_REGISTRATION`, `ZA_TRAFFIC_REGISTER_NUMBER`, `ZA_LICENSE_PLATE`, `ZA_MOBILE_NUMBER`, and `ZA_TELEPHONE_NUMBER`. All disabled by default.
