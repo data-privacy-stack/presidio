@@ -311,6 +311,14 @@ recognizers:
     enabled: false
     country_code: kr
 
+  - name: KrPassportRecognizer
+    supported_languages:
+    - ko
+    - kr
+    type: predefined
+    enabled: false
+    country_code: kr
+
   - name: SeOrganisationsnummerRecognizer
     supported_languages:
     - sv
