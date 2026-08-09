@@ -52,7 +52,6 @@ dev = [
     "pre-commit",
     "diff-cover",
     "fastapi>=0.115.0,<1.0.0",
-    "httpx",
 ]
 
 [tool.coverage.run]

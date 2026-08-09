@@ -55,7 +55,7 @@ jobs:
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.5.0
         with:
           fail-on-severity: low
-          allow-licenses: MIT, Apache-2.0, BSD-3-Clause, BSD-2-Clause AND BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
+          allow-licenses: MIT, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
           comment-summary-in-pr: on-failure
 
   test:
