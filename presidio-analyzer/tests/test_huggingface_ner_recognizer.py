@@ -256,10 +256,14 @@ def test_hf_recognizer_load_errors():
         with pytest.raises(ImportError):
             HuggingFaceNerRecognizer(model_name="test")
 
-    # 2. Test ValueError when model_name is missing
+    # 2. Without model_name the recognizer builds but stays inactive, so that
+    # enabling the shipped default_recognizers.yaml entry does not abort the
+    # construction of the registry. The missing model is reported on use.
     with patch(path, new=MagicMock()):
+        recognizer = HuggingFaceNerRecognizer(model_name=None)
+        assert recognizer.ner_pipeline is None
         with pytest.raises(ValueError, match="model_name must be set"):
-            HuggingFaceNerRecognizer(model_name=None)
+            recognizer.analyze("Katherine lives in Seoul", entities=["PERSON"])
 
 
 @pytest.mark.usefixtures("mock_torch_installed")

@@ -258,16 +258,25 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         1. Hardware acceleration setup (CUDA validation and fallback)
         2. Lazy-loading of the heavyweight ML pipeline.
 
-        :raises ValueError: If model_name is not set
+        Without ``model_name`` the pipeline cannot be built, and this returns
+        without one rather than raising: ``EntityRecognizer.__init__`` calls
+        ``load()``, so raising here aborted the construction of the whole
+        registry for anyone who enabled the shipped
+        ``default_recognizers.yaml`` entry, which carries no ``model_name``.
+        The recognizer is then registered but inactive, and ``analyze()``
+        raises with the same actionable message, so a missing model is still
+        reported rather than silently returning no entities.
         """
         if self.ner_pipeline is not None:
             return
 
         if not self.model_name:
-            raise ValueError(
-                "model_name must be set before calling load(). "
-                "Pass it to __init__() or set it directly."
+            logger.warning(
+                "%s has no model_name and stays inactive. Set model_name to "
+                "use it, either in __init__() or on the recognizer entry.",
+                self.name,
             )
+            return
 
         # Device validation and fallback
         device = self.device
@@ -429,6 +438,17 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
 
         # Defensive guard for entities input
         entities = entities or []
+
+        if not self.model_name:
+            # load() leaves the recognizer inactive in this case, so that the
+            # shipped default_recognizers.yaml entry can be enabled without
+            # aborting the construction of the registry. Raising here rather
+            # than returning [] keeps a misconfigured recognizer from reading
+            # as "this text contains no PII".
+            raise ValueError(
+                "model_name must be set before calling analyze(). "
+                "Pass it to __init__() or set it directly."
+            )
 
         if not self.ner_pipeline:
             self.load()
