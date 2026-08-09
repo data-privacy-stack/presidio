@@ -99,8 +99,10 @@ poetry.lock
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
+# Zensical docs build (scripts/zensical_build.py)
 /site
+/zensical.yml
+.zensical-build/
 
 # mypy
 .mypy_cache/

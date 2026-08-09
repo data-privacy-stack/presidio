@@ -11,7 +11,7 @@ Presidio anonymizer can be easily extended to support additional anonymization a
 
 ## Extending presidio-anonymizer for additional PII operators
 
-1. Create new python class implementing the abstract [Operator](https://github.com/microsoft/presidio/blob/main/presidio-anonymizer/presidio_anonymizer/operators/operator.py) class.
+1. Create new python class implementing the abstract [Operator](https://github.com/data-privacy-stack/presidio/blob/main/presidio-anonymizer/presidio_anonymizer/operators/operator.py) class.
 2. Implement the methods:
     - `operate` - gets the data and returns a new text expected to replace the old one.
     - `validate` - validate the parameters entered for the anonymizer exists and valid.

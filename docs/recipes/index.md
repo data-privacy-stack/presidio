@@ -1,6 +1,6 @@
 # Recipes Gallery
 
-Welcome to the Presidio Recipes Gallery! This section provides curated, end-to-end examples demonstrating how to customize Microsoft Presidio for specific data privacy and de-identification scenarios.
+Welcome to the Presidio Recipes Gallery! This section provides curated, end-to-end examples demonstrating how to customize Presidio for specific data privacy and de-identification scenarios.
 
 ## What are Recipes?
 
@@ -25,10 +25,10 @@ While Presidio's documentation covers the fundamentals, recipes bridge the gap b
 Each recipe typically includes:
 
 - **Scenario Description**: The domain and data type
-- **Data Synthesis**: Methods for generating test data using [Presidio Evaluator](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) or custom methods
+- **Data Synthesis**: Methods for generating test data using [Presidio Evaluator](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) or custom methods
 - **Configuration**: Presidio setup with any custom recognizers or models
 - **Evaluation**: Performance metrics (precision, recall, F₂ score, latency)
-- **Implementation**: Jupyter notebook or Python scripts showing the end-to-end flow (see [example](https://github.com/microsoft/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb))
+- **Implementation**: Jupyter notebook or Python scripts showing the end-to-end flow (see [example](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb))
 - **Key Findings**: When to use this approach and trade-offs to consider
 
 For complex flows, consider breaking into multiple notebooks or scripts for better organization.
@@ -75,8 +75,8 @@ Each cell will contain:
 We welcome community contributions! See our [contribution guidelines](CONTRIBUTING.md) for details.
 
 **Reference Examples:**
-- [Evaluate Presidio Analyzer](https://github.com/microsoft/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete end-to-end evaluation workflow
-- [Generate Synthetic Data](https://github.com/microsoft/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Presidio Evaluator data generator
+- [Evaluate Presidio Analyzer](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/4_Evaluate_Presidio_Analyzer.ipynb) - Complete end-to-end evaluation workflow
+- [Generate Synthetic Data](https://github.com/data-privacy-stack/presidio-research/blob/master/notebooks/1_Generate_data.ipynb) - Presidio Evaluator data generator
 
 Follow the pattern: **Data Synthesis** → **Configuration** → **Evaluation**
 
@@ -87,15 +87,15 @@ For complex flows, break into multiple notebooks or scripts. Focus on getting wo
 - [Presidio Samples](../samples/index.md): Additional usage examples and integration patterns
 - [Tutorial Series](../tutorial/index.md): Step-by-step guide to Presidio features
 - [Best Practices for Developing Recognizers](../analyzer/developing_recognizers.md): Deep dive into creating custom PII recognizers
-- [Presidio Research Repository](https://github.com/microsoft/presidio-research): Evaluation tools and research datasets
+- [Presidio Research Repository](https://github.com/data-privacy-stack/presidio-research): Evaluation tools and research datasets
 - [FAQ](../faq.md): Common questions about improving detection accuracy
 
 ## Questions or Feedback?
 
 If you have questions about recipes or suggestions for new scenarios to cover, please:
 
-- Open an issue on [GitHub](https://github.com/microsoft/presidio/issues)
-- Email us at [presidio@microsoft.com](mailto:presidio@microsoft.com)
+- Open an issue on [GitHub](https://github.com/data-privacy-stack/presidio/issues)
+- Email us at [presidio@dataprivacystack.org](mailto:presidio@dataprivacystack.org)
 - Join the discussion in our [community channels](../community.md)
 
 ---

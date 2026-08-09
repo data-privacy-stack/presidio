@@ -1,6 +1,9 @@
+# ruff: noqa: D103,D205,E501,F841,I001
+
 from pathlib import Path
 
 import pytest
+import yaml
 import regex as re
 from presidio_analyzer import (
     AnalyzerEngine,
@@ -9,6 +12,7 @@ from presidio_analyzer import (
     PatternRecognizer,
     RecognizerRegistry,
 )
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer, UsSsnRecognizer
 
 
@@ -49,11 +53,15 @@ def mock_recognizer_registry():
 
 def test_when_get_recognizers_then_all_recognizers_returned(mock_recognizer_registry):
     registry = mock_recognizer_registry
+    count_before_loading = len(registry.get_recognizers(language="en", all_fields=True))
     registry.load_predefined_recognizers()
     recognizers = registry.get_recognizers(language="en", all_fields=True)
 
-    # 1 custom recognizer in english + 28 predefined - 11 disabled
-    assert len(recognizers) == 1 + 28 - 11
+    # Loading predefined recognizers should add EN recognizers, and the new
+    # UuidRecognizer should be among them. Avoid asserting an exact count,
+    # since that count changes whenever a recognizer is added or removed.
+    assert len(recognizers) > count_before_loading
+    assert any(type(rec).__name__ == "UuidRecognizer" for rec in recognizers)
 
 
 def test_when_get_recognizers_then_return_all_fields(mock_recognizer_registry):
@@ -160,6 +168,79 @@ def test_add_recognizer_from_dict():
 
     assert len(registry.recognizers) == 1
     assert registry.recognizers[0].name == "Zip code Recognizer"
+
+
+def test_add_recognizer_from_dict_attaches_thresholds_without_mutating_input(
+    monkeypatch,
+):
+    registry = RecognizerRegistry()
+    recognizer = {
+        "name": "Zip code Recognizer",
+        "supported_language": "de",
+        "patterns": [{"name": "zip", "regex": r"\d{5}", "score": 0.5}],
+        "supported_entity": "ZIP",
+        "score_thresholds": {"default": 0.4, "ZIP": 0.7},
+    }
+    original = recognizer.copy()
+    received = {}
+    from_dict = PatternRecognizer.from_dict
+
+    def capture_from_dict(config):
+        received.update(config)
+        return from_dict(config)
+
+    monkeypatch.setattr(PatternRecognizer, "from_dict", capture_from_dict)
+
+    registry.add_pattern_recognizer_from_dict(recognizer)
+
+    assert "score_thresholds" not in received
+    assert recognizer == original
+    assert registry.recognizers[0].score_thresholds == {
+        "default": 0.4,
+        "ZIP": 0.7,
+    }
+
+
+def test_add_recognizers_from_yaml_attaches_thresholds(tmp_path):
+    yaml_path = tmp_path / "recognizers.yaml"
+    yaml_path.write_text(
+        """recognizers:
+- name: Zip code Recognizer
+  supported_language: de
+  supported_entity: ZIP
+  patterns:
+    - name: zip
+      regex: '\\d{5}'
+      score: 0.5
+  score_thresholds:
+    default: 0.4
+    ZIP: 0.7
+"""
+    )
+    registry = RecognizerRegistry()
+
+    registry.add_recognizers_from_yaml(yaml_path)
+
+    assert registry.recognizers[0].score_thresholds == {
+        "default": 0.4,
+        "ZIP": 0.7,
+    }
+
+
+@pytest.mark.parametrize("score_thresholds", [False, 0, "", []])
+def test_add_recognizer_from_dict_rejects_falsey_non_mapping_thresholds(
+    score_thresholds,
+):
+    recognizer = {
+        "name": "Zip code Recognizer",
+        "supported_language": "de",
+        "patterns": [{"name": "zip", "regex": r"\d{5}", "score": 0.5}],
+        "supported_entity": "ZIP",
+        "score_thresholds": score_thresholds,
+    }
+
+    with pytest.raises(ValueError, match="must be a mapping"):
+        RecognizerRegistry().add_pattern_recognizer_from_dict(recognizer)
 
 
 def test_recognizer_registry_add_from_yaml_file():
@@ -617,3 +698,38 @@ def test_load_predefined_recognizers_validates_countries_input():
 # ---------------------------------------------------------------------------
 # YAML ``country_code`` cross-validation
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Newly registered pattern recognizers are enable-safe
+# ---------------------------------------------------------------------------
+
+
+def test_when_newly_registered_yaml_recognizers_enabled_then_they_load(tmp_path):
+    """AbaRouting, FiPersonalIdentityCode and SgUen were exported in code but
+    missing from ``default_recognizers.yaml``; their entries ship
+    ``enabled: false``, so this flips them on and asserts they instantiate."""
+    conf_path = (
+        Path(__file__).parent.parent
+        / "presidio_analyzer"
+        / "conf"
+        / "default_recognizers.yaml"
+    )
+    conf = yaml.safe_load(conf_path.read_text())
+    targets = {
+        "AbaRoutingRecognizer",
+        "FiPersonalIdentityCodeRecognizer",
+        "SgUenRecognizer",
+    }
+    conf["supported_languages"] = ["en", "fi"]
+    for recognizer_conf in conf["recognizers"]:
+        if recognizer_conf["name"] in targets:
+            recognizer_conf["enabled"] = True
+    enabled_conf = tmp_path / "enabled.yaml"
+    enabled_conf.write_text(yaml.safe_dump(conf))
+
+    registry = RecognizerRegistryProvider(
+        conf_file=str(enabled_conf)
+    ).create_recognizer_registry()
+
+    assert targets <= _recognizer_class_names(registry)

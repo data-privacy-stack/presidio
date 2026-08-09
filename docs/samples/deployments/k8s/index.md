@@ -50,7 +50,7 @@ You can install Presidio locally using [KIND](https://github.com/kubernetes-sigs
      ```
 
 3. Local [helm](https://helm.sh/) client.
-4. **Optional** - Container Registry - such as [ACR](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-intro). Only needed if you are using your own presidio images and not the default ones from from [Microsoft syndicates container catalog](https://azure.microsoft.com/en-in/blog/microsoft-syndicates-container-catalog/)
+4. **Optional** - Container Registry - such as [ACR](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-intro). Only needed if you are using your own Presidio images and not the default ones from [GitHub Container Registry](https://github.com/orgs/data-privacy-stack/packages).
 5. Recent presidio repo is cloned on your local machine.
 
 ### Step by step deployment with customizable parameters
@@ -69,16 +69,16 @@ You can install Presidio locally using [KIND](https://github.com/kubernetes-sigs
    # Choose a namespace and ensure it is created
    NAMESPACE=presidio
 
-   # Choose the tag, from mcr.microsoft.com, e.g. `latest`
+   # Choose the tag from ghcr.io/data-privacy-stack, e.g. `latest`
    TAG=latest
 
    # Choose a name for the deployment
    NAME=<name>
 
    # Use Helm to install all required components
-   helm install $NAME . --set tag=$PRESIDIO_LABEL --namespace $NAMESPACE
+   helm install $NAME . --set tag=$TAG --namespace $NAMESPACE
 
    # If you have your own images in a separate ACR, run
    DOCKER_REGISTRY=<your_registry>
-   helm install $NAME . --set registry=$DOCKER_REGISTRY,tag=$PRESIDIO_LABEL . --namespace $NAMESPACE
+   helm install $NAME . --set registry=$DOCKER_REGISTRY,tag=$TAG --namespace $NAMESPACE
    ```
