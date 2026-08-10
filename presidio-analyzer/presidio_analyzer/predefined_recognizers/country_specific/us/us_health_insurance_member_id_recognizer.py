@@ -14,11 +14,14 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
     - a plausible alphanumeric member ID pattern, and
     - nearby healthcare/insurance context.
 
-    CMS consumer guidance illustrates that insurance cards carry payer-defined
-    member numbers. The default regex is therefore a conservative heuristic and
-    can be replaced through the ``patterns`` constructor argument.
+    CMS consumer guidance explicitly labels the payer-assigned member number on
+    a sample insurance card. Medicaid T-MSIS defines MEMBER-ID as the value shown
+    on the insurance carrier's card and permits up to 20 characters. These
+    sources establish the identifier and upper bound, not a universal syntax;
+    the default regex is therefore a conservative, replaceable heuristic.
 
-    Reference: https://www.cms.gov/files/document/2020-c2c-how-use-health-coverage-slide-deck.pdf
+    CMS card reference: https://www.cms.gov/files/document/11818-sample-insurance-card-english.pdf
+    Medicaid data reference: https://www.medicaid.gov/tmsis/dataguide/v4/data-elements/tpl003036/
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words which increase detection confidence
