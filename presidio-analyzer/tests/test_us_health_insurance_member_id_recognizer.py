@@ -56,7 +56,10 @@ def test_when_member_id_has_context_then_detected(
     results = sorted(results, key=lambda result: result.start)
     assert len(results) == len(expected_positions)
     for result, (start, end) in zip(results, expected_positions):
-        assert_result(result, entity, start, end, 0.6499999999999999)
+        assert result.entity_type == entity
+        assert result.start == start
+        assert result.end == end
+        assert result.score == pytest.approx(0.45)
 
 
 @pytest.mark.parametrize(
@@ -68,6 +71,13 @@ def test_when_member_id_has_context_then_detected(
         "Tracking number ZX-987654321 is in transit",
         "Case number HPN12345A9 is pending review",
         "Claim number BCBSM1234567 was denied",
+        "covid19",
+        "sha256",
+        "iphone15pro",
+        "rfc2119",
+        "gpt4turbo",
+        "ICD10CM123",
+        "ABC-1234567",
     ],
 )
 def test_when_member_id_lacks_insurance_context_then_below_threshold(
@@ -111,7 +121,7 @@ def test_explicit_request_threshold_can_return_pattern_only_member_id(
         score_threshold=0,
     )
     assert len(results) == 1
-    assert_result(results[0], entity, 0, len(text), 0.3)
+    assert_result(results[0], entity, 0, len(text), 0.1)
 
 
 def test_us_health_insurance_member_id_recognizer_metadata(recognizer, entity):
@@ -119,4 +129,6 @@ def test_us_health_insurance_member_id_recognizer_metadata(recognizer, entity):
     assert recognizer.supported_entities == [entity]
     assert recognizer.supported_language == "en"
     assert recognizer.context == ["member", "subscriber", "insurance", "policy"]
-    assert recognizer.score_thresholds == {entity: 0.6}
+    assert recognizer.patterns[0].name == "Health insurance member ID (weak)"
+    assert recognizer.patterns[0].score == 0.1
+    assert recognizer.score_thresholds == {entity: 0.4}

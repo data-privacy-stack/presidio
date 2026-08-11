@@ -19,6 +19,8 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
     on the insurance carrier's card and permits up to 20 characters. These
     sources establish the identifier and upper bound, not a universal syntax;
     the default regex is therefore a conservative, replaceable heuristic.
+    Presidio applies ``re.IGNORECASE`` through its default global regex flags,
+    so the uppercase character classes also match lowercase and mixed-case IDs.
 
     CMS card reference: https://www.cms.gov/files/document/11818-sample-insurance-card-english.pdf
     Medicaid data reference: https://www.medicaid.gov/tmsis/dataguide/v4/data-elements/tpl003036/
@@ -34,10 +36,10 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
 
     PATTERNS = [
         Pattern(
-            "Health insurance member ID (alphanumeric)",
+            "Health insurance member ID (weak)",
             r"\b(?=[A-Z0-9-]{6,20}\b)(?=[A-Z0-9-]*[A-Z])"
             r"(?=[A-Z0-9-]*\d)[A-Z]{1,5}-?[A-Z0-9]{5,14}\b",
-            0.3,
+            0.1,
         ),
     ]
 
@@ -69,5 +71,5 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
         self.score_thresholds = (
             score_thresholds
             if score_thresholds is not None
-            else {supported_entity: 0.6}
+            else {supported_entity: 0.4}
         )
