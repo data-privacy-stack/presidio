@@ -21,11 +21,14 @@ configures. When reviewing, lead with:
 ## Schema/constructor sync
 
 Every constructor parameter that should be settable from YAML needs a matching
-pydantic field. `PredefinedRecognizerConfig` does **not** declare
-`extra="allow"`, so unknown YAML keys on a predefined recognizer are silently
-ignored — a new constructor kwarg without a schema field is dropped without any
-error, and the recognizer silently falls back to its defaults (this is exactly
-the failure `LangExtractRecognizerConfig` exists to prevent; see its docstring).
+pydantic field. In every contribution, check that constructor parameters and
+schema fields have not drifted apart — a mismatch means a value a user writes
+in YAML never reaches the object, or reaches it unvalidated. As of today the
+consequence is silent: `PredefinedRecognizerConfig` ignores unknown YAML keys,
+so a constructor kwarg without a schema field is dropped without any error and
+the recognizer falls back to its defaults (the failure
+`LangExtractRecognizerConfig` exists to prevent; see its docstring). Even if
+that `extra` behavior changes, the no-mismatch rule stands.
 
 - A recognizer whose constructor takes model-specific kwargs needs a dedicated
   config model registered in `CONFIG_MODEL_MAP` (keyed by `class_name` or

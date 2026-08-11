@@ -32,85 +32,38 @@ uv run ruff check . && uv run ruff format .
 
 ## Adding a PII recognizer
 
-Work in this order — the last step is the one most often missed, and it is the
-one that matters most.
+The full rulebook — score bands, context-word rules, validation-hook
+semantics, the configuration-path test template, and the test-quality bar —
+is `.github/instructions/recognizers.instructions.md`. **Read it before
+starting**; those rules apply at authoring time, not just in review. The
+workflow, in order:
 
-1. **Place and name it.** Country-specific recognizers go in
-   `presidio-analyzer/presidio_analyzer/predefined_recognizers/country_specific/{country}/`
-   using the full lowercase country name (`south_africa`, `philippines`) — do
-   not imitate the pre-existing short forms (`us`, `uk`, `thai`). Generic
-   patterns go in `generic/`, NLP/ML-based in `nlp_engine_recognizers/` or
-   `ner/`, third-party in `third_party/`.
-2. **Get language codes right.** `supported_language` takes ISO 639-1 language
-   codes (`ko` for Korean), never country codes (`kr`) — a mismatch loads
-   nothing, silently.
-3. **Make the constructor loader-compatible.** The YAML loader passes config
-   keys (`name`, `supported_entity`, `context`, ...) as constructor kwargs.
-   Accept them and forward to the base class, or the recognizer crashes the
-   whole registry the moment a user enables it:
-   `TypeError: __init__() got an unexpected keyword argument 'name'`.
-4. **Calibrate scores to the pattern alone**: 0.05–0.1 bare digit runs,
-   0.1–0.3 some structure, 0.3–0.5 distinctive format without validation,
-   0.5+ strong. Compare with existing recognizers (`UsPassportRecognizer` uses
-   0.05 for nine bare digits). Low-scoring coincidental matches are fine —
-   thresholds filter them. Suppress with `score_thresholds`, not by requiring
-   context (presidio-structured has no surrounding text).
-5. **Choose context words that survive substring matching.** Context matches
-   substrings by default (`member` fires on `remember`), and only *before* the
-   match (prefix-only). Use unambiguous phrases: `member id`, `subscriber`.
-6. **Use validation hooks conservatively.** `validate_result` returning `True`
-   replaces the score with 1.0 — only do it when the check is genuinely
-   mandatory for that value (a mod-11 check that ~9% of random tokens pass is
-   not that). Return `None`, never `False`, when the check doesn't apply. No
-   checksum at all is a valid design (~40% of recognizers have none). Put
-   well-known sample values and reserved ranges in `invalidate_result`.
-7. **Document the pattern source** in the docstring: the standard or government
-   specification the format comes from, and the validation algorithm if any.
-8. **Register it everywhere**: export in
-   `predefined_recognizers/__init__.py` *and* the country/category
-   `__init__.py`; entry in `presidio_analyzer/conf/default_recognizers.yaml`
-   (`enabled: false` unless justified — the bar for shipping enabled is that no
-   coincidental match can reach a score the user cannot filter); row in
-   `docs/supported_entities.md`.
-9. **Write the configuration-path test.** This is the load-bearing step. Most
-   recognizers ship `enabled: false`, so only a test that enables yours in a
-   YAML config and loads it through `RecognizerRegistryProvider` exercises the
-   path users actually take:
-
-   ```python
-   def test_recognizer_loads_and_detects_when_enabled_in_yaml(tmp_path):
-       conf = tmp_path / "recognizers.yaml"
-       conf.write_text(
-           """
-   supported_languages:
-     - en
-   recognizers:
-     - name: MyRecognizer
-       supported_languages:
-         - en
-       type: predefined
-       enabled: true
-       country_code: us
-   """
-       )
-       registry = RecognizerRegistryProvider(
-           conf_file=conf
-       ).create_recognizer_registry()
-       analyzer = AnalyzerEngine(registry=registry, nlp_engine=nlp_engine)
-       results = analyzer.analyze("Member ID ABC123456", language="en")
-       assert [r.entity_type for r in results] == ["MY_ENTITY"]
-   ```
-
-   For non-English recognizers, set the top-level `supported_languages` in the
-   test config — it defaults to `["en"]` and silently filters everything else.
-
-Test-quality bar: assert **exact** scores
-(`result.score == pytest.approx(EntityRecognizer.MAX_SCORE)`), never ranges;
-include a lookalike negative (a plausible non-PII token of the same shape,
-asserted not flagged); test the score with and without a context word; assert
-exact start/end boundaries; and use example values the recognizer actually
-accepts (well-known samples like `123-45-6789` are denylisted by
-`UsSsnRecognizer`).
+1. **Place and name it** under `predefined_recognizers/`: full lowercase
+   country name for new country directories (`south_africa`, not `za`;
+   don't imitate the pre-existing short forms `us`/`uk`/`thai`), or
+   `generic/`, `nlp_engine_recognizers/`, `ner/`, `third_party/` as
+   appropriate.
+2. **Use ISO 639-1 language codes** (`ko` for Korean, never `kr`) — a
+   mismatch loads nothing, silently.
+3. **Make the constructor loader-compatible**: accept the YAML loader's
+   kwargs (`name`, `supported_entity`, `context`, ...) and forward them to
+   the base class, or the recognizer crashes the whole registry the moment a
+   user enables it.
+4. **Design the pattern for accuracy first** — this is the top review
+   priority: as specific as the format allows, score calibrated to the
+   pattern alone, unambiguous context words, the correct checksum if one
+   exists (and none invented if it doesn't), and the pattern's source
+   documented in the docstring, preferably an official specification.
+5. **Register it everywhere**: exports in `predefined_recognizers/__init__.py`
+   *and* the country/category `__init__.py`; an entry in
+   `conf/default_recognizers.yaml` (country-specific ships `enabled: false`);
+   a row in `docs/supported_entities.md`.
+6. **Write the configuration-path test** — the most-missed step and the one
+   that matters most: enable the recognizer in a YAML config, load it through
+   `RecognizerRegistryProvider`, and assert detection (template in the
+   instructions file). Non-English recognizers must set the top-level
+   `supported_languages` in the test config — it defaults to `["en"]` and
+   silently filters everything else.
 
 When **modifying** an existing recognizer: changed patterns, scores, or context
 change detection results for existing users — state that in the PR description,
@@ -118,34 +71,23 @@ and never change an existing recognizer as a side effect of adding a new one.
 
 ## Changing the YAML configuration layer
 
-The pydantic models in `presidio_analyzer/input_validation/` translate user
-YAML into instances. Rules of the layer:
+The rulebook for the pydantic models in `presidio_analyzer/input_validation/`
+is `.github/instructions/yaml-config.instructions.md` — **read it before
+touching the layer**. The short version:
 
-- **Every YAML-settable field needs a schema field.** Predefined-recognizer
-  configs ignore unknown keys, so a constructor kwarg without a matching
-  pydantic field is silently dropped. Recognizers with model-specific kwargs
-  need a dedicated config model registered in `CONFIG_MODEL_MAP` (follow
-  `HuggingFaceRecognizerConfig` / `GLiNERRecognizerConfig`).
-- **Pick `extra` deliberately**: `forbid` for closed configs (typos fail fast),
-  `allow` for pass-through kwargs models. Don't leave pydantic's silent
-  `ignore` default unexamined.
-- **Pass-through models dump with `exclude_none=True`** so omitted YAML fields
-  keep constructor defaults instead of overriding them with `None`. Any new
-  kwargs model must override `model_dump` the same way.
-- **Validate at parse time with actionable messages** that name the offending
-  field and show the fix — not distant `TypeError`s. Follow the existing
-  validators' style (class existence, mutually exclusive fields, mode-dependent
-  parameters). Prefer warnings over exceptions when the user can't fix the
-  condition.
-- **Never break existing YAML.** Legacy singular forms
-  (`supported_language`, `supported_entity`) stay supported alongside the
-  plural forms; bare-string recognizer entries and inferred `type` stay valid;
-  new fields are optional; tightened validators and changed defaults are
-  breaking changes that must be declared in the PR.
-- **Test through `RecognizerRegistryProvider`**, not just the pydantic model:
-  prove new fields reach the constructed object, and assert error *messages*
-  for invalid YAML. Keep `conf/default_recognizers.yaml` validating against
-  the models.
+- Constructor parameters and schema fields must never drift apart: a
+  YAML-settable kwarg without a matching pydantic field is silently dropped
+  today. Model-specific kwargs need a dedicated config model registered in
+  `CONFIG_MODEL_MAP`.
+- Choose `extra` deliberately (`forbid` fails fast, `allow` passes through);
+  pass-through models dump with `exclude_none=True` so YAML omissions keep
+  constructor defaults.
+- Validate at parse time with actionable messages, and never break existing
+  YAML — legacy singular fields, bare-string entries, and inferred `type` all
+  stay supported.
+- Test through `RecognizerRegistryProvider`, not just the pydantic model:
+  prove new fields reach the constructed object and assert error *messages*
+  for invalid YAML.
 
 ## General engineering rules
 
@@ -159,9 +101,14 @@ YAML into instances. Rules of the layer:
   public interfaces, never another component's internals; shared models
   (`RecognizerResult`, `OperatorConfig`) are contracts — update all consumers
   in the same changeset.
-- **Anonymizer operators** must be non-reversible (no deterministic hashing —
-  rainbow tables), use unpredictable replacement values, and not preserve PII
-  characteristics.
+- **Anonymizer operators**: non-reversible by default — no deterministic
+  hashing (rainbow tables), unpredictable replacement values, no preserved PII
+  characteristics. Deterministic or format-preserving output is sometimes a
+  hard requirement (e.g. referential integrity across a dataset); support it as
+  an explicit, documented opt-in, never as the default behavior.
+- **Security**: never log PII values; validate untrusted inputs before use
+  (user-supplied regexes before compilation, file paths, API payloads); no
+  hardcoded secrets; no unsafe deserialization of untrusted models or pickles.
 - **Performance**: no catastrophic regex backtracking (test long adversarial
   inputs); cache compiled regexes; batch NLP with `nlp.pipe`.
 - **Docs move with code**: `docs/supported_entities.md` for entities,

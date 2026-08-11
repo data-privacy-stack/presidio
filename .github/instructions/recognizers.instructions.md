@@ -7,13 +7,19 @@ applyTo: "presidio-analyzer/presidio_analyzer/predefined_recognizers/**,presidio
 Rules for adding or modifying PII recognizers. When reviewing, lead with the
 highest-impact gaps in this order:
 
-1. No configuration-path test for a new or changed recognizer.
-2. Construction paths that disagree (direct vs. `add_recognizer()` vs. YAML).
-3. Changes to an *existing* recognizer's patterns, scores, or context made as a
+1. **Pattern accuracy.** The pattern is as specific as the format allows, the
+   score is calibrated to the pattern alone, the context words are the right
+   ones, the checksum is correct where one exists (and none is invented where
+   it doesn't — `validate_result` must not promote weak matches to 1.0), and
+   the logic's source is documented, preferably an official specification.
+2. **Proper testing.** A configuration-path test through
+   `RecognizerRegistryProvider` (the load-bearing rule below), exact-score
+   assertions rather than ranges, a lookalike negative, and
+   context-enhancement coverage.
+3. Construction paths that disagree (direct vs. `add_recognizer()` vs. YAML).
+4. Changes to an *existing* recognizer's patterns, scores, or context made as a
    side effect of adding a new one — users depend on current detection behavior.
-4. `validate_result` promoting weak matches to 1.0; score assertions using ranges.
-5. Missing lookalike negative or context-enhancement test.
-6. Language/country-code mismatch; missing exports, YAML entry, or docs row.
+5. Language/country-code mismatch; missing exports, YAML entry, or docs row.
 
 Give specific, actionable feedback: cite the file and line and propose the
 concrete fix. Do not comment on formatting — Ruff and CI own that.
@@ -143,10 +149,12 @@ the score. Tests should cover both placements.
 
 ## Enabled by default or not
 
-The question is whether the recognizer can produce **high-confidence false
-positives** — not which country the entity belongs to. Default to
-`enabled: false`; shipping enabled requires justification in the PR description
-and both of:
+Global (non-country-specific) recognizers — credit card, email, IBAN, IP, URL —
+generally ship `enabled: true`, provided their false-positive rate is low.
+Country-specific recognizers default to `enabled: false`. In both cases the
+deciding question is whether the recognizer can produce **high-confidence false
+positives**; shipping enabled requires justification in the PR description and
+both of:
 
 - The base score is calibrated to the pattern's specificity (bands above).
 - Nothing promotes a coincidental match to a score the user cannot filter.
