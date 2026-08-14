@@ -11,6 +11,7 @@ from .country_specific.australia.au_medicare_recognizer import AuMedicareRecogni
 from .country_specific.australia.au_tfn_recognizer import AuTfnRecognizer
 
 # Canada recognizers
+from .country_specific.canada.ca_postal_code_recognizer import CaPostalCodeRecognizer
 from .country_specific.canada.ca_sin_recognizer import CaSinRecognizer
 
 # Finland recognizers
@@ -76,6 +77,7 @@ from .country_specific.nigeria.ng_vehicle_registration_recognizer import (
 )
 
 # Philippines recognizers
+from .country_specific.philippines.ph_passport_recognizer import PhPassportRecognizer
 from .country_specific.philippines.ph_tin_recognizer import PhTinRecognizer
 from .country_specific.philippines.ph_umid_recognizer import PhUmidRecognizer
 
@@ -171,6 +173,7 @@ from .generic.ip_recognizer import IpRecognizer
 from .generic.mac_recognizer import MacAddressRecognizer
 from .generic.phone_recognizer import PhoneRecognizer
 from .generic.url_recognizer import UrlRecognizer
+from .generic.uuid_recognizer import UuidRecognizer
 
 # NER recognizers
 from .ner.gliner_recognizer import GLiNERRecognizer
@@ -210,6 +213,7 @@ NLP_RECOGNIZERS = {
 
 __all__ = [
     "AbaRoutingRecognizer",
+    "CaPostalCodeRecognizer",
     "CaSinRecognizer",
     "CreditCardRecognizer",
     "CryptoRecognizer",
@@ -220,6 +224,7 @@ __all__ = [
     "NhsRecognizer",
     "MedicalLicenseRecognizer",
     "MacAddressRecognizer",
+    "UuidRecognizer",
     "PhoneRecognizer",
     "SgFinRecognizer",
     "UrlRecognizer",
@@ -291,6 +296,7 @@ __all__ = [
     "KrPassportRecognizer",
     "NgNinRecognizer",
     "NgVehicleRegistrationRecognizer",
+    "PhPassportRecognizer",
     "MedicalNERRecognizer",
     # Germany recognizers
     "DeTaxIdRecognizer",
