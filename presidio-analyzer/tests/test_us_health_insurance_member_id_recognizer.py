@@ -63,6 +63,59 @@ def test_when_member_id_has_context_then_detected(
 
 
 @pytest.mark.parametrize(
+    "text, expected_value",
+    [
+        ("member id abc123456", "abc123456"),
+        ("MeMbEr Id AbC123456", "AbC123456"),
+        ("Subscriber ID zx-987654321.", "zx-987654321"),
+    ],
+)
+def test_member_id_matching_is_case_insensitive_and_ignores_trailing_punctuation(
+    text, expected_value, recognizer, entity
+):
+    """Test casing and punctuation do not change a plausible member ID match."""
+    results = analyze_member_id(text, recognizer, entity)
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert results[0].entity_type == entity
+    assert results[0].start == start
+    assert results[0].end == start + len(expected_value)
+    assert results[0].score == pytest.approx(0.45)
+
+
+def test_when_text_has_multiple_member_ids_then_all_are_detected(recognizer, entity):
+    """Test every contextual member ID in one input is returned."""
+    text = "Member ID ABC123456 and subscriber ID ZX-987654321."
+    expected_values = ["ABC123456", "ZX-987654321"]
+    results = sorted(
+        analyze_member_id(text, recognizer, entity),
+        key=lambda result: result.start,
+    )
+    assert [text[result.start : result.end] for result in results] == expected_values
+    assert all(result.score == pytest.approx(0.45) for result in results)
+
+
+@pytest.mark.parametrize(
+    "text, expected_value",
+    [
+        ("Member ID A12345", "A12345"),
+        ("Member ID ABCDE-12345678901234", "ABCDE-12345678901234"),
+    ],
+)
+def test_member_id_minimum_and_maximum_lengths_are_detected(
+    text, expected_value, recognizer, entity
+):
+    """Test the documented 6-to-20-character member ID boundaries."""
+    results = analyze_member_id(text, recognizer, entity)
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert results[0].entity_type == entity
+    assert results[0].start == start
+    assert results[0].end == start + len(expected_value)
+    assert results[0].score == pytest.approx(0.45)
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "ABC123456789",
@@ -92,6 +145,7 @@ def test_when_member_id_lacks_insurance_context_then_below_threshold(
     [
         "Member ID 1234567890",
         "Subscriber ID A123",
+        "Member ID ABCDE-123456789012345",
     ],
 )
 def test_when_member_id_pattern_is_implausible_then_not_detected(

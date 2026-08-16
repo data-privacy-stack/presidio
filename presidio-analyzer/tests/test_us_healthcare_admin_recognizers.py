@@ -74,6 +74,255 @@ def test_when_us_healthcare_admin_id_has_context_then_detected(
 
 
 @pytest.mark.parametrize(
+    "recognizer, entity, text, expected_value",
+    [
+        # fmt: off
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "pRiOr AuThOrIzAtIoN pa-123456",
+            "pa-123456",
+        ),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "cLaIm clm123456",
+            "clm123456",
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "pReScRiPtIoN rX123456",
+            "rX123456",
+        ),
+        (
+            UsReferralNumberRecognizer(),
+            "US_REFERRAL_NUMBER",
+            "rEfErRaL inf123456",
+            "inf123456",
+        ),
+        (
+            UsProviderTaxIdRecognizer(),
+            "US_PROVIDER_TAX_ID",
+            "bIlLiNg PrOvIdEr eIn: 12-3456789",
+            "12-3456789",
+        ),
+        # fmt: on
+    ],
+)
+def test_admin_id_matching_is_case_insensitive(
+    recognizer, entity, text, expected_value
+):
+    """Test mixed-case labels and prefixes are detected."""
+    results = analyze_with_recognizer(text, entity, recognizer)
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert_result(results[0], entity, start, start + len(expected_value), 0.7)
+
+
+@pytest.mark.parametrize(
+    "recognizer, entity, text, expected_values",
+    [
+        # fmt: off
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "Prior authorization PA-123456; prior authorization PA-654321.",
+            ["PA-123456", "PA-654321"],
+        ),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "Claim CLM123456 and claim CLM654321.",
+            ["CLM123456", "CLM654321"],
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "Prescription RX123456 and prescription RX654321.",
+            ["RX123456", "RX654321"],
+        ),
+        (
+            UsReferralNumberRecognizer(),
+            "US_REFERRAL_NUMBER",
+            "Referral REF123456 and referral INF654321.",
+            ["REF123456", "INF654321"],
+        ),
+        (
+            UsProviderTaxIdRecognizer(),
+            "US_PROVIDER_TAX_ID",
+            "Provider EIN 12-3456789 and provider TIN 20-1234567.",
+            ["12-3456789", "20-1234567"],
+        ),
+        # fmt: on
+    ],
+)
+def test_when_text_has_multiple_admin_ids_then_all_are_detected(
+    recognizer, entity, text, expected_values
+):
+    """Test every contextual administrative ID in one input is returned."""
+    results = sorted(
+        analyze_with_recognizer(text, entity, recognizer),
+        key=lambda result: result.start,
+    )
+    assert [text[result.start : result.end] for result in results] == expected_values
+
+
+@pytest.mark.parametrize(
+    "recognizer, entity, text, expected_value",
+    [
+        # fmt: off
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "Prior authorization PA-123456.",
+            "PA-123456",
+        ),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "Claim CLM123456,",
+            "CLM123456",
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "Prescription RX123456;",
+            "RX123456",
+        ),
+        (
+            UsReferralNumberRecognizer(),
+            "US_REFERRAL_NUMBER",
+            "Referral REF123456.",
+            "REF123456",
+        ),
+        (
+            UsProviderTaxIdRecognizer(),
+            "US_PROVIDER_TAX_ID",
+            "Provider EIN 12-3456789.",
+            "12-3456789",
+        ),
+        # fmt: on
+    ],
+)
+def test_admin_id_matching_ignores_trailing_punctuation(
+    recognizer, entity, text, expected_value
+):
+    """Test trailing sentence punctuation stays outside the result span."""
+    results = analyze_with_recognizer(text, entity, recognizer)
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert_result(results[0], entity, start, start + len(expected_value), 0.7)
+
+
+@pytest.mark.parametrize(
+    "recognizer, entity, text, expected_value",
+    [
+        # fmt: off
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "Prior authorization PA-123456",
+            "PA-123456",
+        ),
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "Prior authorization PA-123456789012",
+            "PA-123456789012",
+        ),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "Claim CLM123456",
+            "CLM123456",
+        ),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "Claim CLM123456789012345",
+            "CLM123456789012345",
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "Prescription RX123456",
+            "RX123456",
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "Prescription RX123456789012",
+            "RX123456789012",
+        ),
+        (
+            UsReferralNumberRecognizer(),
+            "US_REFERRAL_NUMBER",
+            "Referral REF123456",
+            "REF123456",
+        ),
+        (
+            UsReferralNumberRecognizer(),
+            "US_REFERRAL_NUMBER",
+            "Referral INF123456789012",
+            "INF123456789012",
+        ),
+        # fmt: on
+    ],
+)
+def test_admin_id_minimum_and_maximum_lengths_are_detected(
+    recognizer, entity, text, expected_value
+):
+    """Test each variable-length administrative ID at its exact boundaries."""
+    results = analyze_with_recognizer(text, entity, recognizer)
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert_result(results[0], entity, start, start + len(expected_value), 0.7)
+
+
+@pytest.mark.parametrize(
+    "recognizer, entity, text",
+    [
+        # fmt: off
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "PA-12345",
+        ),
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "PA-1234567890123",
+        ),
+        (UsClaimNumberRecognizer(), "US_CLAIM_NUMBER", "CLM12345"),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "CLM1234567890123456",
+        ),
+        (UsPrescriptionNumberRecognizer(), "US_PRESCRIPTION_NUMBER", "RX12345"),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "RX1234567890123",
+        ),
+        (UsReferralNumberRecognizer(), "US_REFERRAL_NUMBER", "REF12345"),
+        (
+            UsReferralNumberRecognizer(),
+            "US_REFERRAL_NUMBER",
+            "INF1234567890123",
+        ),
+        (UsProviderTaxIdRecognizer(), "US_PROVIDER_TAX_ID", "12-123456"),
+        (UsProviderTaxIdRecognizer(), "US_PROVIDER_TAX_ID", "12-12345678"),
+        # fmt: on
+    ],
+)
+def test_too_short_and_too_long_admin_ids_do_not_match(recognizer, entity, text):
+    """Test values one digit outside each supported length do not match."""
+    assert analyze_with_recognizer(text, entity, recognizer, score_threshold=0) == []
+
+
+@pytest.mark.parametrize(
     "recognizer, entity, text, expected_value, expected_score",
     [
         # fmt: off
