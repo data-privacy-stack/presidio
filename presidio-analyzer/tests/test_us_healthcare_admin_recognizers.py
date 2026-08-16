@@ -74,6 +74,87 @@ def test_when_us_healthcare_admin_id_has_context_then_detected(
 
 
 @pytest.mark.parametrize(
+    "recognizer, entity, text, expected_value, expected_score",
+    [
+        # fmt: off
+        (
+            UsPriorAuthorizationNumberRecognizer(),
+            "US_PRIOR_AUTHORIZATION_NUMBER",
+            "Prior authorization number: 987654321 approved.",
+            "987654321",
+            0.7,
+        ),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "Claim number: 1234567890123 was paid.",
+            "1234567890123",
+            0.7,
+        ),
+        (
+            UsClaimNumberRecognizer(),
+            "US_CLAIM_NUMBER",
+            "Claim ID 123456789012345 was paid.",
+            "123456789012345",
+            0.7,
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "Rx #1234567",
+            "1234567",
+            0.6,
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "Prescription number: 7654321",
+            "7654321",
+            0.7,
+        ),
+        (
+            UsPrescriptionNumberRecognizer(),
+            "US_PRESCRIPTION_NUMBER",
+            "prescription 4455667",
+            "4455667",
+            0.7,
+        ),
+        (
+            UsReferralNumberRecognizer(),
+            "US_REFERRAL_NUMBER",
+            "Infusion referral number: 2025001234",
+            "2025001234",
+            0.7,
+        ),
+        # fmt: on
+    ],
+)
+def test_when_admin_id_follows_label_then_identifier_only_is_detected(
+    recognizer, entity, text, expected_value, expected_score
+):
+    """Test labels enable bare numeric IDs without entering the result span."""
+    results = analyze_with_recognizer(text, entity, recognizer)
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert_result(
+        results[0], entity, start, start + len(expected_value), expected_score
+    )
+
+
+def test_when_number_has_different_workflow_label_then_prescription_not_detected():
+    """Test a claim label does not support a prescription number match."""
+    recognizer = UsPrescriptionNumberRecognizer()
+    assert (
+        analyze_with_recognizer(
+            "The claim 1234567 was paid",
+            "US_PRESCRIPTION_NUMBER",
+            recognizer,
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
     "recognizer, entity, text",
     [
         # fmt: off
@@ -143,16 +224,16 @@ def test_when_us_healthcare_admin_id_has_unrelated_context_then_not_detected(
             UsPriorAuthorizationNumberRecognizer(),
             "US_PRIOR_AUTHORIZATION_NUMBER",
             "PA-987654321",
-            0.35,
+            0.1,
         ),
-        (UsClaimNumberRecognizer(), "US_CLAIM_NUMBER", "CLM456789123", 0.35),
+        (UsClaimNumberRecognizer(), "US_CLAIM_NUMBER", "CLM456789123", 0.1),
         (
             UsPrescriptionNumberRecognizer(),
             "US_PRESCRIPTION_NUMBER",
             "RX789456123",
-            0.35,
+            0.1,
         ),
-        (UsReferralNumberRecognizer(), "US_REFERRAL_NUMBER", "INF2025001234", 0.35),
+        (UsReferralNumberRecognizer(), "US_REFERRAL_NUMBER", "INF2025001234", 0.1),
         (UsProviderTaxIdRecognizer(), "US_PROVIDER_TAX_ID", "12-3456789", 0.35),
         # fmt: on
     ],

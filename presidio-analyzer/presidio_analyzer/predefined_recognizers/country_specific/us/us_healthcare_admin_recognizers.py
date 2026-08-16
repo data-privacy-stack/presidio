@@ -38,17 +38,26 @@ class UsPriorAuthorizationNumberRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US healthcare prior authorization numbers with context.
 
     CMS identifies prior authorization and referral numbers as payer-assigned
-    values. There is no universal US syntax; the default pattern is a
-    conservative heuristic for numeric identifiers carrying a ``PA`` prefix.
+    values. There is no universal US syntax. The primary pattern anchors a
+    numeric identifier on its label, while a weak prefixed pattern supports
+    structured data containing values such as ``PA-987654321``.
 
     Reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/18/index.html
     """
 
     PATTERNS = [
         Pattern(
-            "Prior authorization number",
-            r"\bPA-?\d{6,12}\b",
+            "Prior authorization number (labelled)",
+            r"(?<=\b(?:prior\s+authorization|prior\s+auth|preauthorization|"
+            r"pre-auth|authorization)(?:\s*(?:#|no\.?|number|id)\s*:?\s*|"
+            r"\s*:\s*|\s+))"
+            r"(?:PA-?)?\d{6,12}\b",
             0.35,
+        ),
+        Pattern(
+            "Prior authorization number (weak prefixed)",
+            r"\bPA-?\d{6,12}\b",
+            0.1,
         ),
     ]
 
@@ -83,17 +92,24 @@ class UsClaimNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
     CMS describes a claim number as the reference number shown on an
     explanation of benefits, but does not prescribe a universal syntax. The
-    default pattern is a conservative heuristic for numeric identifiers carrying
-    a ``CLM`` prefix.
+    primary pattern anchors a numeric identifier on its claim label, while a
+    weak prefixed pattern supports structured data containing ``CLM`` values.
 
     Reference: https://www.cms.gov/medical-bill-rights/help/guides/explanation-of-benefits
     """
 
     PATTERNS = [
         Pattern(
-            "Claim number",
-            r"\bCLM-?\d{6,12}\b",
+            "Claim number (labelled)",
+            r"(?<=\b(?:claim|medical\s+claim|healthcare\s+claim)"
+            r"(?:\s*(?:#|no\.?|number|id)\s*:?\s*|\s*:\s*|\s+))"
+            r"(?:CLM-?)?\d{6,15}\b",
             0.35,
+        ),
+        Pattern(
+            "Claim number (weak prefixed)",
+            r"\bCLM-?\d{6,15}\b",
+            0.1,
         ),
     ]
 
@@ -125,18 +141,31 @@ class UsPrescriptionNumberRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US prescription numbers with pharmacy context.
 
     CMS defines the prescription/service reference number as a pharmacy-assigned
-    alphanumeric value. Because pharmacies assign these values and there is no
-    universal syntax, the default pattern conservatively requires an ``RX``
-    prefix.
+    alphanumeric value. Because there is no universal syntax, the primary
+    pattern anchors a numeric identifier on an ``Rx`` or ``prescription`` label.
+    A weak prefixed pattern remains available for structured data.
 
     Reference: https://www.cms.gov/files/document/cms-medicare-part-d-340b-repository-companion-guide-v-1.pdf
     """
 
     PATTERNS = [
         Pattern(
-            "Prescription number",
-            r"\bRX-?\d{6,12}\b",
+            "Prescription number (Rx labelled)",
+            r"(?<=\brx(?:\s*(?:#|no\.?|number|id)\s*:?\s*|\s*:\s*|\s+))"
+            r"(?:RX-?)?\d{6,12}\b",
+            0.6,
+        ),
+        Pattern(
+            "Prescription number (labelled)",
+            r"(?<=\bprescription"
+            r"(?:\s*(?:#|no\.?|number|id)\s*:?\s*|\s*:\s*|\s+))"
+            r"(?:RX-?)?\d{6,12}\b",
             0.35,
+        ),
+        Pattern(
+            "Prescription number (weak prefixed)",
+            r"\bRX-?\d{6,12}\b",
+            0.1,
         ),
     ]
 
@@ -169,17 +198,25 @@ class UsReferralNumberRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US healthcare referral numbers with referral context.
 
     CMS documents referral numbers as payer-assigned values reported in the same
-    CMS-1500 field as prior authorization numbers. There is no universal syntax;
-    the default pattern is a conservative ``REF`` or ``INF`` prefix heuristic.
+    CMS-1500 field as prior authorization numbers. There is no universal syntax.
+    The primary pattern anchors a numeric identifier on its referral label, and
+    a weak prefixed pattern supports structured ``REF`` or ``INF`` values.
 
     Reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/18/index.html
     """
 
     PATTERNS = [
         Pattern(
-            "Referral number",
-            r"\b(?:REF|INF)-?\d{6,12}\b",
+            "Referral number (labelled)",
+            r"(?<=\b(?:referral|infusion\s+referral)"
+            r"(?:\s*(?:#|no\.?|number|id)\s*:?\s*|\s*:\s*|\s+))"
+            r"(?:(?:REF|INF)-?)?\d{6,12}\b",
             0.35,
+        ),
+        Pattern(
+            "Referral number (weak prefixed)",
+            r"\b(?:REF|INF)-?\d{6,12}\b",
+            0.1,
         ),
     ]
 
