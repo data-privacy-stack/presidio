@@ -250,23 +250,41 @@ class UsProviderTaxIdRecognizer(_HealthcareAdminPatternRecognizer):
     """Recognize US provider TIN/EIN values with healthcare provider context.
 
     CMS uses a provider's EIN or SSN as the billing provider tax ID. This
-    recognizer intentionally matches only the IRS-defined EIN format
-    ``XX-XXXXXXX`` to avoid treating SSNs as provider organization IDs.
+    recognizer intentionally matches only the IRS-defined EIN format and valid
+    two-digit EIN prefixes to avoid treating SSNs as provider organization IDs.
 
     CMS reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/12/index.html
-    IRS format reference: https://www.irs.gov/instructions/iss4
+    IRS prefix reference: https://www.irs.gov/businesses/small-businesses-self-employed/valid-eins
     """
+
+    # The IRS prefix list excludes 00, 07-09, 17-19, 28-29, 49, 69-70,
+    # 78-79, 89, and 96-97.
+    VALID_EIN_PREFIX = (
+        r"(?:0[1-6]|1[0-6]|2[0-7]|3[0-9]|4[0-8]|5[0-9]|6[0-8]|"
+        r"7[1-7]|8[0-8]|9[0-5]|9[89])"
+    )
 
     PATTERNS = [
         Pattern(
-            "Provider tax ID",
-            r"\b\d{2}-\d{7}\b",
+            "Provider tax ID (labelled)",
+            r"(?<=\b(?:(?:(?:billing|rendering|healthcare)\s+provider|"
+            r"provider\s+organization|provider)\s+(?:tax\s*(?:id|number|"
+            r"identification\s+number)|tin|ein)|billing\s+provider)"
+            r"(?:\s*:\s*|\s+))" + VALID_EIN_PREFIX + r"-\d{7}\b",
             0.35,
+        ),
+        Pattern(
+            "Provider tax ID (weak valid EIN)",
+            r"\b" + VALID_EIN_PREFIX + r"-\d{7}\b",
+            0.1,
         ),
     ]
 
     CONTEXT = [
-        "provider",
+        "tax",
+        "tin",
+        "ein",
+        "billing",
     ]
 
     def __init__(

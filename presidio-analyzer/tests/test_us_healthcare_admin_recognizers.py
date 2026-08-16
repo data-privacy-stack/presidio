@@ -141,6 +141,33 @@ def test_when_admin_id_follows_label_then_identifier_only_is_detected(
     )
 
 
+@pytest.mark.parametrize(
+    "text, expected_value",
+    [
+        ("Billing provider EIN: 12-3456789", "12-3456789"),
+        ("Rendering provider TIN 20-1234567", "20-1234567"),
+        ("Healthcare provider tax number: 67-1234567", "67-1234567"),
+        ("Billing provider: 99-1234567", "99-1234567"),
+    ],
+)
+def test_when_provider_ein_has_provider_tax_label_then_detected(text, expected_value):
+    """Test valid EINs immediately following provider tax labels are detected."""
+    results = analyze_with_recognizer(
+        text,
+        "US_PROVIDER_TAX_ID",
+        UsProviderTaxIdRecognizer(),
+    )
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert_result(
+        results[0],
+        "US_PROVIDER_TAX_ID",
+        start,
+        start + len(expected_value),
+        0.7,
+    )
+
+
 def test_when_number_has_different_workflow_label_then_prescription_not_detected():
     """Test a claim label does not support a prescription number match."""
     recognizer = UsPrescriptionNumberRecognizer()
@@ -217,6 +244,62 @@ def test_when_us_healthcare_admin_id_has_unrelated_context_then_not_detected(
 
 
 @pytest.mark.parametrize(
+    "text",
+    [
+        "Provider phone extension 12-3456789",
+        "provider 00-0000000 listed",
+        "Employee tax ID 12-3456789",
+    ],
+)
+def test_when_ein_lacks_provider_tax_label_then_not_detected(text):
+    """Test generic provider or tax wording cannot promote an EIN-shaped value."""
+    assert (
+        analyze_with_recognizer(
+            text,
+            "US_PROVIDER_TAX_ID",
+            UsProviderTaxIdRecognizer(),
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "invalid_prefix",
+    [
+        "00",
+        "07",
+        "08",
+        "09",
+        "17",
+        "18",
+        "19",
+        "28",
+        "29",
+        "49",
+        "69",
+        "70",
+        "78",
+        "79",
+        "89",
+        "96",
+        "97",
+    ],
+)
+def test_when_provider_ein_prefix_is_not_irs_valid_then_not_detected(invalid_prefix):
+    """Test values outside the IRS-assigned EIN prefix set do not match."""
+    text = f"Provider Tax ID {invalid_prefix}-1234567"
+    assert (
+        analyze_with_recognizer(
+            text,
+            "US_PROVIDER_TAX_ID",
+            UsProviderTaxIdRecognizer(),
+            score_threshold=0,
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
     "recognizer, entity, text, expected_score",
     [
         # fmt: off
@@ -234,7 +317,7 @@ def test_when_us_healthcare_admin_id_has_unrelated_context_then_not_detected(
             0.1,
         ),
         (UsReferralNumberRecognizer(), "US_REFERRAL_NUMBER", "INF2025001234", 0.1),
-        (UsProviderTaxIdRecognizer(), "US_PROVIDER_TAX_ID", "12-3456789", 0.35),
+        (UsProviderTaxIdRecognizer(), "US_PROVIDER_TAX_ID", "12-3456789", 0.1),
         # fmt: on
     ],
 )
@@ -273,7 +356,7 @@ def test_explicit_request_threshold_can_return_pattern_only_matches(
         (
             UsProviderTaxIdRecognizer(),
             "US_PROVIDER_TAX_ID",
-            ["provider"],
+            ["tax", "tin", "ein", "billing"],
         ),
     ],
 )
