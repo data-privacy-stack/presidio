@@ -1,5 +1,5 @@
 import pytest
-from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+from presidio_analyzer import AnalyzerEngine, PatternRecognizer, RecognizerRegistry
 from presidio_analyzer.predefined_recognizers import (
     UsClaimNumberRecognizer,
     UsPrescriptionNumberRecognizer,
@@ -630,7 +630,14 @@ def test_explicit_request_threshold_can_return_pattern_only_matches(
 )
 def test_us_healthcare_admin_recognizer_metadata(recognizer, entity, expected_context):
     """Test entity metadata, context, and recognizer threshold."""
+    custom_thresholds = {entity: 0.8}
+    customized_recognizer = type(recognizer)(score_thresholds=custom_thresholds)
+
+    assert isinstance(recognizer, PatternRecognizer)
+    assert PatternRecognizer in type(recognizer).__bases__
+    assert recognizer.COUNTRY_CODE == "us"
     assert recognizer.supported_entities == [entity]
     assert recognizer.supported_language == "en"
     assert recognizer.context == expected_context
     assert recognizer.score_thresholds == {entity: 0.6}
+    assert customized_recognizer.score_thresholds == custom_thresholds

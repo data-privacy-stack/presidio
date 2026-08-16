@@ -5,36 +5,7 @@ from typing import Dict, List, Optional
 from presidio_analyzer import Pattern, PatternRecognizer
 
 
-class _HealthcareAdminPatternRecognizer(PatternRecognizer):
-    """Pattern recognizer using context enhancement and score thresholds."""
-
-    COUNTRY_CODE = "us"
-    DEFAULT_SCORE_THRESHOLD = 0.6
-
-    def __init__(
-        self,
-        patterns: List[Pattern],
-        context: List[str],
-        supported_entity: str,
-        supported_language: str = "en",
-        name: Optional[str] = None,
-        score_thresholds: Optional[Dict[str, float]] = None,
-    ):
-        super().__init__(
-            supported_entity=supported_entity,
-            patterns=patterns,
-            context=context,
-            supported_language=supported_language,
-            name=name,
-        )
-        self.score_thresholds = (
-            score_thresholds
-            if score_thresholds is not None
-            else {supported_entity: self.DEFAULT_SCORE_THRESHOLD}
-        )
-
-
-class UsPriorAuthorizationNumberRecognizer(_HealthcareAdminPatternRecognizer):
+class UsPriorAuthorizationNumberRecognizer(PatternRecognizer):
     """Recognize US healthcare prior authorization numbers with context.
 
     CMS identifies prior authorization and referral numbers as payer-assigned
@@ -44,6 +15,8 @@ class UsPriorAuthorizationNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
     Reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/18/index.html
     """
+
+    COUNTRY_CODE = "us"
 
     PATTERNS = [
         Pattern(
@@ -77,17 +50,23 @@ class UsPriorAuthorizationNumberRecognizer(_HealthcareAdminPatternRecognizer):
         name: Optional[str] = None,
         score_thresholds: Optional[Dict[str, float]] = None,
     ):
+        patterns = patterns if patterns else self.PATTERNS
+        context = context if context else self.CONTEXT
         super().__init__(
-            patterns=patterns if patterns else self.PATTERNS,
-            context=context if context else self.CONTEXT,
             supported_entity=supported_entity,
+            patterns=patterns,
+            context=context,
             supported_language=supported_language,
             name=name,
-            score_thresholds=score_thresholds,
+        )
+        self.score_thresholds = (
+            score_thresholds
+            if score_thresholds is not None
+            else {supported_entity: 0.6}
         )
 
 
-class UsClaimNumberRecognizer(_HealthcareAdminPatternRecognizer):
+class UsClaimNumberRecognizer(PatternRecognizer):
     """Recognize US healthcare claim numbers with billing/claims context.
 
     CMS describes a claim number as the reference number shown on an
@@ -97,6 +76,8 @@ class UsClaimNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
     Reference: https://www.cms.gov/medical-bill-rights/help/guides/explanation-of-benefits
     """
+
+    COUNTRY_CODE = "us"
 
     PATTERNS = [
         Pattern(
@@ -127,17 +108,23 @@ class UsClaimNumberRecognizer(_HealthcareAdminPatternRecognizer):
         name: Optional[str] = None,
         score_thresholds: Optional[Dict[str, float]] = None,
     ):
+        patterns = patterns if patterns else self.PATTERNS
+        context = context if context else self.CONTEXT
         super().__init__(
-            patterns=patterns if patterns else self.PATTERNS,
-            context=context if context else self.CONTEXT,
             supported_entity=supported_entity,
+            patterns=patterns,
+            context=context,
             supported_language=supported_language,
             name=name,
-            score_thresholds=score_thresholds,
+        )
+        self.score_thresholds = (
+            score_thresholds
+            if score_thresholds is not None
+            else {supported_entity: 0.6}
         )
 
 
-class UsPrescriptionNumberRecognizer(_HealthcareAdminPatternRecognizer):
+class UsPrescriptionNumberRecognizer(PatternRecognizer):
     """Recognize US prescription numbers with pharmacy context.
 
     CMS defines the prescription/service reference number as a pharmacy-assigned
@@ -147,6 +134,8 @@ class UsPrescriptionNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
     Reference: https://www.cms.gov/files/document/cms-medicare-part-d-340b-repository-companion-guide-v-1.pdf
     """
+
+    COUNTRY_CODE = "us"
 
     PATTERNS = [
         Pattern(
@@ -184,17 +173,23 @@ class UsPrescriptionNumberRecognizer(_HealthcareAdminPatternRecognizer):
         name: Optional[str] = None,
         score_thresholds: Optional[Dict[str, float]] = None,
     ):
+        patterns = patterns if patterns else self.PATTERNS
+        context = context if context else self.CONTEXT
         super().__init__(
-            patterns=patterns if patterns else self.PATTERNS,
-            context=context if context else self.CONTEXT,
             supported_entity=supported_entity,
+            patterns=patterns,
+            context=context,
             supported_language=supported_language,
             name=name,
-            score_thresholds=score_thresholds,
+        )
+        self.score_thresholds = (
+            score_thresholds
+            if score_thresholds is not None
+            else {supported_entity: 0.6}
         )
 
 
-class UsReferralNumberRecognizer(_HealthcareAdminPatternRecognizer):
+class UsReferralNumberRecognizer(PatternRecognizer):
     """Recognize US healthcare referral numbers with referral context.
 
     CMS documents referral numbers as payer-assigned values reported in the same
@@ -204,6 +199,8 @@ class UsReferralNumberRecognizer(_HealthcareAdminPatternRecognizer):
 
     Reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/18/index.html
     """
+
+    COUNTRY_CODE = "us"
 
     PATTERNS = [
         Pattern(
@@ -236,17 +233,23 @@ class UsReferralNumberRecognizer(_HealthcareAdminPatternRecognizer):
         name: Optional[str] = None,
         score_thresholds: Optional[Dict[str, float]] = None,
     ):
+        patterns = patterns if patterns else self.PATTERNS
+        context = context if context else self.CONTEXT
         super().__init__(
-            patterns=patterns if patterns else self.PATTERNS,
-            context=context if context else self.CONTEXT,
             supported_entity=supported_entity,
+            patterns=patterns,
+            context=context,
             supported_language=supported_language,
             name=name,
-            score_thresholds=score_thresholds,
+        )
+        self.score_thresholds = (
+            score_thresholds
+            if score_thresholds is not None
+            else {supported_entity: 0.6}
         )
 
 
-class UsProviderTaxIdRecognizer(_HealthcareAdminPatternRecognizer):
+class UsProviderTaxIdRecognizer(PatternRecognizer):
     """Recognize US provider TIN/EIN values with healthcare provider context.
 
     CMS uses a provider's EIN or SSN as the billing provider tax ID. This
@@ -256,6 +259,8 @@ class UsProviderTaxIdRecognizer(_HealthcareAdminPatternRecognizer):
     CMS reference: https://www.cms.gov/outreach-and-education/mln/wbt/mln4462429-mln-wbt-1500/1500/lesson04/12/index.html
     IRS prefix reference: https://www.irs.gov/businesses/small-businesses-self-employed/valid-eins
     """
+
+    COUNTRY_CODE = "us"
 
     # The IRS prefix list excludes 00, 07-09, 17-19, 28-29, 49, 69-70,
     # 78-79, 89, and 96-97.
@@ -296,11 +301,17 @@ class UsProviderTaxIdRecognizer(_HealthcareAdminPatternRecognizer):
         name: Optional[str] = None,
         score_thresholds: Optional[Dict[str, float]] = None,
     ):
+        patterns = patterns if patterns else self.PATTERNS
+        context = context if context else self.CONTEXT
         super().__init__(
-            patterns=patterns if patterns else self.PATTERNS,
-            context=context if context else self.CONTEXT,
             supported_entity=supported_entity,
+            patterns=patterns,
+            context=context,
             supported_language=supported_language,
             name=name,
-            score_thresholds=score_thresholds,
+        )
+        self.score_thresholds = (
+            score_thresholds
+            if score_thresholds is not None
+            else {supported_entity: 0.6}
         )
