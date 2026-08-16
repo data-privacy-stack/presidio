@@ -34,15 +34,15 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |US_BANK_NUMBER|A US bank account number is between 8 to 17 digits.|Pattern match and context|
 |US_DRIVER_LICENSE|A US driver license according to <https://ntsi.com/drivers-license-format/>|Pattern match and context|
 |US_ITIN | US Individual Taxpayer Identification Number (ITIN). Nine digits that start with a "9" and contain a "7" or "8" as the 4 digit.|Pattern match and context|
-|US_CLAIM_NUMBER|A US healthcare claim identifier used in billing and claims processing.|Pattern match and required context|
-|US_HEALTH_INSURANCE_MEMBER_ID|A US health insurance member or subscriber identifier printed on an insurance card. Detection requires healthcare or insurance context.|Pattern match and required context|
+|US_CLAIM_NUMBER|A US healthcare claim identifier used in billing and claims processing.|Pattern match, context enhancement, and entity threshold|
+|US_HEALTH_INSURANCE_MEMBER_ID|A US health insurance member or subscriber identifier printed on an insurance card. Healthcare or insurance context increases detection confidence.|Pattern match, context enhancement, and entity threshold|
 |US_MBI|A US Medicare Beneficiary Identifier (MBI) with 11 alphanumeric characters.|Pattern match and context|
 |US_NPI|A US National Provider Identifier (NPI) is a 10-digit number issued to healthcare providers by CMS under HIPAA.|Pattern match, context and checksum|
 |US_PASSPORT |A US passport number with 9 digits.|Pattern match and context|
-|US_PRESCRIPTION_NUMBER|A US prescription or pharmacy order identifier.|Pattern match and required context|
-|US_PRIOR_AUTHORIZATION_NUMBER|A US prior authorization identifier used for treatment or drug approval requests.|Pattern match and required context|
-|US_PROVIDER_TAX_ID|A US provider organization tax identifier (TIN/EIN) used in healthcare billing workflows.|Pattern match and required context|
-|US_REFERRAL_NUMBER|A US healthcare referral identifier, including specialty or infusion referral numbers.|Pattern match and required context|
+|US_PRESCRIPTION_NUMBER|A US prescription or pharmacy order identifier.|Pattern match, context enhancement, and entity threshold|
+|US_PRIOR_AUTHORIZATION_NUMBER|A US prior authorization identifier used for treatment or drug approval requests.|Pattern match, context enhancement, and entity threshold|
+|US_PROVIDER_TAX_ID|A US provider organization tax identifier (TIN/EIN) used in healthcare billing workflows.|Pattern match, context enhancement, and entity threshold|
+|US_REFERRAL_NUMBER|A US healthcare referral identifier, including specialty or infusion referral numbers.|Pattern match, context enhancement, and entity threshold|
 |US_SSN|A US Social Security Number (SSN) with 9 digits.|Pattern match and context|
 
 ### UK
