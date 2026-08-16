@@ -9,20 +9,24 @@ from presidio_analyzer.predefined_recognizers import (
 )
 
 from tests import assert_result
-from tests.mocks import ContextAwareNlpEngineMock
 
 
-def analyze_with_recognizer(text, entity, recognizer, score_threshold=None):
-    """Analyze text with one recognizer and its configured score threshold."""
-    registry = RecognizerRegistry()
-    registry.add_recognizer(recognizer)
-    analyzer = AnalyzerEngine(registry=registry, nlp_engine=ContextAwareNlpEngineMock())
-    return analyzer.analyze(
-        text=text,
-        language="en",
-        entities=[entity],
-        score_threshold=score_threshold,
-    )
+@pytest.fixture(scope="module")
+def analyze_with_recognizer(spacy_nlp_engine):
+    """Return an administrative ID analyzer using production spaCy tokenization."""
+
+    def analyze(text, entity, recognizer, score_threshold=None):
+        registry = RecognizerRegistry()
+        registry.add_recognizer(recognizer)
+        analyzer = AnalyzerEngine(registry=registry, nlp_engine=spacy_nlp_engine)
+        return analyzer.analyze(
+            text=text,
+            language="en",
+            entities=[entity],
+            score_threshold=score_threshold,
+        )
+
+    return analyze
 
 
 @pytest.mark.parametrize(
@@ -63,7 +67,7 @@ def analyze_with_recognizer(text, entity, recognizer, score_threshold=None):
     ],
 )
 def test_when_us_healthcare_admin_id_has_context_then_detected(
-    recognizer, entity, text, expected_positions
+    recognizer, entity, text, expected_positions, analyze_with_recognizer
 ):
     """Test context enhancement raises matches above the recognizer threshold."""
     results = analyze_with_recognizer(text, entity, recognizer)
@@ -111,7 +115,7 @@ def test_when_us_healthcare_admin_id_has_context_then_detected(
     ],
 )
 def test_admin_id_matching_is_case_insensitive(
-    recognizer, entity, text, expected_value
+    recognizer, entity, text, expected_value, analyze_with_recognizer
 ):
     """Test mixed-case labels and prefixes are detected."""
     results = analyze_with_recognizer(text, entity, recognizer)
@@ -158,7 +162,7 @@ def test_admin_id_matching_is_case_insensitive(
     ],
 )
 def test_when_text_has_multiple_admin_ids_then_all_are_detected(
-    recognizer, entity, text, expected_values
+    recognizer, entity, text, expected_values, analyze_with_recognizer
 ):
     """Test every contextual administrative ID in one input is returned."""
     results = sorted(
@@ -206,7 +210,7 @@ def test_when_text_has_multiple_admin_ids_then_all_are_detected(
     ],
 )
 def test_admin_id_matching_ignores_trailing_punctuation(
-    recognizer, entity, text, expected_value
+    recognizer, entity, text, expected_value, analyze_with_recognizer
 ):
     """Test trailing sentence punctuation stays outside the result span."""
     results = analyze_with_recognizer(text, entity, recognizer)
@@ -271,7 +275,7 @@ def test_admin_id_matching_ignores_trailing_punctuation(
     ],
 )
 def test_admin_id_minimum_and_maximum_lengths_are_detected(
-    recognizer, entity, text, expected_value
+    recognizer, entity, text, expected_value, analyze_with_recognizer
 ):
     """Test each variable-length administrative ID at its exact boundaries."""
     results = analyze_with_recognizer(text, entity, recognizer)
@@ -317,7 +321,9 @@ def test_admin_id_minimum_and_maximum_lengths_are_detected(
         # fmt: on
     ],
 )
-def test_too_short_and_too_long_admin_ids_do_not_match(recognizer, entity, text):
+def test_too_short_and_too_long_admin_ids_do_not_match(
+    recognizer, entity, text, analyze_with_recognizer
+):
     """Test values one digit outside each supported length do not match."""
     assert analyze_with_recognizer(text, entity, recognizer, score_threshold=0) == []
 
@@ -379,7 +385,12 @@ def test_too_short_and_too_long_admin_ids_do_not_match(recognizer, entity, text)
     ],
 )
 def test_when_admin_id_follows_label_then_identifier_only_is_detected(
-    recognizer, entity, text, expected_value, expected_score
+    recognizer,
+    entity,
+    text,
+    expected_value,
+    expected_score,
+    analyze_with_recognizer,
 ):
     """Test labels enable bare numeric IDs without entering the result span."""
     results = analyze_with_recognizer(text, entity, recognizer)
@@ -399,7 +410,9 @@ def test_when_admin_id_follows_label_then_identifier_only_is_detected(
         ("Billing provider: 99-1234567", "99-1234567"),
     ],
 )
-def test_when_provider_ein_has_provider_tax_label_then_detected(text, expected_value):
+def test_when_provider_ein_has_provider_tax_label_then_detected(
+    text, expected_value, analyze_with_recognizer
+):
     """Test valid EINs immediately following provider tax labels are detected."""
     results = analyze_with_recognizer(
         text,
@@ -417,7 +430,9 @@ def test_when_provider_ein_has_provider_tax_label_then_detected(text, expected_v
     )
 
 
-def test_when_number_has_different_workflow_label_then_prescription_not_detected():
+def test_when_number_has_different_workflow_label_then_prescription_not_detected(
+    analyze_with_recognizer,
+):
     """Test a claim label does not support a prescription number match."""
     recognizer = UsPrescriptionNumberRecognizer()
     assert (
@@ -447,7 +462,7 @@ def test_when_number_has_different_workflow_label_then_prescription_not_detected
     ],
 )
 def test_when_us_healthcare_admin_id_lacks_context_then_below_threshold(
-    recognizer, entity, text
+    recognizer, entity, text, analyze_with_recognizer
 ):
     """Test normal analyzer calls suppress pattern-only matches."""
     assert analyze_with_recognizer(text, entity, recognizer) == []
@@ -486,7 +501,7 @@ def test_when_us_healthcare_admin_id_lacks_context_then_below_threshold(
     ],
 )
 def test_when_us_healthcare_admin_id_has_unrelated_context_then_not_detected(
-    recognizer, entity, text
+    recognizer, entity, text, analyze_with_recognizer
 ):
     """Test similar-looking workflow IDs stay below the threshold."""
     assert analyze_with_recognizer(text, entity, recognizer) == []
@@ -500,7 +515,9 @@ def test_when_us_healthcare_admin_id_has_unrelated_context_then_not_detected(
         "Employee tax ID 12-3456789",
     ],
 )
-def test_when_ein_lacks_provider_tax_label_then_not_detected(text):
+def test_when_ein_lacks_provider_tax_label_then_not_detected(
+    text, analyze_with_recognizer
+):
     """Test generic provider or tax wording cannot promote an EIN-shaped value."""
     assert (
         analyze_with_recognizer(
@@ -534,7 +551,9 @@ def test_when_ein_lacks_provider_tax_label_then_not_detected(text):
         "97",
     ],
 )
-def test_when_provider_ein_prefix_is_not_irs_valid_then_not_detected(invalid_prefix):
+def test_when_provider_ein_prefix_is_not_irs_valid_then_not_detected(
+    invalid_prefix, analyze_with_recognizer
+):
     """Test values outside the IRS-assigned EIN prefix set do not match."""
     text = f"Provider Tax ID {invalid_prefix}-1234567"
     assert (
@@ -571,7 +590,7 @@ def test_when_provider_ein_prefix_is_not_irs_valid_then_not_detected(invalid_pre
     ],
 )
 def test_explicit_request_threshold_can_return_pattern_only_matches(
-    recognizer, entity, text, expected_score
+    recognizer, entity, text, expected_score, analyze_with_recognizer
 ):
     """Test callers can opt into raw pattern matches for structured analysis."""
     results = analyze_with_recognizer(text, entity, recognizer, score_threshold=0)

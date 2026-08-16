@@ -5,7 +5,6 @@ from presidio_analyzer.predefined_recognizers import (
 )
 
 from tests import assert_result
-from tests.mocks import ContextAwareNlpEngineMock
 
 
 @pytest.fixture(scope="module")
@@ -20,17 +19,22 @@ def entity():
     return "US_HEALTH_INSURANCE_MEMBER_ID"
 
 
-def analyze_member_id(text, recognizer, entity, score_threshold=None):
-    """Analyze text with the member ID recognizer and its threshold."""
-    registry = RecognizerRegistry()
-    registry.add_recognizer(recognizer)
-    analyzer = AnalyzerEngine(registry=registry, nlp_engine=ContextAwareNlpEngineMock())
-    return analyzer.analyze(
-        text=text,
-        language="en",
-        entities=[entity],
-        score_threshold=score_threshold,
-    )
+@pytest.fixture(scope="module")
+def analyze_member_id(spacy_nlp_engine):
+    """Return a member ID analyzer using production spaCy tokenization."""
+
+    def analyze(text, recognizer, entity, score_threshold=None):
+        registry = RecognizerRegistry()
+        registry.add_recognizer(recognizer)
+        analyzer = AnalyzerEngine(registry=registry, nlp_engine=spacy_nlp_engine)
+        return analyzer.analyze(
+            text=text,
+            language="en",
+            entities=[entity],
+            score_threshold=score_threshold,
+        )
+
+    return analyze
 
 
 @pytest.mark.parametrize(
@@ -49,7 +53,7 @@ def analyze_member_id(text, recognizer, entity, score_threshold=None):
     ],
 )
 def test_when_member_id_has_context_then_detected(
-    text, expected_positions, recognizer, entity
+    text, expected_positions, recognizer, entity, analyze_member_id
 ):
     """Test context raises plausible member IDs above the threshold."""
     results = analyze_member_id(text, recognizer, entity)
@@ -71,7 +75,7 @@ def test_when_member_id_has_context_then_detected(
     ],
 )
 def test_member_id_matching_is_case_insensitive_and_ignores_trailing_punctuation(
-    text, expected_value, recognizer, entity
+    text, expected_value, recognizer, entity, analyze_member_id
 ):
     """Test casing and punctuation do not change a plausible member ID match."""
     results = analyze_member_id(text, recognizer, entity)
@@ -83,7 +87,9 @@ def test_member_id_matching_is_case_insensitive_and_ignores_trailing_punctuation
     assert results[0].score == pytest.approx(0.45)
 
 
-def test_when_text_has_multiple_member_ids_then_all_are_detected(recognizer, entity):
+def test_when_text_has_multiple_member_ids_then_all_are_detected(
+    recognizer, entity, analyze_member_id
+):
     """Test every contextual member ID in one input is returned."""
     text = "Member ID ABC123456 and subscriber ID ZX-987654321."
     expected_values = ["ABC123456", "ZX-987654321"]
@@ -103,7 +109,7 @@ def test_when_text_has_multiple_member_ids_then_all_are_detected(recognizer, ent
     ],
 )
 def test_member_id_minimum_and_maximum_lengths_are_detected(
-    text, expected_value, recognizer, entity
+    text, expected_value, recognizer, entity, analyze_member_id
 ):
     """Test the documented 6-to-20-character member ID boundaries."""
     results = analyze_member_id(text, recognizer, entity)
@@ -134,7 +140,7 @@ def test_member_id_minimum_and_maximum_lengths_are_detected(
     ],
 )
 def test_when_member_id_lacks_insurance_context_then_below_threshold(
-    text, recognizer, entity
+    text, recognizer, entity, analyze_member_id
 ):
     """Test pattern-only and unrelated-context values are suppressed."""
     assert analyze_member_id(text, recognizer, entity) == []
@@ -149,7 +155,7 @@ def test_when_member_id_lacks_insurance_context_then_below_threshold(
     ],
 )
 def test_when_member_id_pattern_is_implausible_then_not_detected(
-    text, recognizer, entity
+    text, recognizer, entity, analyze_member_id
 ):
     """Test numeric-only and short values do not match the base pattern."""
     assert (
@@ -164,7 +170,7 @@ def test_when_member_id_pattern_is_implausible_then_not_detected(
 
 
 def test_explicit_request_threshold_can_return_pattern_only_member_id(
-    recognizer, entity
+    recognizer, entity, analyze_member_id
 ):
     """Test structured callers can opt into the raw pattern match."""
     text = "ABC123456789"
