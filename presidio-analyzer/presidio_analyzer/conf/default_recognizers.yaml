@@ -181,6 +181,13 @@ recognizers:
     enabled: false
     country_code: sg
 
+  - name: SgUenRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: sg
+
   - name: AuAbnRecognizer
     supported_languages: 
     - en
@@ -321,6 +328,13 @@ recognizers:
     type: predefined
     country_code: pl
 
+  - name: FiPersonalIdentityCodeRecognizer
+    supported_languages:
+    - fi
+    type: predefined
+    enabled: false
+    country_code: fi
+
   - name: KrBrnRecognizer
     supported_languages: 
     - ko
@@ -346,6 +360,14 @@ recognizers:
     country_code: kr
 
   - name: KrFrnRecognizer
+    supported_languages:
+    - ko
+    - kr
+    type: predefined
+    enabled: false
+    country_code: kr
+
+  - name: KrPassportRecognizer
     supported_languages:
     - ko
     - kr
