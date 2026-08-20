@@ -275,7 +275,9 @@ class UsProviderTaxIdRecognizer(PatternRecognizer):
             r"(?<=\b(?:(?:(?:billing|rendering|healthcare)\s+provider|"
             r"provider\s+organization|provider)\s+(?:tax\s*(?:id|number|"
             r"identification\s+number)|tin|ein)|billing\s+provider)"
-            r"(?:\s*:\s*|\s+))" + VALID_EIN_PREFIX + r"-\d{7}\b",
+            r"(?:\s*(?:#|no\.?|number|id)\s*:?\s*|\s*:\s*|\s+))"
+            + VALID_EIN_PREFIX
+            + r"-\d{7}\b",
             0.35,
         ),
         Pattern(

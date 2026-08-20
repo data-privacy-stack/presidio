@@ -408,6 +408,8 @@ def test_when_admin_id_follows_label_then_identifier_only_is_detected(
         ("Rendering provider TIN 20-1234567", "20-1234567"),
         ("Healthcare provider tax number: 67-1234567", "67-1234567"),
         ("Billing provider: 99-1234567", "99-1234567"),
+        ("Provider TIN# 12-3456789", "12-3456789"),
+        ("Billing provider EIN No. 20-1234567", "20-1234567"),
     ],
 )
 def test_when_provider_ein_has_provider_tax_label_then_detected(
