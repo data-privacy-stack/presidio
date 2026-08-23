@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from presidio_analyzer import Pattern, PatternRecognizer
 
 
