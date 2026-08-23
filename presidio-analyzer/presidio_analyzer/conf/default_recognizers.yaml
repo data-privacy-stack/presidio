@@ -84,6 +84,13 @@ recognizers:
     enabled: false
     country_code: us
 
+  - name: AbaRoutingRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: us
+
   - name: NhsRecognizer
     supported_languages: 
     - en
@@ -134,6 +141,13 @@ recognizers:
 
   - name: SgFinRecognizer
     supported_languages: 
+    - en
+    type: predefined
+    enabled: false
+    country_code: sg
+
+  - name: SgUenRecognizer
+    supported_languages:
     - en
     type: predefined
     enabled: false
@@ -279,6 +293,13 @@ recognizers:
     type: predefined
     country_code: pl
 
+  - name: FiPersonalIdentityCodeRecognizer
+    supported_languages:
+    - fi
+    type: predefined
+    enabled: false
+    country_code: fi
+
   - name: KrBrnRecognizer
     supported_languages: 
     - ko
@@ -304,6 +325,14 @@ recognizers:
     country_code: kr
 
   - name: KrFrnRecognizer
+    supported_languages:
+    - ko
+    - kr
+    type: predefined
+    enabled: false
+    country_code: kr
+
+  - name: KrPassportRecognizer
     supported_languages:
     - ko
     - kr
@@ -451,6 +480,9 @@ recognizers:
   - name: MacAddressRecognizer
     type: predefined
 
+  - name: UuidRecognizer
+    type: predefined
+
   - name: PhoneRecognizer
     type: predefined
 
@@ -569,6 +601,14 @@ recognizers:
     config_path: presidio_analyzer/conf/langextract_config_basic.yaml
 
   - name: CaSinRecognizer
+    supported_languages:
+    - en
+    - fr
+    type: predefined
+    enabled: false
+    country_code: ca
+
+  - name: CaPostalCodeRecognizer
     supported_languages:
     - en
     - fr
