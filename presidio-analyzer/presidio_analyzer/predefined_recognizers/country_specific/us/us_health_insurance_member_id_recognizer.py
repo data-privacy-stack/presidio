@@ -1,6 +1,6 @@
 """Recognizer for US health insurance member identifiers."""
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from presidio_analyzer import Pattern, PatternRecognizer
 
@@ -29,7 +29,6 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
     :param context: List of context words which increase detection confidence
     :param supported_language: Language this recognizer supports
     :param supported_entity: The entity this recognizer can detect
-    :param score_thresholds: Optional default and entity-specific score thresholds
     """
 
     COUNTRY_CODE = "us"
@@ -57,7 +56,6 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_HEALTH_INSURANCE_MEMBER_ID",
         name: Optional[str] = None,
-        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -67,9 +65,4 @@ class UsHealthInsuranceMemberIdRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-        )
-        self.score_thresholds = (
-            score_thresholds
-            if score_thresholds is not None
-            else {supported_entity: 0.4}
         )

@@ -15,7 +15,7 @@ from tests import assert_result
 def analyze_with_recognizer(spacy_nlp_engine):
     """Return an administrative ID analyzer using production spaCy tokenization."""
 
-    def analyze(text, entity, recognizer, score_threshold=None):
+    def analyze(text, entity, recognizer, score_threshold=0.6):
         registry = RecognizerRegistry()
         registry.add_recognizer(recognizer)
         analyzer = AnalyzerEngine(registry=registry, nlp_engine=spacy_nlp_engine)
@@ -69,7 +69,7 @@ def analyze_with_recognizer(spacy_nlp_engine):
 def test_when_us_healthcare_admin_id_has_context_then_detected(
     recognizer, entity, text, expected_positions, analyze_with_recognizer
 ):
-    """Test context enhancement raises matches above the recognizer threshold."""
+    """Test context enhancement raises matches above the caller threshold."""
     results = analyze_with_recognizer(text, entity, recognizer)
     results = sorted(results, key=lambda result: result.start)
     assert len(results) == len(expected_positions)
@@ -631,15 +631,11 @@ def test_explicit_request_threshold_can_return_pattern_only_matches(
     ],
 )
 def test_us_healthcare_admin_recognizer_metadata(recognizer, entity, expected_context):
-    """Test entity metadata, context, and recognizer threshold."""
-    custom_thresholds = {entity: 0.8}
-    customized_recognizer = type(recognizer)(score_thresholds=custom_thresholds)
-
+    """Test entity metadata and context without a recognizer threshold."""
     assert isinstance(recognizer, PatternRecognizer)
     assert PatternRecognizer in type(recognizer).__bases__
     assert recognizer.COUNTRY_CODE == "us"
     assert recognizer.supported_entities == [entity]
     assert recognizer.supported_language == "en"
     assert recognizer.context == expected_context
-    assert recognizer.score_thresholds == {entity: 0.6}
-    assert customized_recognizer.score_thresholds == custom_thresholds
+    assert recognizer.score_thresholds == {}

@@ -97,8 +97,6 @@ recognizers:
     type: predefined
     enabled: false
     country_code: us
-    score_thresholds:
-      US_HEALTH_INSURANCE_MEMBER_ID: 0.4
 
   - name: UsPriorAuthorizationNumberRecognizer
     supported_languages:
@@ -106,8 +104,6 @@ recognizers:
     type: predefined
     enabled: false
     country_code: us
-    score_thresholds:
-      US_PRIOR_AUTHORIZATION_NUMBER: 0.6
 
   - name: UsClaimNumberRecognizer
     supported_languages:
@@ -115,8 +111,6 @@ recognizers:
     type: predefined
     enabled: false
     country_code: us
-    score_thresholds:
-      US_CLAIM_NUMBER: 0.6
 
   - name: UsPrescriptionNumberRecognizer
     supported_languages:
@@ -124,8 +118,6 @@ recognizers:
     type: predefined
     enabled: false
     country_code: us
-    score_thresholds:
-      US_PRESCRIPTION_NUMBER: 0.6
 
   - name: UsReferralNumberRecognizer
     supported_languages:
@@ -133,8 +125,6 @@ recognizers:
     type: predefined
     enabled: false
     country_code: us
-    score_thresholds:
-      US_REFERRAL_NUMBER: 0.6
 
   - name: UsProviderTaxIdRecognizer
     supported_languages:
@@ -142,8 +132,6 @@ recognizers:
     type: predefined
     enabled: false
     country_code: us
-    score_thresholds:
-      US_PROVIDER_TAX_ID: 0.6
 
   - name: NhsRecognizer
     supported_languages: 

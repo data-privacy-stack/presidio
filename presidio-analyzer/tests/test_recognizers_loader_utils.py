@@ -851,40 +851,6 @@ def test_yaml_entry_loads_when_enabled(entry, monkeypatch):
     )
 
 
-@pytest.mark.parametrize(
-    "class_name, entity, expected_threshold",
-    [
-        ("UsHealthInsuranceMemberIdRecognizer", "US_HEALTH_INSURANCE_MEMBER_ID", 0.4),
-        ("UsPriorAuthorizationNumberRecognizer", "US_PRIOR_AUTHORIZATION_NUMBER", 0.6),
-        ("UsClaimNumberRecognizer", "US_CLAIM_NUMBER", 0.6),
-        ("UsPrescriptionNumberRecognizer", "US_PRESCRIPTION_NUMBER", 0.6),
-        ("UsReferralNumberRecognizer", "US_REFERRAL_NUMBER", 0.6),
-        ("UsProviderTaxIdRecognizer", "US_PROVIDER_TAX_ID", 0.6),
-    ],
-)
-def test_healthcare_yaml_entry_preserves_entity_threshold(
-    class_name, entity, expected_threshold
-):
-    """Healthcare recognizers retain their threshold when enabled through YAML."""
-    entry = next(entry for entry in YAML_ENTRIES if _entry_id(entry) == class_name)
-    configuration = {
-        "global_regex_flags": GLOBAL_REGEX_FLAGS,
-        "supported_languages": ["en"],
-        "recognizers": [dict(entry, enabled=True)],
-    }
-
-    registry = RecognizerRegistryProvider(
-        registry_configuration=configuration
-    ).create_recognizer_registry()
-    recognizer = next(
-        recognizer
-        for recognizer in registry.recognizers
-        if type(recognizer).__name__ == class_name
-    )
-
-    assert recognizer.score_thresholds == {entity: expected_threshold}
-
-
 def test_yaml_entry_can_be_renamed_via_class_name():
     """``class_name`` + ``name`` must give the instance the configured name.
 

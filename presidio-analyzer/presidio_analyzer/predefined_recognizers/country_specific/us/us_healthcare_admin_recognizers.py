@@ -1,6 +1,6 @@
 """Recognizers for US healthcare administrative identifiers."""
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from presidio_analyzer import Pattern, PatternRecognizer
 
@@ -48,7 +48,6 @@ class UsPriorAuthorizationNumberRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_PRIOR_AUTHORIZATION_NUMBER",
         name: Optional[str] = None,
-        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -58,11 +57,6 @@ class UsPriorAuthorizationNumberRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-        )
-        self.score_thresholds = (
-            score_thresholds
-            if score_thresholds is not None
-            else {supported_entity: 0.6}
         )
 
 
@@ -106,7 +100,6 @@ class UsClaimNumberRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_CLAIM_NUMBER",
         name: Optional[str] = None,
-        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -116,11 +109,6 @@ class UsClaimNumberRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-        )
-        self.score_thresholds = (
-            score_thresholds
-            if score_thresholds is not None
-            else {supported_entity: 0.6}
         )
 
 
@@ -171,7 +159,6 @@ class UsPrescriptionNumberRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_PRESCRIPTION_NUMBER",
         name: Optional[str] = None,
-        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -181,11 +168,6 @@ class UsPrescriptionNumberRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-        )
-        self.score_thresholds = (
-            score_thresholds
-            if score_thresholds is not None
-            else {supported_entity: 0.6}
         )
 
 
@@ -231,7 +213,6 @@ class UsReferralNumberRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_REFERRAL_NUMBER",
         name: Optional[str] = None,
-        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -241,11 +222,6 @@ class UsReferralNumberRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-        )
-        self.score_thresholds = (
-            score_thresholds
-            if score_thresholds is not None
-            else {supported_entity: 0.6}
         )
 
 
@@ -301,7 +277,6 @@ class UsProviderTaxIdRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "US_PROVIDER_TAX_ID",
         name: Optional[str] = None,
-        score_thresholds: Optional[Dict[str, float]] = None,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -311,9 +286,4 @@ class UsProviderTaxIdRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-        )
-        self.score_thresholds = (
-            score_thresholds
-            if score_thresholds is not None
-            else {supported_entity: 0.6}
         )

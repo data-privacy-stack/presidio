@@ -23,7 +23,7 @@ def entity():
 def analyze_member_id(spacy_nlp_engine):
     """Return a member ID analyzer using production spaCy tokenization."""
 
-    def analyze(text, recognizer, entity, score_threshold=None):
+    def analyze(text, recognizer, entity, score_threshold=0.4):
         registry = RecognizerRegistry()
         registry.add_recognizer(recognizer)
         analyzer = AnalyzerEngine(registry=registry, nlp_engine=spacy_nlp_engine)
@@ -55,7 +55,7 @@ def analyze_member_id(spacy_nlp_engine):
 def test_when_member_id_has_context_then_detected(
     text, expected_positions, recognizer, entity, analyze_member_id
 ):
-    """Test context raises plausible member IDs above the threshold."""
+    """Test context raises plausible member IDs above the caller threshold."""
     results = analyze_member_id(text, recognizer, entity)
     results = sorted(results, key=lambda result: result.start)
     assert len(results) == len(expected_positions)
@@ -185,10 +185,10 @@ def test_explicit_request_threshold_can_return_pattern_only_member_id(
 
 
 def test_us_health_insurance_member_id_recognizer_metadata(recognizer, entity):
-    """Test entity metadata, context, and recognizer threshold."""
+    """Test entity metadata and context without a recognizer threshold."""
     assert recognizer.supported_entities == [entity]
     assert recognizer.supported_language == "en"
     assert recognizer.context == ["member", "subscriber", "insurance", "policy"]
     assert recognizer.patterns[0].name == "Health insurance member ID (weak)"
     assert recognizer.patterns[0].score == 0.1
-    assert recognizer.score_thresholds == {entity: 0.4}
+    assert recognizer.score_thresholds == {}
