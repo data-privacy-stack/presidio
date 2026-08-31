@@ -56,6 +56,10 @@ jobs:
         with:
           fail-on-severity: low
           allow-licenses: MIT, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
+          # ml-dtypes (transitive via optimum-onnx -> onnx) is Apache-2.0 with
+          # MPL-2.0-licensed Eigen headers; exempt it rather than allowing
+          # MPL-2.0 globally.
+          allow-dependencies-licenses: pkg:pypi/ml-dtypes
           comment-summary-in-pr: on-failure
 
   test:

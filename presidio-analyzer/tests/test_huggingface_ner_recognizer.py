@@ -1,6 +1,7 @@
 """Tests for HuggingFaceNerRecognizer."""
 
 import logging
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -277,6 +278,7 @@ def test_load_invokes_hf_pipeline_with_expected_args():
             tokenizer="test-model",
             aggregation_strategy="simple",
             device=-1,
+            model_kwargs=None,
         )
 
 
@@ -472,14 +474,28 @@ def test_hf_recognizer_device_fallback_and_validation():
 
 
 @pytest.mark.usefixtures("mock_torch_installed")
-@patch(HF_PIPELINE_PATH, new=MagicMock())
-def test_hf_recognizer_init_logs_warning_for_extra_kwargs(caplog):
-    """Test that valid but unsupported kwargs trigger a warning."""
-    caplog.set_level(logging.WARNING, logger="presidio-analyzer")
-    # Passed 'unsupported_arg' which is not in __init__
-    HuggingFaceNerRecognizer(model_name="test-model", unsupported_arg="some_value")
+def test_hf_recognizer_forwards_extra_kwargs_as_model_kwargs():
+    """Test that extra kwargs are forwarded to the pipeline via model_kwargs."""
+    with patch(HF_PIPELINE_PATH, new=MagicMock()) as mock_hf_pipeline:
+        rec = HuggingFaceNerRecognizer(
+            model_name="test-model",
+            device=-1,
+            revision="main",
+            cache_dir="/tmp/cache",
+        )
 
-    assert "Ignoring unsupported kwargs" in caplog.text
+        assert rec.model_kwargs == {
+            "revision": "main",
+            "cache_dir": "/tmp/cache",
+        }
+        mock_hf_pipeline.assert_called_once_with(
+            "token-classification",
+            model="test-model",
+            tokenizer="test-model",
+            aggregation_strategy="simple",
+            device=-1,
+            model_kwargs={"revision": "main", "cache_dir": "/tmp/cache"},
+        )
 
 
 @pytest.mark.usefixtures("mock_torch_installed")
@@ -600,6 +616,248 @@ def test_hf_recognizer_analyze_handles_malformed_pipeline_output(
     caplog.clear()
     rec.ner_pipeline.return_value = [{"entity": "PER", "score": 0.9}]
     assert rec.analyze("test", entities=["PERSON"]) == []
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_requires_optimum():
+    """ort backend raises ImportError when optimum is not installed."""
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            None,
+        ):
+            with pytest.raises(ImportError, match="optimum is not installed"):
+                HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_unknown_backend_raises():
+    """Backends other than 'torch' or 'ort' are rejected at construction."""
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with pytest.raises(ValueError, match="Unsupported backend"):
+            HuggingFaceNerRecognizer(model_name="test-model", backend="ov")
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_warns_when_device_set(caplog):
+    """Explicit device with ort backend logs a warning (device is ignored)."""
+    caplog.set_level(logging.WARNING, logger="presidio-analyzer")
+    mock_optimum = MagicMock()
+    mock_ort_model_cls = MagicMock()
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            mock_optimum,
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                HuggingFaceNerRecognizer(
+                    model_name="test-model", backend="ort", device="cuda"
+                )
+
+    assert "ignored by the 'ort' backend" in caplog.text
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_ignores_invalid_device(caplog):
+    """ort backend skips device parsing: an invalid device must not raise."""
+    caplog.set_level(logging.WARNING, logger="presidio-analyzer")
+    mock_optimum = MagicMock()
+    mock_ort_model_cls = MagicMock()
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            mock_optimum,
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                # "not-a-device" would raise ValueError via _parse_device on
+                # the torch backend; ort skips parsing and forces CPU.
+                rec = HuggingFaceNerRecognizer(
+                    model_name="test-model",
+                    backend="ort",
+                    device="not-a-device",
+                )
+
+    assert rec.device == -1
+    assert "ignored by the 'ort' backend" in caplog.text
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_cpu_device_no_warning(caplog):
+    """device='cpu' on ort is consistent with default behavior; no warning."""
+    caplog.set_level(logging.WARNING, logger="presidio-analyzer")
+    mock_optimum = MagicMock()
+    mock_ort_model_cls = MagicMock()
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            mock_optimum,
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                rec = HuggingFaceNerRecognizer(
+                    model_name="test-model", backend="ort", device="cpu"
+                )
+
+    assert rec.device == -1
+    assert "ignored by the 'ort' backend" not in caplog.text
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_loads_optimum_pipeline():
+    """ort backend pre-loads ORTModel, then hands it to optimum_pipeline."""
+    mock_optimum = MagicMock()
+    mock_ort_model_cls = MagicMock()
+    mock_model_instance = MagicMock()
+    mock_ort_model_cls.from_pretrained.return_value = mock_model_instance
+
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            mock_optimum,
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
+
+    mock_ort_model_cls.from_pretrained.assert_called_once_with("test-model")
+    mock_optimum.assert_called_once_with(
+        "token-classification",
+        model=mock_model_instance,
+        tokenizer="test-model",
+        aggregation_strategy="simple",
+        accelerator="ort",
+    )
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_optimum_model_kwargs_scoped_to_model_loader():
+    """model_kwargs flow only to ORTModel.from_pretrained, not the pipeline.
+
+    Pipeline-level kwargs would leak into transformers' tokenizer/config
+    loading and break mixed-layout repos (e.g. onnx-community/* where the
+    ONNX file is in ``onnx/`` but the tokenizer is at the repo root).
+    """
+    mock_optimum = MagicMock()
+    mock_ort_model_cls = MagicMock()
+    mock_model_instance = MagicMock()
+    mock_ort_model_cls.from_pretrained.return_value = mock_model_instance
+
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            mock_optimum,
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                HuggingFaceNerRecognizer(
+                    model_name="test-model",
+                    backend="ort",
+                    subfolder="onnx",
+                    file_name="model_fp16.onnx",
+                )
+
+    mock_ort_model_cls.from_pretrained.assert_called_once_with(
+        "test-model", subfolder="onnx", file_name="model_fp16.onnx"
+    )
+    _, pipeline_kwargs = mock_optimum.call_args
+    assert "subfolder" not in pipeline_kwargs
+    assert "file_name" not in pipeline_kwargs
+    assert "model_kwargs" not in pipeline_kwargs
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_torch_backend_no_torch_raises():
+    """Test that torch backend raises ImportError when torch is missing."""
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.torch",
+            None,
+        ):
+            with pytest.raises(ImportError, match="torch is not installed"):
+                HuggingFaceNerRecognizer(model_name="test-model", backend="torch")
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_no_torch_ok():
+    """Test that ort backend works without torch installed."""
+    mock_optimum = MagicMock()
+    mock_ort_model_cls = MagicMock()
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.torch",
+            None,
+        ):
+            with patch(
+                "presidio_analyzer.predefined_recognizers.ner."
+                "huggingface_ner_recognizer.optimum_pipeline",
+                mock_optimum,
+            ):
+                with patch(
+                    "optimum.onnxruntime.ORTModelForTokenClassification",
+                    mock_ort_model_cls,
+                ):
+                    rec = HuggingFaceNerRecognizer(
+                        model_name="test-model", backend="ort"
+                    )
+                    assert rec.backend == "ort"
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_requires_optimum_onnx():
+    """The ort backend raises ImportError when optimum.onnxruntime is missing."""
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            MagicMock(),
+        ):
+            # A None entry in sys.modules makes the import raise ImportError,
+            # simulating optimum installed without the optimum-onnx package.
+            with patch.dict(sys.modules, {"optimum.onnxruntime": None}):
+                with pytest.raises(ImportError, match="optimum-onnx is not installed"):
+                    HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_backend_load_failure_logs_and_raises(caplog):
+    """A model load failure on the ort backend is logged and re-raised."""
+    caplog.set_level(logging.ERROR, logger="presidio-analyzer")
+    mock_ort_model_cls = MagicMock()
+    mock_ort_model_cls.from_pretrained.side_effect = RuntimeError("no such model")
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            MagicMock(),
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                with pytest.raises(RuntimeError, match="no such model"):
+                    HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
+
+    assert "Failed to load model test-model with ort backend" in caplog.text
 
 
 def test_hf_recognizer_loader_supported_entities_filtering():
