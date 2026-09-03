@@ -1,9 +1,17 @@
-import pytest
+from pathlib import Path
 
-from tests import assert_result_within_score_range
+import presidio_analyzer
+import pytest
+import yaml
+from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
+from presidio_analyzer.nlp_engine import NoOpNlpEngine
 from presidio_analyzer.predefined_recognizers.country_specific.korea import (
     KrBankAccountRecognizer,
 )
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+
+from tests import assert_result_within_score_range
 
 
 @pytest.fixture(scope="module")
@@ -63,3 +71,111 @@ def test_when_account_like_then_best_match_found(
 )
 def test_when_look_alike_then_no_match(text, recognizer, entities):
     assert recognizer.analyze(text, entities) == []
+
+
+NOOP_KO = {"lang_code": "ko", "model_name": "no_op"}
+
+
+def shipped_yaml_entry():
+    conf = Path(presidio_analyzer.__file__).parent / "conf" / "default_recognizers.yaml"
+    recognizers = yaml.safe_load(conf.read_text(encoding="utf-8"))["recognizers"]
+    entries = [r for r in recognizers if r.get("name") == "KrBankAccountRecognizer"]
+    assert len(entries) == 1, "KrBankAccountRecognizer missing from YAML"
+    return entries[0]
+
+
+def test_when_enabled_in_yaml_then_loads_and_detects_through_analyzer():
+    """Detection must work through the path users actually configure.
+
+    The shipped entry is enabled, loaded by ``RecognizerRegistryProvider`` and
+    exercised through ``AnalyzerEngine`` so the language routing runs too. The
+    generic loader test already proves the entry instantiates; this pins that
+    the instance built from configuration detects with the same score as one
+    built directly. ``NoOpNlpEngine`` stands in for a Korean NLP model.
+
+    Note that ``ko`` has to be declared in three places for this to work: the
+    registry's top-level ``supported_languages``, the NLP engine's models and
+    the analyzer engine's ``supported_languages``. Missing any of them fails
+    quietly or with an unrelated-looking error.
+    """
+    entry = shipped_yaml_entry()
+    assert entry["supported_languages"] == ["ko"]
+    assert entry["country_code"] == "kr"
+
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["ko"],
+            "recognizers": [dict(entry, enabled=True)],
+        }
+    ).create_recognizer_registry()
+    analyzer = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NoOpNlpEngine(models=[NOOP_KO]),
+        supported_languages=["ko"],
+    )
+
+    results = analyzer.analyze("이체 계좌: 302-0123-4567-89", language="ko")
+
+    assert [r.entity_type for r in results] == ["KR_BANK_ACCOUNT"]
+    assert_result_within_score_range(results[0], "KR_BANK_ACCOUNT", 7, 23, 0.6, 0.6)
+
+
+def test_when_top_level_languages_left_at_default_then_entry_loads_nothing():
+    """The shipped top-level ``supported_languages`` is ``["en"]``.
+
+    Flipping only ``enabled: true`` therefore loads nothing, with no error,
+    which is why enabling this entry also requires adding ``ko`` at the top.
+    """
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [dict(shipped_yaml_entry(), enabled=True)],
+        }
+    ).create_recognizer_registry()
+
+    assert registry.recognizers == []
+
+
+def test_when_korean_context_word_is_supplied_then_score_is_boosted(
+    recognizer, entities
+):
+    """The Korean context words must be wired into the context enhancer.
+
+    Context taken from the surrounding text needs a Korean NLP model, which
+    the test environment does not ship, so the boost is exercised through the
+    explicit ``context`` argument, the same way ``test_context_support`` does.
+    """
+    text = "302-1234-5678-91"
+    engine = NoOpNlpEngine(models=[NOOP_KO])
+    engine.load()
+    nlp_artifacts = engine.process_text(text, "ko")
+    raw = recognizer.analyze(text, entities, nlp_artifacts)
+    enhancer = LemmaContextAwareEnhancer()
+
+    without = enhancer.enhance_using_context(text, raw, nlp_artifacts, [recognizer])
+    boosted = enhancer.enhance_using_context(
+        text, raw, nlp_artifacts, [recognizer], ["계좌번호"]
+    )
+
+    assert max(r.score for r in without) == 0.6
+    best = max(boosted, key=lambda r: r.score)
+    assert best.score == pytest.approx(0.95)
+    assert best.analysis_explanation.supportive_context_word in recognizer.context
+
+
+@pytest.mark.parametrize(
+    "text, start, end",
+    [
+        # context word before the account: the default prefix window
+        ("계좌번호 302-1234-5678-91 로 입금", 5, 21),
+        # context word after the account: the suffix window, off by default
+        ("302-1234-5678-91 계좌로 이체 부탁드립니다", 0, 16),
+    ],
+)
+def test_when_context_word_on_either_side_then_pattern_match_is_kept(
+    text, start, end, recognizer, entities
+):
+    """Context text on either side must not disturb the pattern match itself."""
+    results = recognizer.analyze(text, entities)
+    best = max(results, key=lambda r: r.score)
+    assert_result_within_score_range(best, entities[0], start, end, 0.6, 0.6)
