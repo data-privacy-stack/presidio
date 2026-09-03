@@ -91,6 +91,48 @@ recognizers:
     enabled: false
     country_code: us
 
+  - name: UsHealthInsuranceMemberIdRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: us
+
+  - name: UsPriorAuthorizationNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: us
+
+  - name: UsClaimNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: us
+
+  - name: UsPrescriptionNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: us
+
+  - name: UsReferralNumberRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: us
+
+  - name: UsProviderTaxIdRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: us
+
   - name: NhsRecognizer
     supported_languages: 
     - en
