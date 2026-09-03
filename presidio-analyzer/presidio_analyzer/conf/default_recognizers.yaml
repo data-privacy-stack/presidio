@@ -303,7 +303,6 @@ recognizers:
   - name: KrBankAccountRecognizer
     supported_languages:
     - ko
-    - kr
     type: predefined
     enabled: false
     country_code: kr
