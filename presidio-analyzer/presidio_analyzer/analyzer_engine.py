@@ -180,6 +180,8 @@ class AnalyzerEngine:
         allow_list_match: Optional[str] = "exact",
         regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
         nlp_artifacts: Optional[NlpArtifacts] = None,
+        *,
+        merge_adjacent_entities: Optional[List[str]] = None,
     ) -> List[RecognizerResult]:
         """
         Find PII entities in text using different PII recognizers for a given language.
@@ -206,6 +208,10 @@ class AnalyzerEngine:
         - if `exact`, results which exactly match any value in the allow_list would be allowed and not be returned as potential PII.
         :param regex_flags: regex flags to be used for when allow_list_match is "regex"
         :param nlp_artifacts: precomputed NlpArtifacts
+        :param merge_adjacent_entities: List of entity types for which adjacent
+        same-type spans separated only by whitespace should be merged into a
+        single result (e.g. ["PERSON"] to fuse "Dave" + "Jones" into one PERSON
+        span). Off by default; entity types not listed are never merged.
         :return: an array of the found entities in the text
 
         :Example:
@@ -280,6 +286,11 @@ class AnalyzerEngine:
         results = self.__remove_low_scores(results, score_threshold, recognizers)
         results = EntityRecognizer.remove_duplicates(results)
 
+        if merge_adjacent_entities:
+            results = EntityRecognizer.merge_adjacent_text_entities(
+                results, text, entity_types=merge_adjacent_entities
+            )
+            results = EntityRecognizer.remove_duplicates(results)
         if allow_list:
             results = self._remove_allow_list(
                 results, allow_list, text, regex_flags, allow_list_match
