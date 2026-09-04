@@ -11,6 +11,7 @@ from .country_specific.australia.au_medicare_recognizer import AuMedicareRecogni
 from .country_specific.australia.au_tfn_recognizer import AuTfnRecognizer
 
 # Canada recognizers
+from .country_specific.canada.ca_postal_code_recognizer import CaPostalCodeRecognizer
 from .country_specific.canada.ca_sin_recognizer import CaSinRecognizer
 
 # Finland recognizers
@@ -76,6 +77,7 @@ from .country_specific.nigeria.ng_vehicle_registration_recognizer import (
 )
 
 # Philippines recognizers
+from .country_specific.philippines.ph_passport_recognizer import PhPassportRecognizer
 from .country_specific.philippines.ph_tin_recognizer import PhTinRecognizer
 from .country_specific.philippines.ph_umid_recognizer import PhUmidRecognizer
 
@@ -155,6 +157,16 @@ from .country_specific.us.aba_routing_recognizer import AbaRoutingRecognizer
 from .country_specific.us.medical_license_recognizer import MedicalLicenseRecognizer
 from .country_specific.us.us_bank_recognizer import UsBankRecognizer
 from .country_specific.us.us_driver_license_recognizer import UsLicenseRecognizer
+from .country_specific.us.us_health_insurance_member_id_recognizer import (
+    UsHealthInsuranceMemberIdRecognizer,
+)
+from .country_specific.us.us_healthcare_admin_recognizers import (
+    UsClaimNumberRecognizer,
+    UsPrescriptionNumberRecognizer,
+    UsPriorAuthorizationNumberRecognizer,
+    UsProviderTaxIdRecognizer,
+    UsReferralNumberRecognizer,
+)
 from .country_specific.us.us_itin_recognizer import UsItinRecognizer
 from .country_specific.us.us_mbi_recognizer import UsMbiRecognizer
 from .country_specific.us.us_npi_recognizer import UsNpiRecognizer
@@ -171,6 +183,7 @@ from .generic.ip_recognizer import IpRecognizer
 from .generic.mac_recognizer import MacAddressRecognizer
 from .generic.phone_recognizer import PhoneRecognizer
 from .generic.url_recognizer import UrlRecognizer
+from .generic.uuid_recognizer import UuidRecognizer
 
 # NER recognizers
 from .ner.gliner_recognizer import GLiNERRecognizer
@@ -210,6 +223,7 @@ NLP_RECOGNIZERS = {
 
 __all__ = [
     "AbaRoutingRecognizer",
+    "CaPostalCodeRecognizer",
     "CaSinRecognizer",
     "CreditCardRecognizer",
     "CryptoRecognizer",
@@ -220,15 +234,22 @@ __all__ = [
     "NhsRecognizer",
     "MedicalLicenseRecognizer",
     "MacAddressRecognizer",
+    "UuidRecognizer",
     "PhoneRecognizer",
     "SgFinRecognizer",
     "UrlRecognizer",
     "UsBankRecognizer",
+    "UsClaimNumberRecognizer",
+    "UsHealthInsuranceMemberIdRecognizer",
     "UsItinRecognizer",
     "UsLicenseRecognizer",
     "UsMbiRecognizer",
     "UsNpiRecognizer",
     "UsPassportRecognizer",
+    "UsPrescriptionNumberRecognizer",
+    "UsPriorAuthorizationNumberRecognizer",
+    "UsProviderTaxIdRecognizer",
+    "UsReferralNumberRecognizer",
     "UsSsnRecognizer",
     "EsNifRecognizer",
     "SpacyRecognizer",
@@ -291,6 +312,7 @@ __all__ = [
     "KrPassportRecognizer",
     "NgNinRecognizer",
     "NgVehicleRegistrationRecognizer",
+    "PhPassportRecognizer",
     "MedicalNERRecognizer",
     # Germany recognizers
     "DeTaxIdRecognizer",
