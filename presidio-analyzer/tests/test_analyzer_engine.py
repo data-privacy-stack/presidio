@@ -889,6 +889,65 @@ def test_when_get_recognizers_then_returns_supported_language():
     assert len(response) == 1
 
 
+def test_when_get_recognizers_with_countries_then_filters_loaded_recognizers():
+    us_recognizer = PatternRecognizer(
+        "ID",
+        name="US ID",
+        patterns=[Pattern("us", regex="US-123", score=0.8)],
+        country_code="us",
+    )
+    uk_recognizer = PatternRecognizer(
+        "ID",
+        name="UK ID",
+        patterns=[Pattern("uk", regex="UK-123", score=0.8)],
+        country_code="uk",
+    )
+    generic_recognizer = PatternRecognizer(
+        "ID",
+        name="Generic ID",
+        patterns=[Pattern("generic", regex="ID-123", score=0.8)],
+    )
+    registry = RecognizerRegistry(
+        recognizers=[us_recognizer, uk_recognizer, generic_recognizer],
+        supported_languages=["en"],
+    )
+    analyzer = AnalyzerEngine(registry=registry, nlp_engine=NlpEngineMock())
+
+    response = analyzer.get_recognizers(language="en", countries=["us"])
+
+    assert {rec.name for rec in response} == {"US ID", "Generic ID"}
+
+
+def test_when_analyze_with_countries_then_runs_matching_recognizers_only():
+    us_recognizer = PatternRecognizer(
+        "US_ID",
+        patterns=[Pattern("us", regex="US-123", score=0.8)],
+        country_code="us",
+    )
+    uk_recognizer = PatternRecognizer(
+        "UK_ID",
+        patterns=[Pattern("uk", regex="UK-123", score=0.8)],
+        country_code="uk",
+    )
+    generic_recognizer = PatternRecognizer(
+        "GENERIC_ID",
+        patterns=[Pattern("generic", regex="ID-123", score=0.8)],
+    )
+    registry = RecognizerRegistry(
+        recognizers=[us_recognizer, uk_recognizer, generic_recognizer],
+        supported_languages=["en"],
+    )
+    analyzer = AnalyzerEngine(registry=registry, nlp_engine=NlpEngineMock())
+
+    results = analyzer.analyze(
+        text="US-123 UK-123 ID-123",
+        language="en",
+        countries=["us"],
+    )
+
+    assert {result.entity_type for result in results} == {"US_ID", "GENERIC_ID"}
+
+
 def test_when_add_recognizer_then_also_outputs_others(spacy_nlp_engine):
     pattern = Pattern("rocket pattern", r"\W*(rocket)\W*", 0.8)
     pattern_recognizer = PatternRecognizer(

@@ -131,11 +131,17 @@ class AnalyzerEngine:
 
         self.context_aware_enhancer = context_aware_enhancer
 
-    def get_recognizers(self, language: Optional[str] = None) -> List[EntityRecognizer]:
+    def get_recognizers(
+        self,
+        language: Optional[str] = None,
+        countries: Optional[List[str]] = None,
+    ) -> List[EntityRecognizer]:
         """
         Return a list of PII recognizers currently loaded.
 
         :param language: Return the recognizers supporting a given language.
+        :param countries: Optional country filter (case-insensitive ISO-3166
+        alpha-2 codes). Locale-agnostic recognizers are always returned.
         :return: List of [Recognizer] as a RecognizersAllResponse
         """
         if not language:
@@ -147,19 +153,27 @@ class AnalyzerEngine:
         for language in languages:
             logger.info(f"Fetching all recognizers for language {language}")
             recognizers.extend(
-                self.registry.get_recognizers(language=language, all_fields=True)
+                self.registry.get_recognizers(
+                    language=language, all_fields=True, countries=countries
+                )
             )
 
         return list(set(recognizers))
 
-    def get_supported_entities(self, language: Optional[str] = None) -> List[str]:
+    def get_supported_entities(
+        self,
+        language: Optional[str] = None,
+        countries: Optional[List[str]] = None,
+    ) -> List[str]:
         """
         Return a list of the entities that can be detected.
 
         :param language: Return only entities supported in a specific language.
+        :param countries: Optional country filter to apply while collecting
+        supported entities.
         :return: List of entity names
         """
-        recognizers = self.get_recognizers(language=language)
+        recognizers = self.get_recognizers(language=language, countries=countries)
         supported_entities = []
         for recognizer in recognizers:
             supported_entities.extend(recognizer.get_supported_entities())
@@ -180,6 +194,7 @@ class AnalyzerEngine:
         allow_list_match: Optional[str] = "exact",
         regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
         nlp_artifacts: Optional[NlpArtifacts] = None,
+        countries: Optional[List[str]] = None,
     ) -> List[RecognizerResult]:
         """
         Find PII entities in text using different PII recognizers for a given language.
@@ -206,6 +221,9 @@ class AnalyzerEngine:
         - if `exact`, results which exactly match any value in the allow_list would be allowed and not be returned as potential PII.
         :param regex_flags: regex flags to be used for when allow_list_match is "regex"
         :param nlp_artifacts: precomputed NlpArtifacts
+        :param countries: Optional country filter (case-insensitive ISO-3166
+        alpha-2 codes). When provided, country-specific recognizers run only
+        when their country code is included. Locale-agnostic recognizers always run.
         :return: an array of the found entities in the text
 
         :Example:
@@ -231,12 +249,15 @@ class AnalyzerEngine:
             entities=entities,
             all_fields=all_fields,
             ad_hoc_recognizers=ad_hoc_recognizers,
+            countries=countries,
         )
 
         if all_fields:
             # Since all_fields=True, list all entities by iterating
             # over all recognizers
-            entities = self.get_supported_entities(language=language)
+            entities = self.get_supported_entities(
+                language=language, countries=countries
+            )
 
         # run the nlp pipeline over the given text, store the results in
         # a NlpArtifacts instance

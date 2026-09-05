@@ -514,6 +514,56 @@ def test_get_country_codes_after_country_filter():
     assert registry.get_country_codes() == ["us"]
 
 
+def test_get_recognizers_filters_by_countries_at_request_time():
+    """``get_recognizers(countries=...)`` filters an already-loaded registry."""
+    us_recognizer = PatternRecognizer(
+        supported_entity="ID",
+        name="US ID",
+        patterns=[Pattern("us", regex="US-123", score=0.8)],
+        country_code="us",
+    )
+    uk_recognizer = PatternRecognizer(
+        supported_entity="ID",
+        name="UK ID",
+        patterns=[Pattern("uk", regex="UK-123", score=0.8)],
+        country_code="uk",
+    )
+    generic_recognizer = PatternRecognizer(
+        supported_entity="ID",
+        name="Generic ID",
+        patterns=[Pattern("generic", regex="ID-123", score=0.8)],
+    )
+    registry = RecognizerRegistry(
+        recognizers=[us_recognizer, uk_recognizer, generic_recognizer]
+    )
+
+    unfiltered = registry.get_recognizers(language="en", entities=["ID"])
+    us_filtered = registry.get_recognizers(
+        language="en", entities=["ID"], countries=["US"]
+    )
+    country_agnostic_only = registry.get_recognizers(
+        language="en", entities=["ID"], countries=[]
+    )
+
+    assert {rec.name for rec in unfiltered} == {"US ID", "UK ID", "Generic ID"}
+    assert {rec.name for rec in us_filtered} == {"US ID", "Generic ID"}
+    assert {rec.name for rec in country_agnostic_only} == {"Generic ID"}
+
+
+def test_get_recognizers_supports_non_list_iterable_with_ad_hoc_recognizers():
+    tuple_recognizer = create_mock_pattern_recognizer("en", "PERSON", "tuple")
+    ad_hoc_recognizer = create_mock_pattern_recognizer("en", "PERSON", "ad hoc")
+    registry = RecognizerRegistry(recognizers=(tuple_recognizer,))
+
+    recognizers = registry.get_recognizers(
+        language="en",
+        entities=["PERSON"],
+        ad_hoc_recognizers=[ad_hoc_recognizer],
+    )
+
+    assert {rec.name for rec in recognizers} == {"tuple", "ad hoc"}
+
+
 def test_get_country_codes_excludes_locale_agnostic_recognizers():
     """Filter out locale-agnostic recognizers from the country code report.
 
