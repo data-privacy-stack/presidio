@@ -174,6 +174,30 @@ def test_predefined_recognizer_config_with_language():
     assert config.supported_languages is None
 
 
+def test_recognizer_description_uses_class_name_when_name_missing():
+    """Test error descriptions fall back to class_name when name is optional."""
+    config = PredefinedRecognizerConfig(class_name="CreditCardRecognizer")
+
+    assert config._recognizer_description_for_errors() == "CreditCardRecognizer"
+
+
+def test_recognizer_description_uses_generic_fallback_without_name_or_class():
+    """Test error descriptions have a generic fallback for incomplete configs."""
+    config = BaseRecognizerConfig.model_construct(name=None, class_name=None)
+
+    assert config._recognizer_description_for_errors() == "recognizer"
+
+
+def test_predefined_recognizer_requires_name_or_class_name():
+    """Test predefined recognizer requires a name or explicit class_name."""
+    with pytest.raises(ValidationError) as exc_info:
+        PredefinedRecognizerConfig()
+
+    error_message = str(exc_info.value)
+    assert "Predefined recognizer requires either 'name'" in error_message
+    assert "'class_name'" in error_message
+
+
 def test_custom_recognizer_config_with_patterns():
     """Test custom recognizer with patterns."""
     patterns = [

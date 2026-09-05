@@ -1,5 +1,7 @@
+import hashlib
 import json
 import logging
+import re
 from typing import Dict, List, Optional
 
 from presidio_analyzer import (
@@ -22,6 +24,32 @@ except ImportError:
 
 logger = logging.getLogger("presidio-analyzer")
 
+_DEFAULT_GLINER_MODEL_NAME = "urchade/gliner_multi_pii-v1"
+_LEGACY_GLINER_RECOGNIZER_NAME = "GLiNERRecognizer"
+
+
+def _sanitize_model_name_for_instance_name(model_name: str) -> str:
+    """Map a HF-style model id to a deterministic, collision-resistant suffix."""
+
+    sanitized = re.sub(r"[^0-9A-Za-z]+", "_", model_name)
+    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+    model_hash = hashlib.sha256(model_name.encode("utf-8")).hexdigest()[:8]
+    if not sanitized:
+        sanitized = "model"
+    return f"{sanitized}_{model_hash}"
+
+
+def _default_gliner_recognizer_name(model_name: str) -> str:
+    """Stable default recognizer ``name`` when the user omits ``name``.
+
+    Preserve the legacy name for the built-in default model for backwards compatibility.
+    """
+
+    if model_name == _DEFAULT_GLINER_MODEL_NAME:
+        return _LEGACY_GLINER_RECOGNIZER_NAME
+    suffix = _sanitize_model_name_for_instance_name(model_name)
+    return f"{_LEGACY_GLINER_RECOGNIZER_NAME}_{suffix}"
+
 
 class GLiNERRecognizer(LocalRecognizer):
     """GLiNER model based entity recognizer."""
@@ -29,12 +57,12 @@ class GLiNERRecognizer(LocalRecognizer):
     def __init__(
         self,
         supported_entities: Optional[List[str]] = None,
-        name: str = "GLiNERRecognizer",
+        name: Optional[str] = None,
         supported_language: str = "en",
         version: str = "0.0.1",
         context: Optional[List[str]] = None,
         entity_mapping: Optional[Dict[str, str]] = None,
-        model_name: str = "urchade/gliner_multi_pii-v1",
+        model_name: str = _DEFAULT_GLINER_MODEL_NAME,
         flat_ner: bool = True,
         multi_label: bool = False,
         threshold: float = 0.30,
@@ -53,7 +81,9 @@ class GLiNERRecognizer(LocalRecognizer):
         :param supported_entities: List of supported entities for this recognizer.
         If None, all entities in Presidio's default configuration will be used.
         see `NerModelConfiguration`
-        :param name: Name of the recognizer
+        :param name: Name of the recognizer. When omitted, a deterministic name is
+            derived from ``model_name`` (with the default model preserving the legacy
+            name ``GLiNERRecognizer``).
         :param supported_language: Language code to use for the recognizer
         :param version: Version of the recognizer
         :param context: N/A for this recognizer
@@ -135,9 +165,13 @@ class GLiNERRecognizer(LocalRecognizer):
 
         self.gliner = None
 
+        resolved_name = name if name is not None else _default_gliner_recognizer_name(
+            model_name
+        )
+
         super().__init__(
             supported_entities=supported_entities,
-            name=name,
+            name=resolved_name,
             supported_language=supported_language,
             version=version,
             context=context,
