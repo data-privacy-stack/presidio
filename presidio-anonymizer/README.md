@@ -224,3 +224,14 @@ docker-compose up -d
 
 Follow the [API Spec](https://presidio.dataprivacystack.org/api-docs/api-docs.html#tag/Anonymizer) for the
 Anonymizer REST API reference details
+
+#### Optional FastAPI server
+
+The anonymizer source tree also includes a FastAPI server with the same REST
+endpoints as the default Flask server. From the `presidio-anonymizer` source
+directory, install the optional dependencies and run it with Uvicorn:
+
+```sh
+pip install -e ".[fastapi]"
+uvicorn fastapi_app:create_app --factory --host 0.0.0.0 --port 3000
+```

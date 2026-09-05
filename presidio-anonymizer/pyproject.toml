@@ -32,6 +32,10 @@ server = [
     "gunicorn (>=20.0.0,<26.0.0); platform_system != 'Windows'",
     "waitress (>=2.0.0,<4.0.0); platform_system == 'Windows'"
 ]
+fastapi = [
+    "fastapi (>=0.115.0,<1.0.0)",
+    "uvicorn (>=0.32.0,<1.0.0)"
+]
 ahds = [
     "azure-identity (>=1.25.3,<2.0.0)",
     "azure-health-deidentification (>=1.1.0b1,<2.0.0)"
@@ -47,6 +51,7 @@ dev = [
     "python-dotenv",
     "pre-commit",
     "diff-cover",
+    "fastapi>=0.115.0,<1.0.0",
 ]
 
 [tool.coverage.run]
