@@ -38,7 +38,6 @@ All notable changes to this project will be documented in this file.
 ### Anonymizer
 #### Security
 - Bumped `cryptography` lower bound to `>=48.0.1` to resolve GHSA-537c-gmf6-5ccf (HIGH, vulnerable OpenSSL statically linked into wheels below 48.0.1) (#2144) (Thanks @Copilot)
-- Bumped `cryptography` to `>=50.0.0,<51.0.0` to resolve GHSA-g6cj-pr64-35w5 / CVE-2026-69247, which affects `cryptography >=44.0.0,<50.0.0` and is first patched in 50.0.0. The previous `<49.0.0` ceiling made `presidio-anonymizer` and the patched release mutually exclusive, so downstream projects could not take the fix without dropping `presidio-anonymizer` (#2229)
 
 ### General
 #### Added
