@@ -1,4 +1,4 @@
-name: Label pull requests by area
+name: Label pull requests by changed paths
 
 on:
   pull_request_target:
@@ -20,7 +20,7 @@ jobs:
   label:
     runs-on: ubuntu-slim
     steps:
-      - name: Apply component and area labels from changed paths
+      - name: Apply component, area and type labels from changed paths
         uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6.2.0
         with:
           # Add labels only. Labels applied by hand are never removed, and a
