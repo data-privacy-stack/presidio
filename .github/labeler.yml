@@ -72,6 +72,14 @@ documentation:
           - 'overrides/**'
           - '*.md'
 
+# Runnable examples and notebooks. Overlaps documentation by design: a sample
+# is documentation, but it is also code that has to keep working, so it needs
+# to be findable on its own.
+samples:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/samples/**'
+
 # ---------------------------------------------------------------------------
 # Area (analyzer subsystems)
 # ---------------------------------------------------------------------------
