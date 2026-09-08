@@ -1,8 +1,9 @@
 # Path-based labels applied automatically by .github/workflows/label-areas.yml
 #
-# Two facets are applied here:
+# Three facets are applied here:
 #   component - which package the change lives in
 #   area      - which subsystem inside the analyzer it touches
+#   type      - what kind of change it is, where the paths make that clear
 #
 # Labels are not exclusive. A pull request that spans a package and a subsystem
 # receives both, which is intended: the component label answers "what does this
@@ -72,14 +73,6 @@ documentation:
           - 'overrides/**'
           - '*.md'
 
-# Runnable examples and notebooks. Overlaps documentation by design: a sample
-# is documentation, but it is also code that has to keep working, so it needs
-# to be findable on its own.
-samples:
-  - changed-files:
-      - any-glob-to-any-file:
-          - 'docs/samples/**'
-
 # ---------------------------------------------------------------------------
 # Area (analyzer subsystems)
 # ---------------------------------------------------------------------------
@@ -120,6 +113,14 @@ nlp-engine:
 # ---------------------------------------------------------------------------
 # Type
 # ---------------------------------------------------------------------------
+
+# Runnable examples and notebooks. Overlaps documentation by design: a sample
+# is documentation, but it is also code that has to keep working, so it needs
+# to be findable on its own.
+samples:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/samples/**'
 
 test:
   - changed-files:
