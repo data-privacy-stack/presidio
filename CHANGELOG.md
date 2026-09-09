@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Added `NoOpNlpEngine` for configurations that do not require NLP engine artifacts, enabling standalone recognizers such as `HuggingFaceNerRecognizer` to run without a spaCy or Stanza model (#2071) (Thanks @ultramancode)
 - Added per-recognizer and per-entity score threshold configuration in the recognizer registry YAML, with the analyzer's global `default_score_threshold` as the fallback (#2116) (Thanks @rodboev)
 - Added `PhUmidRecognizer` for Philippine Unified Multi-Purpose ID (UMID/CRN) numbers in dashed and plain 12-digit formats; disabled by default (#2045) (Thanks @Surya-5555)
+- Czech PII recognizers for `CZ_BIRTH_NUMBER`, `CZ_BANK_ACCOUNT`, `CZ_ID_CARD`, `CZ_PASSPORT`, and `CZ_DRIVER_LICENSE`, plus Czech `DATE_TIME` date coverage (`CzDateRecognizer`); all are disabled by default. Includes a Czech language support recipe (`docs/recipes/czech-language-support`)
 
 #### Fixed
 - `PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS` used `"UK"`, which is not a valid `phonenumbers` (libphonenumber) region code — region codes are ISO 3166-1 alpha-2, where the United Kingdom is `"GB"`. The `"UK"` entry was a no-op, so UK numbers in national/local format (e.g. `020 7946 0958`) were never detected by default; only international-format `+44 …` numbers matched, because they carry the country code and match under any region. Replaced `"UK"` with `"GB"`.
