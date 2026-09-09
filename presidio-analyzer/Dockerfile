@@ -9,8 +9,10 @@ ENV UV_PROJECT_ENVIRONMENT=/usr/local
 ENV UV_COMPILE_BYTECODE=1
 
 # uv is copied in as a static binary rather than installed with pip, so it never
-# reaches the runtime image and its advisories never apply to it.
-COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /usr/local/bin/uv
+# reaches the runtime image and its advisories never apply to it. It is staged in
+# /usr/bin, outside the /usr/local tree the runtime stage copies from, so the
+# ~45MB binary is never baked into a runtime layer.
+COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /usr/bin/uv
 
 WORKDIR /app
 
@@ -30,6 +32,17 @@ COPY ./install_nlp_models.py /app/
 RUN python install_nlp_models.py \
     --conf_file ${NLP_CONF_FILE} \
     --analyzer_conf_file ${ANALYZER_CONF_FILE}
+
+# Strip packaging tooling here, after the spacy model download (which shells out
+# to pip), so the layers the runtime stage copies never contain it. The runtime
+# stage repeats the removal for the copies that ship in its own base image.
+RUN python -m pip uninstall -y pip setuptools wheel 2>/dev/null || true \
+    && rm -rf /usr/local/bin/pip* /usr/local/bin/wheel \
+    /usr/local/lib/python3.12/site-packages/pip* \
+    /usr/local/lib/python3.12/site-packages/setuptools* \
+    /usr/local/lib/python3.12/site-packages/wheel* \
+    /usr/local/lib/python3.12/site-packages/_distutils_hack \
+    /usr/local/lib/python3.12/site-packages/distutils-precedence.pth
 
 # ---- runtime ----
 FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS runtime

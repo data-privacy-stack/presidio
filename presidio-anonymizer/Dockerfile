@@ -7,8 +7,10 @@ ENV UV_PROJECT_ENVIRONMENT=/usr/local
 ENV UV_COMPILE_BYTECODE=1
 
 # uv is copied in as a static binary rather than installed with pip, so it never
-# reaches the runtime image and its advisories never apply to it.
-COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /usr/local/bin/uv
+# reaches the runtime image and its advisories never apply to it. It is staged in
+# /usr/bin, outside the /usr/local tree the runtime stage copies from, so the
+# ~45MB binary is never baked into a runtime layer.
+COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /usr/bin/uv
 
 WORKDIR /app
 
@@ -16,6 +18,17 @@ COPY ./pyproject.toml ./uv.lock /app/
 # Install exactly the locked dependency graph (main + server extra, no dev
 # group); the project itself is run from the copied source, not installed.
 RUN uv sync --locked --no-cache --no-default-groups --extra server --no-install-project
+
+# Strip packaging tooling here so the layers the runtime stage copies never
+# contain it. The runtime stage repeats the removal for the copies that ship in
+# its own base image.
+RUN python -m pip uninstall -y pip setuptools wheel 2>/dev/null || true \
+    && rm -rf /usr/local/bin/pip* /usr/local/bin/wheel \
+    /usr/local/lib/python3.14/site-packages/pip* \
+    /usr/local/lib/python3.14/site-packages/setuptools* \
+    /usr/local/lib/python3.14/site-packages/wheel* \
+    /usr/local/lib/python3.14/site-packages/_distutils_hack \
+    /usr/local/lib/python3.14/site-packages/distutils-precedence.pth
 
 # ---- runtime ----
 FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6 AS runtime
