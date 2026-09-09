@@ -365,7 +365,14 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
         default=None, description="Words to deny/exclude"
     )
     deny_list_score: Optional[float] = Field(
-        default=0.0, ge=0.0, le=1.0, description="Deny list score"
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Score for deny-list matches. When omitted, the PatternRecognizer "
+            "default (1.0) applies, as it does for recognizers created in code "
+            "or through add_pattern_recognizer_from_dict"
+        ),
     )
 
     # Language validation (legacy and new formats)
@@ -456,6 +463,16 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
                 "Custom recognizer must have at least one of 'patterns' or 'deny_list'"
             )
         return self
+
+    def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        """Serialize the config without None values by default.
+
+        The dump is passed to ``PatternRecognizer.from_dict``. Excluding None
+        values preserves constructor defaults (for example ``deny_list_score``)
+        for omitted YAML fields instead of overriding them with explicit None.
+        """
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(*args, **kwargs)
 
 
 class RecognizerRegistryConfig(BaseModel):

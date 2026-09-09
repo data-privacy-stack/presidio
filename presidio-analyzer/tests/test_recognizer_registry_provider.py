@@ -8,7 +8,7 @@ from inspect import signature
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import RecognizerConfigurationLoader
-from presidio_analyzer import RecognizerRegistry
+from presidio_analyzer import PatternRecognizer, RecognizerRegistry
 
 
 def assert_default_configuration(
@@ -115,6 +115,69 @@ def test_recognizer_registry_provider_rejects_invalid_score_thresholds(
                 ],
             }
         )
+
+
+def _deny_list_registry_configuration(recognizer: dict) -> dict:
+    return {
+        "supported_languages": ["en"],
+        "global_regex_flags": 26,
+        "recognizers": [recognizer],
+    }
+
+
+@pytest.mark.parametrize(
+    "recognizer_conf",
+    [
+        # new-style entry: one recognizer per registry language
+        {"name": "Titles", "supported_entity": "TITLE", "deny_list": ["Mr.", "Mrs."]},
+        # legacy entry: explicit single supported_language
+        {
+            "name": "Titles",
+            "supported_language": "en",
+            "supported_entity": "TITLE",
+            "deny_list": ["Mr.", "Mrs."],
+        },
+    ],
+)
+def test_recognizer_registry_provider_omitted_deny_list_score_uses_recognizer_default(
+    recognizer_conf,
+):
+    """Omitting deny_list_score yields the PatternRecognizer default (1.0).
+
+    That is the score the recognizer gets when created in code or through
+    RecognizerRegistry.add_pattern_recognizer_from_dict.
+    """
+    provider = RecognizerRegistryProvider(
+        registry_configuration=_deny_list_registry_configuration(recognizer_conf)
+    )
+    registry = provider.create_recognizer_registry()
+    titles = next(r for r in registry.recognizers if r.name == "Titles")
+
+    in_code = PatternRecognizer(supported_entity="TITLE", deny_list=["Mr.", "Mrs."])
+    assert titles.deny_list_score == in_code.deny_list_score == 1.0
+    assert [pattern.score for pattern in titles.patterns] == [1.0]
+
+    results = titles.analyze(text="Dear Mr. Smith", entities=["TITLE"])
+    assert [(result.start, result.end, result.score) for result in results] == [
+        (5, 8, 1.0)
+    ]
+
+
+def test_recognizer_registry_provider_explicit_deny_list_score_is_honored():
+    provider = RecognizerRegistryProvider(
+        registry_configuration=_deny_list_registry_configuration(
+            {
+                "name": "Titles",
+                "supported_entity": "TITLE",
+                "deny_list": ["Mr."],
+                "deny_list_score": 0.4,
+            }
+        )
+    )
+    registry = provider.create_recognizer_registry()
+    titles = next(r for r in registry.recognizers if r.name == "Titles")
+    assert titles.deny_list_score == 0.4
+    assert [pattern.score for pattern in titles.patterns] == [0.4]
 
 
 def test_recognizer_registry_provider_configuration_file_load_predefined(mandatory_recognizers):
