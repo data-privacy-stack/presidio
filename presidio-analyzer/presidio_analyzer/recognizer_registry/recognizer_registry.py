@@ -341,11 +341,13 @@ class RecognizerRegistry:
         """  # noqa: E501
 
         recognizer_config = recognizer_dict.copy()
+        has_score_thresholds = "score_thresholds" in recognizer_config
         score_thresholds = normalize_score_thresholds(
             recognizer_config.pop("score_thresholds", None)
         )
         recognizer = PatternRecognizer.from_dict(recognizer_config)
-        recognizer.score_thresholds = score_thresholds
+        if has_score_thresholds:
+            recognizer.score_thresholds = score_thresholds
         self.add_recognizer(recognizer)
 
     def add_recognizers_from_yaml(self, yml_path: Union[str, Path]) -> None:
