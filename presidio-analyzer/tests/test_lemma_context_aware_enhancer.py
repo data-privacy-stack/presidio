@@ -1,3 +1,5 @@
+import pytest
+
 from presidio_analyzer import LemmaContextAwareEnhancer
 
 
@@ -280,3 +282,81 @@ def test_when_substring_mode_then_compound_words_work_in_integration(spacy_nlp_e
     assert (
         enhanced_results[0].analysis_explanation.supportive_context_word == "passport"
     )
+
+
+def test_add_n_words_forward_respects_token_window():
+    """
+    Verify that _add_n_words hard-caps at max_token_positions = n_words * 2 + 1.
+
+    With n_words=1 the hard cap is 3 token positions.  A keyword sitting at
+    position 4 (beyond the cap) must not be collected even when stop-words
+    and punctuation fill the earlier positions.
+    Regression test for: context words used outside the suffix/prefix window.
+    """
+    # entity(0), stop(1), near_keyword(2), far_keyword(3)
+    # n_words=1 → max_token_positions = 1*2+1 = 3 → scans positions 0,1,2 only
+    lemmas = ["entity", "the", "near_keyword", "far_keyword"]
+    lemmatized_filtered_keywords = ["entity", "near_keyword", "far_keyword"]
+
+    result = LemmaContextAwareEnhancer._add_n_words(
+        index=0,
+        n_words=1,
+        lemmas=lemmas,
+        lemmatized_filtered_keywords=lemmatized_filtered_keywords,
+        is_backward=False,
+    )
+
+    assert "near_keyword" in result
+    # "far_keyword" is at position 3 which is >= max_token_positions=3 from the start
+    assert "far_keyword" not in result
+
+
+def test_add_n_words_backward_respects_token_window():
+    """
+    Verify that _add_n_words hard-caps at max_token_positions = n_words * 2 + 1.
+
+    With n_words=1 the hard cap is 3 token positions.  A keyword sitting
+    more than 2 steps behind the entity must not be collected.
+    Regression test for: context words used outside the suffix/prefix window.
+    """
+    # far_keyword(0), stop(1), near_keyword(2), entity(3)
+    # n_words=1 → max_token_positions=3 → scans positions 3,2,1 (3 steps)
+    lemmas = ["far_keyword", "the", "near_keyword", "entity"]
+    lemmatized_filtered_keywords = ["entity", "near_keyword", "far_keyword"]
+
+    result = LemmaContextAwareEnhancer._add_n_words(
+        index=3,
+        n_words=1,
+        lemmas=lemmas,
+        lemmatized_filtered_keywords=lemmatized_filtered_keywords,
+        is_backward=True,
+    )
+
+    assert "near_keyword" in result
+    # "far_keyword" is at position 0, which is 3 steps from the entity —
+    # just outside the hard cap of max_token_positions=3 (positions 3,2,1).
+    assert "far_keyword" not in result
+
+
+def test_add_n_words_zero_window_only_includes_entity():
+    """With n_words=0 the hard cap is 1 token position: only the entity."""
+    lemmas = ["before_keyword", "entity", "after_keyword"]
+    lemmatized_filtered_keywords = ["before_keyword", "entity", "after_keyword"]
+
+    forward = LemmaContextAwareEnhancer._add_n_words(
+        index=1,
+        n_words=0,
+        lemmas=lemmas,
+        lemmatized_filtered_keywords=lemmatized_filtered_keywords,
+        is_backward=False,
+    )
+    backward = LemmaContextAwareEnhancer._add_n_words(
+        index=1,
+        n_words=0,
+        lemmas=lemmas,
+        lemmatized_filtered_keywords=lemmatized_filtered_keywords,
+        is_backward=True,
+    )
+
+    assert forward == ["entity"]
+    assert backward == ["entity"]
