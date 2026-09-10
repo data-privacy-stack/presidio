@@ -97,19 +97,7 @@ class TestAzureOpenAILangExtractRecognizerUsage:
         assert recognizer.model_id == "gpt-4o"
         assert recognizer.azure_endpoint == "https://test-resource.openai.azure.com/"
         assert recognizer.api_key == "PLACEHOLDER_NOT_A_REAL_KEY"
-
-    def test_context_reaches_instance(self, mock_langextract):
-        """`context` must reach the instance, so the registry loader (which
-        injects `context` for every predefined recognizer) does not crash
-        and the value is actually usable for context-aware scoring.
-        """
-        recognizer = AzureOpenAILangExtractRecognizer(
-            azure_endpoint="https://test-resource.openai.azure.com/",
-            context=["x"],
-        )
-
-        assert recognizer.context == ["x"]
-
+    
     def test_environment_variables(self, mock_langextract):
         """Alternative: Use environment variables for credentials."""
         env_vars = {

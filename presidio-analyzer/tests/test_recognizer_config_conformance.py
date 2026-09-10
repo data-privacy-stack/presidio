@@ -7,10 +7,13 @@ suite that turns that promise into something CI checks, rather than
 something a user discovers when they flip ``enabled: true``:
 
 - Story 1/2: every concrete recognizer's constructor must accept the keys
-  ``RecognizerListLoader`` injects (``name``, ``supported_language``,
-  ``context``, and one of ``supported_entity``/``supported_entities``), or
-  enabling it in YAML crashes registry construction with a distant
-  ``TypeError`` instead of a clear failure here.
+  ``RecognizerListLoader`` injects unconditionally (``name`` and
+  ``supported_language``) plus one of ``supported_entity``/
+  ``supported_entities``, or enabling it in YAML crashes registry
+  construction with a distant ``TypeError`` instead of a clear failure here.
+  ``context`` is deliberately not part of the contract: it is one flat word
+  list applied to every result, so multi-entity recognizers do not accept
+  it, and the loader drops it with a warning for them instead.
 - Story 3: every entry in the shipped ``conf/default_recognizers.yaml``
   loads, and every field it sets reaches the constructed recognizer.
 - Story 4: a synthetic YAML entry for *every* concrete recognizer class
@@ -133,8 +136,14 @@ def _reachable_init_param_names(cls: Type[EntityRecognizer]) -> Set[str]:
 
 # Keys ``RecognizerListLoader`` injects into every predefined recognizer it
 # builds from a registry entry (see ``RecognizerListLoader.get`` /
-# ``_prepare_recognizer_kwargs``).
-REGISTRY_INJECTED_KEYS = ("name", "supported_language", "context")
+# ``_prepare_recognizer_kwargs``). ``context`` is also injected when the
+# entry sets it, but it is not a contract requirement: context words boost
+# every result a recognizer emits, which only makes sense for single-entity
+# recognizers, so multi-entity recognizers (NER models, remote PHI services,
+# LLM extractors) do not accept it and ``_prepare_recognizer_kwargs`` drops
+# it for them with a warning. See ``test_context_dropped_with_warning...``
+# in ``test_recognizers_loader_utils.py`` and the round-trip test below.
+REGISTRY_INJECTED_KEYS = ("name", "supported_language")
 ENTITY_KEYS = ("supported_entity", "supported_entities")
 
 # These LangExtract-based recognizers take their supported entities from the
@@ -156,11 +165,9 @@ ENTITIES_FROM_OWN_CONFIG = {
 # so fixing a class without shrinking this dict fails the test, and so does
 # a newly introduced regression.
 #
-# Empty: AzureHealthDeidRecognizer, AzureOpenAILangExtractRecognizer and
-# MedicalNERRecognizer were the three gaps at the time this suite was added
-# (all missing `context`) and were closed in the same turn -- see their
-# constructors and the `context=[...]` tests in their respective test
-# modules.
+# Empty at the time this suite was added: every concrete recognizer accepts
+# ``name``, ``supported_language`` and an entity key (or is exempt via
+# ``ENTITIES_FROM_OWN_CONFIG``).
 KNOWN_CONTRACT_GAPS: Dict[str, Set[str]] = {}
 
 
@@ -368,12 +375,13 @@ REQUIRED_ENV: Dict[str, Dict[str, str]] = {
     },
 }
 
-# Classes whose constructor accepts `context` (so they pass the Story 1/2
-# contract check) but do not apply it to the constructed instance. Pre-
-# existing behavior this turn does not change -- see
-# BasicLangExtractRecognizer's own docstring ("context ... optional,
+# Classes whose constructor accepts `context` but do not apply it to the
+# constructed instance. Pre-existing behavior this turn does not change --
+# see BasicLangExtractRecognizer's own docstring ("context ... optional,
 # currently not used by LLM recognizers"). The round-trip test below skips
-# only the context assertion for these classes.
+# only the context assertion for these classes. Classes that do not accept
+# `context` at all are handled dynamically: the loader drops the key with a
+# warning and the instance keeps the base-class default, ``[]``.
 CONTEXT_NOT_APPLIED = {"BasicLangExtractRecognizer"}
 
 # Classes that cannot be constructed through a `type: predefined` registry
@@ -427,7 +435,7 @@ def test_not_loadable_as_predefined_entry_names_only_real_classes():
 
 @pytest.mark.parametrize("cls", ROUND_TRIP_CLASSES, ids=lambda cls: cls.__name__)
 def test_synthetic_entry_round_trips_to_every_concrete_class(
-    cls, patched_loads, monkeypatch
+    cls, patched_loads, monkeypatch, caplog
 ):
     """A synthetic registry entry round-trips to every concrete class.
 
@@ -436,6 +444,10 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
     ``context``, and ``score_thresholds`` set in a registry entry actually
     reach the constructed instance, not just that the constructor accepts
     the keys (Story 1/2 already covers acceptance at the signature level).
+
+    For a class that does not accept ``context`` (a multi-entity recognizer),
+    the entry must still load: the loader drops the key, logs a WARNING
+    naming the class, and the instance keeps the base-class default ``[]``.
     """
     for name, value in REQUIRED_ENV.get(cls.__name__, {}).items():
         monkeypatch.setenv(name, value)
@@ -447,9 +459,10 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
         "recognizers": [entry],
     }
 
-    registry = RecognizerRegistryProvider(
-        registry_configuration=configuration
-    ).create_recognizer_registry()
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        registry = RecognizerRegistryProvider(
+            registry_configuration=configuration
+        ).create_recognizer_registry()
 
     instances = [r for r in registry.recognizers if type(r) is cls]
     assert len(instances) == 1, (
@@ -460,10 +473,31 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
 
     assert instance.name == f"conf_{cls.__name__}"
     assert instance.supported_language == "en"
-    if cls.__name__ not in CONTEXT_NOT_APPLIED:
-        assert instance.context == ["zeta"], (
-            f"{cls.__name__}: context did not reach the constructed instance"
+    accepts_context = "context" in _reachable_init_param_names(cls)
+    context_warnings = [
+        r.getMessage()
+        for r in caplog.records
+        if r.levelname == "WARNING"
+        and cls.__name__ in r.getMessage()
+        and "'context'" in r.getMessage()
+    ]
+    if not accepts_context:
+        assert instance.context == [], (
+            f"{cls.__name__}: does not accept context, so the instance must "
+            f"keep the base-class default"
         )
+        assert context_warnings, (
+            f"{cls.__name__}: context was dropped without a WARNING naming "
+            f"the class and the key"
+        )
+    else:
+        assert not context_warnings, (
+            f"{cls.__name__}: accepts context but the loader warned anyway"
+        )
+        if cls.__name__ not in CONTEXT_NOT_APPLIED:
+            assert instance.context == ["zeta"], (
+                f"{cls.__name__}: context did not reach the constructed instance"
+            )
     assert instance.score_thresholds == {"default": 0.42}
 
 

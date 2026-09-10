@@ -311,6 +311,51 @@ def test_dropped_entity_key_warns_for_class_defining_its_own_entities(caplog):
     assert kwargs["supported_entities"] == ["X"]
 
 
+def test_context_dropped_with_warning_for_class_not_accepting_it(caplog):
+    """A registry entry that sets context for a class whose constructor does
+    not accept it (a multi-entity recognizer such as MedicalNERRecognizer)
+    must still load: the key is dropped and a WARNING names the class and
+    the key, instead of the constructor raising TypeError and taking the
+    whole registry down.
+    """
+    from presidio_analyzer.predefined_recognizers import MedicalNERRecognizer
+
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+            recognizer_conf={},
+            language_conf={"supported_language": "en", "context": ["patient"]},
+            recognizer_cls=MedicalNERRecognizer,
+        )
+
+    assert "context" not in kwargs
+    assert kwargs["supported_language"] == "en"
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert any(
+        "MedicalNERRecognizer" in m and "'context'" in m for m in warning_messages
+    ), f"expected a dropped-context WARNING, got {warning_messages!r}"
+
+
+def test_context_kept_without_warning_for_class_accepting_it(caplog):
+    """A class that accepts context (single-entity pattern recognizers, and
+    classes forwarding **kwargs to a parent that accepts it) receives it
+    unchanged and nothing is logged.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+            recognizer_conf={},
+            language_conf={"supported_language": "en", "context": ["visa"]},
+            recognizer_cls=CreditCardRecognizer,
+        )
+
+    assert kwargs["context"] == ["visa"]
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+
+
 def test_no_warning_when_class_accepts_the_entity_key(caplog):
     """A class that does accept supported_entity/supported_entities (e.g.
     CreditCardRecognizer, which accepts the singular form) logs nothing --
@@ -373,6 +418,7 @@ def test_country_filter_includes_tagged_custom_recognizer():
     """A custom recognizer that opts in via class-level ``COUNTRY_CODE`` is
     included when the filter is loaded with the matching country.
     """
+
     class _BrCpfRecognizer(PatternRecognizer):
         COUNTRY_CODE = "br"
 
@@ -412,6 +458,7 @@ def test_country_filter_warns_on_unknown_country(caplog):
     list, a WARNING is logged so silent zero-result filters are easier to
     debug.
     """
+
     class _XUsRecognizer(PatternRecognizer):
         COUNTRY_CODE = "us"
 
@@ -546,6 +593,7 @@ def test_filter_by_countries_normalizes_case_and_whitespace():
 
     ``" US "`` matches a ``COUNTRY_CODE = "us"`` recognizer.
     """
+
     class TaggedRecognizer(PatternRecognizer):
         COUNTRY_CODE = "us"
 

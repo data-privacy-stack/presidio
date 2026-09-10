@@ -321,6 +321,23 @@ class RecognizerListLoader:
         accepts_supported_entity = RecognizerListLoader.SUPPORTED_ENTITY in params
         accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
 
+        # ``context`` is one flat word list applied to every result a recognizer
+        # emits, so it only makes sense for recognizers that detect a single
+        # entity type. Recognizers that detect several (NER models, remote PHI
+        # services, LLM extractors) deliberately do not accept it. When a
+        # registry entry sets context for such a class, drop it with a warning
+        # instead of letting the constructor raise ``TypeError`` and take the
+        # whole registry down.
+        if "context" in kwargs and "context" not in params and not has_var_kw:
+            kwargs.pop("context")
+            logger.warning(
+                "%s does not accept 'context'; ignoring the context words "
+                "configured for it. Context words boost every result a "
+                "recognizer emits, so recognizers that detect several entity "
+                "types do not support them.",
+                recognizer_cls.__name__,
+            )
+
         # A class that accepts neither key defines its entities itself (e.g. from
         # a config file, as LangExtract-based recognizers do) rather than from the
         # registry entry. Warn -- rather than silently dropping the value -- when
