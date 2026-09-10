@@ -454,7 +454,7 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
 
     entry = _synthetic_entry(cls)
     configuration = {
-        "global_regex_flags": 26,
+        "global_regex_flags": GLOBAL_REGEX_FLAGS,
         "supported_languages": ["en"],
         "recognizers": [entry],
     }
@@ -522,7 +522,7 @@ def test_unknown_key_is_not_silent(caplog):
     removed rather than silently masking the fix forever.
     """
     configuration = {
-        "global_regex_flags": 26,
+        "global_regex_flags": GLOBAL_REGEX_FLAGS,
         "supported_languages": ["en"],
         "recognizers": [
             {

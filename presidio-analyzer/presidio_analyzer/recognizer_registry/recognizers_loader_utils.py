@@ -318,6 +318,11 @@ class RecognizerListLoader:
 
         This function adapts supported_entity/supported_entities based on the
         recognizer class __init__ signature to avoid passing unexpected kwargs.
+        Note: a key can remain present in the returned kwargs while still being
+        effectively ignored by the constructed recognizer -- e.g. a class that
+        accepts **kwargs but never reads ``supported_entities`` from it. This
+        function only controls what reaches the constructor call, not whether
+        the constructor uses it.
 
         - If recognizer accepts only supported_entity (singular), convert
           supported_entities -> supported_entity (first element).
@@ -406,7 +411,7 @@ class RecognizerListLoader:
             ]
             if dropped_keys:
                 logger.warning(
-                    "%s does not accept 'supported_entity' or 'supported_entities'; "
+                    "%s does not apply 'supported_entity' or 'supported_entities'; "
                     "ignoring %s from its configuration because %s defines its "
                     "supported entities from its own configuration.",
                     recognizer_cls.__name__,
