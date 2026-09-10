@@ -373,6 +373,27 @@ def test_no_warning_when_class_accepts_the_entity_key(caplog):
     assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
 
 
+def test_no_warning_when_kwargs_forwarding_reaches_a_declaring_parent(caplog):
+    """A class whose own __init__ declares neither key but forwards **kwargs
+    to a base class that does declare supported_entities (e.g.
+    TransformersRecognizer/StanzaRecognizer forwarding to SpacyRecognizer)
+    genuinely applies the value further up the chain -- it must not be
+    reported as ignored.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = prepare(
+            recognizer_conf={"supported_entities": ["ENT"]},
+            recognizer_cls=ChildForwardsKwargs,
+        )
+
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+    # The value really does reach StrictParent's declared parameter.
+    assert kwargs["supported_entities"] == ["ENT"]
+
+
 def test_inheritance_forwarding_does_not_crash():
     """Test that inheritance forwarding to strict parent does not crash."""
     # Verify both:

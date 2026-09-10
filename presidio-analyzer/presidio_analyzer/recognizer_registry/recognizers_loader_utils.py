@@ -269,6 +269,32 @@ class RecognizerListLoader:
         )
 
     @staticmethod
+    def _reachable_init_param_names(cls: Type) -> Set[str]:
+        """
+        Union of ``__init__`` parameter names reachable via **kwargs forwarding.
+
+        Walks ``cls``'s constructor MRO, accumulating each ``__init__``'s
+        parameter names, and stops after the first ``__init__`` that has no
+        ``**kwargs`` -- a keyword argument can't be forwarded past that point,
+        so any name declared further up is unreachable from ``cls``.
+        """
+        reachable: Set[str] = set()
+        for klass in cls.__mro__:
+            init = klass.__dict__.get("__init__")
+            if init is None:
+                continue
+            try:
+                params = inspect.signature(init).parameters
+            except (TypeError, ValueError):
+                break
+            reachable.update(params)
+            if not any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+            ):
+                break
+        return reachable
+
+    @staticmethod
     def _prepare_recognizer_kwargs(
         recognizer_conf: Dict[str, Any],
         language_conf: Dict[str, Any],
@@ -338,19 +364,26 @@ class RecognizerListLoader:
                 recognizer_cls.__name__,
             )
 
-        # A class that accepts neither key defines its entities itself (e.g. from
-        # a config file, as LangExtract-based recognizers do) rather than from the
-        # registry entry. Warn -- rather than silently dropping the value -- when
-        # the entry actually tried to set one, so a user relying on it finds out
-        # why it had no effect instead of debugging a mismatch later.
+        # A class that accepts neither key on its own __init__ *usually* defines
+        # its entities itself (e.g. from a config file, as LangExtract-based
+        # recognizers do) rather than from the registry entry -- but a class
+        # that forwards **kwargs to a base class which does declare the key
+        # (e.g. TransformersRecognizer/StanzaRecognizer forwarding to
+        # SpacyRecognizer) genuinely applies it further up the chain. Only warn
+        # when the key is unreachable through the whole **kwargs-forwarding
+        # MRO chain, so the message is accurate: it never claims a value is
+        # ignored when some base class will actually consume it.
         if not accepts_supported_entity and not accepts_supported_entities:
+            reachable_params = RecognizerListLoader._reachable_init_param_names(
+                recognizer_cls
+            )
             dropped_keys = [
                 key
                 for key in (
                     RecognizerListLoader.SUPPORTED_ENTITY,
                     RecognizerListLoader.SUPPORTED_ENTITIES,
                 )
-                if key in kwargs
+                if key in kwargs and key not in reachable_params
             ]
             if dropped_keys:
                 logger.warning(
