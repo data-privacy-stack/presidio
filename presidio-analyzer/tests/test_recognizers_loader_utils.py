@@ -356,6 +356,47 @@ def test_context_kept_without_warning_for_class_accepting_it(caplog):
     assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
 
 
+def test_no_warning_when_entity_key_is_reachable_through_kwargs_forwarding(caplog):
+    """A subclass whose own signature names neither entity key but forwards
+    **kwargs to a parent that accepts one (StanzaRecognizer -> SpacyRecognizer)
+    does apply the key, so no "ignoring" warning may be logged and the key must
+    stay in kwargs.
+    """
+    from presidio_analyzer.predefined_recognizers import StanzaRecognizer
+
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+            recognizer_conf={"supported_entities": ["PERSON"]},
+            language_conf={"supported_language": "en", "context": ["name"]},
+            recognizer_cls=StanzaRecognizer,
+        )
+
+    assert kwargs["supported_entities"] == ["PERSON"]
+    assert kwargs["context"] == ["name"]
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+
+
+def test_reachable_init_param_names_stops_at_first_init_without_kwargs():
+    """StanzaRecognizer forwards **kwargs, so SpacyRecognizer's parameters are
+    reachable; MedicalNERRecognizer does not, so HuggingFaceNerRecognizer's
+    ``context`` is not, even though the parent accepts it.
+    """
+    from presidio_analyzer.predefined_recognizers import (
+        MedicalNERRecognizer,
+        StanzaRecognizer,
+    )
+
+    stanza = RecognizerListLoader._reachable_init_param_names(StanzaRecognizer)
+    assert {"supported_entities", "context", "supported_language"} <= stanza
+
+    medical = RecognizerListLoader._reachable_init_param_names(MedicalNERRecognizer)
+    assert "context" not in medical
+    assert "supported_entities" in medical
+
+
 def test_no_warning_when_class_accepts_the_entity_key(caplog):
     """A class that does accept supported_entity/supported_entities (e.g.
     CreditCardRecognizer, which accepts the singular form) logs nothing --

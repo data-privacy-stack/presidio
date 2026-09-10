@@ -269,30 +269,43 @@ class RecognizerListLoader:
         )
 
     @staticmethod
-    def _reachable_init_param_names(cls: Type) -> Set[str]:
-        """
-        Union of ``__init__`` parameter names reachable via **kwargs forwarding.
+    def _reachable_init_param_names(recognizer_cls: Type[EntityRecognizer]) -> Set[str]:
+        """Return the constructor parameter names reachable through the MRO.
 
-        Walks ``cls``'s constructor MRO, accumulating each ``__init__``'s
-        parameter names, and stops after the first ``__init__`` that has no
-        ``**kwargs`` -- a keyword argument can't be forwarded past that point,
-        so any name declared further up is unreachable from ``cls``.
+        Walks ``recognizer_cls.__mro__``. Each class that defines its own
+        ``__init__`` contributes its parameter names (excluding ``self`` and
+        the ``*args`` / ``**kwargs`` slots). Traversal stops after the first
+        ``__init__`` that does not accept ``**kwargs``: once a constructor
+        stops forwarding keyword arguments, a parameter declared only further
+        up the chain can no longer be reached from a registry entry.
+
+        :param recognizer_cls: The recognizer class to inspect.
         """
-        reachable: Set[str] = set()
-        for klass in cls.__mro__:
+        names: Set[str] = set()
+        for klass in recognizer_cls.__mro__:
             init = klass.__dict__.get("__init__")
             if init is None:
                 continue
             try:
-                params = inspect.signature(init).parameters
+                parameters = inspect.signature(init).parameters
             except (TypeError, ValueError):
                 break
-            reachable.update(params)
+            names.update(
+                name
+                for name, param in parameters.items()
+                if name != "self"
+                and param.kind
+                not in (
+                    inspect.Parameter.VAR_KEYWORD,
+                    inspect.Parameter.VAR_POSITIONAL,
+                )
+            )
             if not any(
-                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+                param.kind == inspect.Parameter.VAR_KEYWORD
+                for param in parameters.values()
             ):
                 break
-        return reachable
+        return names
 
     @staticmethod
     def _prepare_recognizer_kwargs(
@@ -347,6 +360,14 @@ class RecognizerListLoader:
         accepts_supported_entity = RecognizerListLoader.SUPPORTED_ENTITY in params
         accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
 
+        # Parameters reachable through the constructor chain: the leaf signature
+        # plus, while each ``__init__`` forwards ``**kwargs``, its parents'. A
+        # subclass such as StanzaRecognizer accepts ``supported_entities`` and
+        # ``context`` through SpacyRecognizer even though its own signature
+        # names neither, so the two warnings below key off this set and not the
+        # leaf signature alone.
+        reachable = RecognizerListLoader._reachable_init_param_names(recognizer_cls)
+
         # ``context`` is one flat word list applied to every result a recognizer
         # emits, so it only makes sense for recognizers that detect a single
         # entity type. Recognizers that detect several (NER models, remote PHI
@@ -354,7 +375,7 @@ class RecognizerListLoader:
         # registry entry sets context for such a class, drop it with a warning
         # instead of letting the constructor raise ``TypeError`` and take the
         # whole registry down.
-        if "context" in kwargs and "context" not in params and not has_var_kw:
+        if "context" in kwargs and "context" not in reachable:
             kwargs.pop("context")
             logger.warning(
                 "%s does not accept 'context'; ignoring the context words "
@@ -364,26 +385,24 @@ class RecognizerListLoader:
                 recognizer_cls.__name__,
             )
 
-        # A class that accepts neither key on its own __init__ *usually* defines
-        # its entities itself (e.g. from a config file, as LangExtract-based
-        # recognizers do) rather than from the registry entry -- but a class
-        # that forwards **kwargs to a base class which does declare the key
-        # (e.g. TransformersRecognizer/StanzaRecognizer forwarding to
-        # SpacyRecognizer) genuinely applies it further up the chain. Only warn
-        # when the key is unreachable through the whole **kwargs-forwarding
-        # MRO chain, so the message is accurate: it never claims a value is
-        # ignored when some base class will actually consume it.
-        if not accepts_supported_entity and not accepts_supported_entities:
-            reachable_params = RecognizerListLoader._reachable_init_param_names(
-                recognizer_cls
-            )
+        # A class that accepts neither key anywhere in its constructor chain
+        # defines its entities itself (e.g. from a config file, as
+        # LangExtract-based recognizers do) rather than from the registry entry.
+        # Warn -- rather than silently dropping the value -- when the entry
+        # actually tried to set one, so a user relying on it finds out why it
+        # had no effect instead of debugging a mismatch later.
+        entity_key_reachable = (
+            RecognizerListLoader.SUPPORTED_ENTITY in reachable
+            or RecognizerListLoader.SUPPORTED_ENTITIES in reachable
+        )
+        if not entity_key_reachable:
             dropped_keys = [
                 key
                 for key in (
                     RecognizerListLoader.SUPPORTED_ENTITY,
                     RecognizerListLoader.SUPPORTED_ENTITIES,
                 )
-                if key in kwargs and key not in reachable_params
+                if key in kwargs
             ]
             if dropped_keys:
                 logger.warning(
