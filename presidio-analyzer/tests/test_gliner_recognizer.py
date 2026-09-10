@@ -1,10 +1,22 @@
+import inspect
 import sys
-
-import pytest
 from unittest.mock import MagicMock, patch
 
-from presidio_analyzer.predefined_recognizers import GLiNERRecognizer
+import pytest
+
 from presidio_analyzer.chunkers import CharacterBasedTextChunker
+from presidio_analyzer.predefined_recognizers import GLiNERRecognizer
+from presidio_analyzer.predefined_recognizers.ner import gliner_recognizer
+
+
+@pytest.fixture
+def noop_gliner_load(monkeypatch):
+    """Avoid GLiNER installs/weights by stubbing recognizer load."""
+
+    def _noop(self):
+        return None
+
+    monkeypatch.setattr(GLiNERRecognizer, "load", _noop)
 
 
 @pytest.fixture
@@ -261,6 +273,52 @@ GLINER_MOCK_PATH = (
 )
 
 
+def test_when_name_omitted_derives_distinct_names_from_model(noop_gliner_load):
+    """No GLiNER package or weights are required (load is stubbed)."""
+
+    a = GLiNERRecognizer(model_name="model/a")
+    b = GLiNERRecognizer(model_name="model/b")
+    assert a.name.startswith("GLiNERRecognizer_model_a_")
+    assert b.name.startswith("GLiNERRecognizer_model_b_")
+    assert a.name != b.name
+
+
+def test_when_sanitized_model_names_collide_then_hash_keeps_names_distinct(
+    noop_gliner_load,
+):
+    """Model IDs differing only by punctuation should still get unique names."""
+
+    a = GLiNERRecognizer(model_name="team/model-a")
+    b = GLiNERRecognizer(model_name="team_model_a")
+    punctuation_only = GLiNERRecognizer(model_name="---")
+
+    assert a.name.startswith("GLiNERRecognizer_team_model_a_")
+    assert b.name.startswith("GLiNERRecognizer_team_model_a_")
+    assert a.name != b.name
+    assert punctuation_only.name.startswith("GLiNERRecognizer_model_")
+
+
+def test_when_explicit_name_then_preserved(noop_gliner_load):
+    """Explicit recognizer names should not be replaced."""
+    r = GLiNERRecognizer(name="custom", model_name="model/a")
+    assert r.name == "custom"
+
+
+def test_when_default_model_and_name_omitted_keeps_legacy_name(noop_gliner_load):
+    """The built-in GLiNER default should keep the historical recognizer name."""
+    r = GLiNERRecognizer()
+    assert r.name == "GLiNERRecognizer"
+
+
+def test_default_model_parameter_reuses_shared_constant():
+    """Keep the constructor default and legacy-name comparison from drifting."""
+    signature = inspect.signature(GLiNERRecognizer.__init__)
+    assert (
+        signature.parameters["model_name"].default
+        == gliner_recognizer._DEFAULT_GLINER_MODEL_NAME
+    )
+
+
 @pytest.mark.parametrize(
     "load_onnx_model,onnx_model_file,expected_onnx_model,expected_file",
     [
@@ -321,7 +379,6 @@ def test_when_model_kwargs_then_passes_to_from_pretrained():
         call_kwargs = mock_gliner_class.from_pretrained.call_args[1]
         assert call_kwargs["custom_param1"] == "value1"
         assert call_kwargs["custom_param2"] == 42
-
 
 def test_gliner_default_chunker():
     """Test that GLiNER uses CharacterBasedTextChunker by default."""
