@@ -287,11 +287,11 @@ def test_uninspectable_signature_drops_entity_keys():
 
 
 def test_dropped_entity_key_warns_for_class_defining_its_own_entities(caplog):
-    """A class that accepts neither supported_entity nor supported_entities
-    (it defines its entities from its own configuration, e.g. a LangExtract
-    config file) still loads when the entry sets supported_entities -- but a
-    WARNING naming the class and the dropped key is logged instead of
-    silently discarding the value.
+    """A class that has neither supported_entity nor supported_entities
+    reachable anywhere in its constructor chain (it defines its entities from
+    its own configuration, e.g. a LangExtract config file) still loads when
+    the entry sets supported_entities -- but a WARNING naming the class and
+    the ineffective key is logged instead of staying silent about it.
     """
     with caplog.at_level("WARNING", logger="presidio-analyzer"):
         kwargs = prepare(
@@ -305,7 +305,7 @@ def test_dropped_entity_key_warns_for_class_defining_its_own_entities(caplog):
     assert any(
         "BasicLangExtractRecognizer" in m and "supported_entities" in m
         for m in warning_messages
-    ), f"expected a dropped-entity-key WARNING, got {warning_messages!r}"
+    ), f"expected an ineffective-entity-key WARNING, got {warning_messages!r}"
     # Unchanged behavior: supported_entities still reaches kwargs (the class
     # accepts **kwargs and simply ignores it, using its config-file entities).
     assert kwargs["supported_entities"] == ["X"]

@@ -334,10 +334,11 @@ class RecognizerListLoader:
             - supported_entities: kept if explicitly accepted or if the recognizer
               accepts **kwargs.
 
-        If the class accepts neither key (it defines its supported entities from
-        its own configuration, e.g. a LangExtract config file) and the entry set
-        one anyway, a ``logger.warning`` names the class and the dropped key
-        instead of silently discarding it.
+        If the key is unreachable anywhere in the class's constructor chain (it
+        defines its supported entities from its own configuration, e.g. a
+        LangExtract config file) and the entry set one anyway, a
+        ``logger.warning`` names the class and the key that has no effect,
+        instead of staying silent about it.
         """
         kwargs = {**recognizer_conf, **language_conf}
 
