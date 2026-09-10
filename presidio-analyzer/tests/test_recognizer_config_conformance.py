@@ -320,3 +320,197 @@ def test_shipped_entry_fields_reach_constructed_recognizer(
         expected_thresholds = normalize_score_thresholds(entry["score_thresholds"])
         for instance in instances:
             assert instance.score_thresholds == expected_thresholds
+
+
+# ---------------------------------------------------------------------------
+# Story 4: per-class round-trip and no-silent-drop tests
+# ---------------------------------------------------------------------------
+
+# Constructor kwargs a class needs beyond what the synthetic entry below
+# already supplies, keyed by class name. Most concrete recognizers construct
+# fine from the synthetic entry's fields alone (constructor defaults handle
+# the rest); these are the exceptions that need a value with no usable
+# default.
+REQUIRED_KWARGS: Dict[str, Dict[str, Any]] = {
+    # No default endpoint; the constructor raises ValueError without one.
+    "AzureOpenAILangExtractRecognizer": {
+        "azure_endpoint": "https://example-resource.openai.azure.com/"
+    },
+    # HuggingFaceNerRecognizer.load() requires model_name. load() is patched
+    # to a no-op for this test (see `patched_loads`), so this is not
+    # strictly required for construction to succeed -- supplied anyway for a
+    # realistic entry, per this dict's own purpose.
+    "HuggingFaceNerRecognizer": {"model_name": "dslim/bert-base-NER"},
+}
+
+# Environment variables a class's constructor reads directly (not via a
+# registry YAML kwarg) and needs set to construct without real credentials.
+REQUIRED_ENV: Dict[str, Dict[str, str]] = {
+    # AzureHealthDeidRecognizer needs either a `client` instance or these two
+    # env vars to build its default Azure client. `client` cannot be
+    # supplied through a registry entry -- the schema
+    # (`PredefinedRecognizerConfig`) has no `client` field and silently
+    # drops unknown keys -- so the env-var path is the only one reachable
+    # from configuration, and the only one this test can exercise.
+    "AzureHealthDeidRecognizer": {
+        "AHDS_ENDPOINT": "https://fake.endpoint.example",
+        "ENV": "development",
+    },
+    # Same shape as AzureHealthDeidRecognizer above: azure_ai_key /
+    # azure_ai_endpoint are real constructor parameters, but
+    # AzureAILanguageRecognizer also has no dedicated entry in
+    # CONFIG_MODEL_MAP, so PredefinedRecognizerConfig's default
+    # extra="ignore" drops them if passed as registry kwargs. The
+    # constructor's own env-var fallback is the only reachable path.
+    "AzureAILanguageRecognizer": {
+        "AZURE_AI_KEY": "fake-key",
+        "AZURE_AI_ENDPOINT": "https://fake.endpoint.example",
+    },
+}
+
+# Classes whose constructor accepts `context` (so they pass the Story 1/2
+# contract check) but do not apply it to the constructed instance. Pre-
+# existing behavior this turn does not change -- see
+# BasicLangExtractRecognizer's own docstring ("context ... optional,
+# currently not used by LLM recognizers"). The round-trip test below skips
+# only the context assertion for these classes.
+CONTEXT_NOT_APPLIED = {"BasicLangExtractRecognizer"}
+
+# Classes that cannot be constructed through a `type: predefined` registry
+# entry at all, even with REQUIRED_KWARGS -- not a config-layer gap, but a
+# structural mismatch this suite cannot paper over:
+NOT_LOADABLE_AS_PREDEFINED_ENTRY = {
+    # Requires `supported_entities` positionally and implements neither
+    # `analyze` nor a real `load` -- a base class for subclassing
+    # (SpacyRecognizer, PatternRecognizer, ...), never meant to be named
+    # directly in configuration.
+    "LocalRecognizer",
+    # Requires `supported_entity` and (`patterns` or `deny_list`)
+    # positionally. The last two can only be set through a registry entry
+    # with `type: custom` -- `RecognizerRegistryConfig.parse_recognizers`
+    # rejects `patterns`/`deny_list` on a `type: predefined` entry outright
+    # ("... is marked as 'predefined' but contains 'patterns' or
+    # 'deny_list' ..."), so no predefined entry can ever supply them.
+    "PatternRecognizer",
+    # Requires `target_classification` positionally, with no default and no
+    # schema field to set it from (base `PredefinedRecognizerConfig` has
+    # none, and no CONFIG_MODEL_MAP entry adds one) -- a base class for
+    # subclassing (ZaMobileNumberRecognizer, ZaTelephoneNumberRecognizer),
+    # never meant to be named directly in configuration.
+    "ZaPhoneNumberRecognizer",
+}
+
+
+def _synthetic_entry(cls: Type[EntityRecognizer]) -> Dict[str, Any]:
+    return {
+        "name": f"conf_{cls.__name__}",
+        "class_name": cls.__name__,
+        "type": "predefined",
+        "supported_languages": [{"language": "en", "context": ["zeta"]}],
+        "score_thresholds": {"default": 0.42},
+        **REQUIRED_KWARGS.get(cls.__name__, {}),
+    }
+
+
+ROUND_TRIP_CLASSES = [
+    cls
+    for cls in CONCRETE_RECOGNIZER_CLASSES
+    if cls.__name__ not in NOT_LOADABLE_AS_PREDEFINED_ENTRY
+]
+
+
+def test_not_loadable_as_predefined_entry_names_only_real_classes():
+    """Guard ``NOT_LOADABLE_AS_PREDEFINED_ENTRY`` against stale entries."""
+    names = {cls.__name__ for cls in CONCRETE_RECOGNIZER_CLASSES}
+    assert NOT_LOADABLE_AS_PREDEFINED_ENTRY <= names
+
+
+@pytest.mark.parametrize("cls", ROUND_TRIP_CLASSES, ids=lambda cls: cls.__name__)
+def test_synthetic_entry_round_trips_to_every_concrete_class(
+    cls, patched_loads, monkeypatch
+):
+    """A synthetic registry entry round-trips to every concrete class.
+
+    Proves, for every concrete recognizer class -- not only the ones shipped
+    enabled in ``default_recognizers.yaml`` -- that ``name``, per-language
+    ``context``, and ``score_thresholds`` set in a registry entry actually
+    reach the constructed instance, not just that the constructor accepts
+    the keys (Story 1/2 already covers acceptance at the signature level).
+    """
+    for name, value in REQUIRED_ENV.get(cls.__name__, {}).items():
+        monkeypatch.setenv(name, value)
+
+    entry = _synthetic_entry(cls)
+    configuration = {
+        "global_regex_flags": 26,
+        "supported_languages": ["en"],
+        "recognizers": [entry],
+    }
+
+    registry = RecognizerRegistryProvider(
+        registry_configuration=configuration
+    ).create_recognizer_registry()
+
+    instances = [r for r in registry.recognizers if type(r) is cls]
+    assert len(instances) == 1, (
+        f"{cls.__name__}: expected exactly one constructed instance, got "
+        f"{len(instances)}"
+    )
+    instance = instances[0]
+
+    assert instance.name == f"conf_{cls.__name__}"
+    assert instance.supported_language == "en"
+    if cls.__name__ not in CONTEXT_NOT_APPLIED:
+        assert instance.context == ["zeta"], (
+            f"{cls.__name__}: context did not reach the constructed instance"
+        )
+    assert instance.score_thresholds == {"default": 0.42}
+
+
+def test_context_not_applied_names_only_real_classes():
+    """Guard ``CONTEXT_NOT_APPLIED`` against stale entries."""
+    names = {cls.__name__ for cls in CONCRETE_RECOGNIZER_CLASSES}
+    assert CONTEXT_NOT_APPLIED <= names
+
+
+@pytest.mark.xfail(strict=True, reason="flipped in turn 06 (derived schema)")
+def test_unknown_key_is_not_silent(caplog):
+    """An unknown registry key must never be silently dropped.
+
+    Today it is: ``PredefinedRecognizerConfig`` (the schema
+    ``CreditCardRecognizer`` and most predefined recognizers validate
+    against) leaves pydantic's default ``extra="ignore"``, so an
+    unrecognized key such as ``no_such_key`` disappears at parse time with
+    no error and no log line -- exactly the silent-drop failure mode this
+    whole suite exists to catch. Turn 06 (derived schema) is expected to
+    make this fail loudly instead; ``xfail(strict=True)`` means this test
+    starts *failing* the moment that happens, forcing the xfail marker to be
+    removed rather than silently masking the fix forever.
+    """
+    configuration = {
+        "global_regex_flags": 26,
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "name": "CreditCardRecognizer",
+                "type": "predefined",
+                "supported_language": "en",
+                "no_such_key": 1,
+            }
+        ],
+    }
+
+    raised = False
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        try:
+            RecognizerRegistryProvider(
+                registry_configuration=configuration
+            ).create_recognizer_registry()
+        except ValueError:
+            raised = True
+
+    warned = any("no_such_key" in record.getMessage() for record in caplog.records)
+    assert raised or warned, (
+        "expected 'no_such_key' to raise ValueError or log a WARNING naming "
+        "it; today it is silently dropped"
+    )
