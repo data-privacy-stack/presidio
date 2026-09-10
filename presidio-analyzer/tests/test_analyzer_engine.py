@@ -1277,7 +1277,7 @@ def test_when_regex_allow_list_is_all_empty_entries_then_results_are_kept():
 
 
 def test_when_merge_adjacent_entities_requested_then_spans_are_merged():
-    """merge_adjacent_entities should fuse adjacent same-type spans end-to-end."""
+    """merge_adjacent_entities should fuse adjacent same-type spans separated only by whitespace."""
 
     class DaveRecognizer(EntityRecognizer, ABC):
         def load(self):
