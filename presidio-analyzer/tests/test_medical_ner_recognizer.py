@@ -97,6 +97,15 @@ def test_custom_supported_entities():
     }
 
 
+def test_context_reaches_instance():
+    """`context` must reach the instance, so the registry loader (which
+    injects `context` for every predefined recognizer) does not crash and
+    the value is actually usable for context-aware scoring.
+    """
+    rec = _make_recognizer(context=["x"])
+    assert rec.context == ["x"]
+
+
 def test_custom_label_mapping():
     """Users can provide a custom label mapping."""
     custom = {"DISEASE_DISORDER": "MY_DISEASE"}

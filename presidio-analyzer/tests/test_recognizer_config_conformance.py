@@ -146,11 +146,13 @@ ENTITIES_FROM_OWN_CONFIG = {
 # below -- the test asserts the *actual* gap set equals this dict exactly,
 # so fixing a class without shrinking this dict fails the test, and so does
 # a newly introduced regression.
-KNOWN_CONTRACT_GAPS: Dict[str, Set[str]] = {
-    "AzureHealthDeidRecognizer": {"context"},
-    "AzureOpenAILangExtractRecognizer": {"context"},
-    "MedicalNERRecognizer": {"context"},
-}
+#
+# Empty: AzureHealthDeidRecognizer, AzureOpenAILangExtractRecognizer and
+# MedicalNERRecognizer were the three gaps at the time this suite was added
+# (all missing `context`) and were closed in the same turn -- see their
+# constructors and the `context=[...]` tests in their respective test
+# modules.
+KNOWN_CONTRACT_GAPS: Dict[str, Set[str]] = {}
 
 
 def _missing_registry_keys(cls: Type[EntityRecognizer]) -> Set[str]:

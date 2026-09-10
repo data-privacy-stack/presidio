@@ -108,3 +108,14 @@ def test_mocked_entities_match_recognizer_results():
         assert expected.start == actual.start
         assert expected.end == actual.end
         assert expected.score >= actual.score
+
+
+def test_context_reaches_instance():
+    """`context` must reach the instance, so the registry loader (which
+    injects `context` for every predefined recognizer) does not crash and
+    the value is actually usable for context-aware scoring.
+    """
+    recognizer = AzureHealthDeidRecognizer(
+        client=MagicMock(), supported_entities=["EMAIL"], context=["x"]
+    )
+    assert recognizer.context == ["x"]

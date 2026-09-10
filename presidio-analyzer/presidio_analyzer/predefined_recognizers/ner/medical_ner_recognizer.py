@@ -40,6 +40,7 @@ class MedicalNERRecognizer(HuggingFaceNerRecognizer):
         threshold: float = 0.3,
         device: Optional[Union[str, int]] = None,
         text_chunker: Optional[BaseTextChunker] = None,
+        context: Optional[List[str]] = None,
     ):
         """Initialize the Medical NER recognizer.
 
@@ -54,6 +55,7 @@ class MedicalNERRecognizer(HuggingFaceNerRecognizer):
         :param threshold: Minimum confidence score (0.0 - 1.0)
         :param device: Device string/int (None = auto-detect)
         :param text_chunker: Custom text chunker (None = default)
+        :param context: List of context words to increase confidence in detection.
         """
         super().__init__(
             model_name=model_name,
@@ -65,4 +67,5 @@ class MedicalNERRecognizer(HuggingFaceNerRecognizer):
             threshold=threshold,
             device=device,
             text_chunker=text_chunker,
+            context=context,
         )

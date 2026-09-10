@@ -3,7 +3,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 try:
     import langextract as lx
@@ -60,6 +60,7 @@ class AzureOpenAILangExtractRecognizer(LangExtractRecognizer):
         api_version: Optional[str] = None,
         supported_language: str = "en",
         name: str = "Azure OpenAI LangExtract PII",
+        context: Optional[List[str]] = None,
     ):
         """
         Initialize Azure OpenAI LangExtract recognizer for PII/PHI detection.
@@ -88,6 +89,10 @@ class AzureOpenAILangExtractRecognizer(LangExtractRecognizer):
             "2024-02-15-preview").
         :param supported_language: Language this recognizer supports
             (optional, default: "en").
+        :param context: List of context words to increase confidence in
+            detection (optional; ``LangExtractRecognizer`` does not accept
+            ``context``, so it is stored directly on this instance rather
+            than forwarded through ``super().__init__()``).
         :raises ImportError: If langextract is not installed.
         :raises ValueError: If Azure OpenAI endpoint is not provided via
             parameter or env var.
@@ -125,6 +130,12 @@ class AzureOpenAILangExtractRecognizer(LangExtractRecognizer):
         # Override model_id if provided as parameter (deployment name)
         if model_id:
             self.model_id = model_id
+
+        # LangExtractRecognizer.__init__ has no ``context`` parameter, so it
+        # cannot be forwarded through the super() call above. Set it directly
+        # so it still reaches this instance instead of being silently
+        # dropped -- matching EntityRecognizer's own "falsy -> []" default.
+        self.context = context if context else []
 
     def _validate_azure_endpoint(self, azure_endpoint: Optional[str]) -> None:
         """

@@ -15,6 +15,9 @@ from presidio_analyzer.predefined_recognizers import (
     CreditCardRecognizer,
     UsSsnRecognizer,
 )
+from presidio_analyzer.predefined_recognizers.third_party.basic_langextract_recognizer import (  # noqa: E501
+    BasicLangExtractRecognizer,
+)
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerConfigurationLoader,
@@ -281,6 +284,48 @@ def test_uninspectable_signature_drops_entity_keys():
     )
     assert "supported_entities" not in kwargs
     assert "supported_entity" not in kwargs
+
+
+def test_dropped_entity_key_warns_for_class_defining_its_own_entities(caplog):
+    """A class that accepts neither supported_entity nor supported_entities
+    (it defines its entities from its own configuration, e.g. a LangExtract
+    config file) still loads when the entry sets supported_entities -- but a
+    WARNING naming the class and the dropped key is logged instead of
+    silently discarding the value.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = prepare(
+            recognizer_conf={"supported_entities": ["X"]},
+            recognizer_cls=BasicLangExtractRecognizer,
+        )
+
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert any(
+        "BasicLangExtractRecognizer" in m and "supported_entities" in m
+        for m in warning_messages
+    ), f"expected a dropped-entity-key WARNING, got {warning_messages!r}"
+    # Unchanged behavior: supported_entities still reaches kwargs (the class
+    # accepts **kwargs and simply ignores it, using its config-file entities).
+    assert kwargs["supported_entities"] == ["X"]
+
+
+def test_no_warning_when_class_accepts_the_entity_key(caplog):
+    """A class that does accept supported_entity/supported_entities (e.g.
+    CreditCardRecognizer, which accepts the singular form) logs nothing --
+    the warning is specific to classes that define their entities themselves.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        prepare(
+            recognizer_conf={"supported_entities": ["CREDIT_CARD"]},
+            recognizer_cls=CreditCardRecognizer,
+        )
+
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
 
 
 def test_inheritance_forwarding_does_not_crash():

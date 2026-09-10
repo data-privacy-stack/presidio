@@ -289,6 +289,11 @@ class RecognizerListLoader:
             - supported_entity: kept only if explicitly accepted.
             - supported_entities: kept if explicitly accepted or if the recognizer
               accepts **kwargs.
+
+        If the class accepts neither key (it defines its supported entities from
+        its own configuration, e.g. a LangExtract config file) and the entry set
+        one anyway, a ``logger.warning`` names the class and the dropped key
+        instead of silently discarding it.
         """
         kwargs = {**recognizer_conf, **language_conf}
 
@@ -315,6 +320,30 @@ class RecognizerListLoader:
 
         accepts_supported_entity = RecognizerListLoader.SUPPORTED_ENTITY in params
         accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
+
+        # A class that accepts neither key defines its entities itself (e.g. from
+        # a config file, as LangExtract-based recognizers do) rather than from the
+        # registry entry. Warn -- rather than silently dropping the value -- when
+        # the entry actually tried to set one, so a user relying on it finds out
+        # why it had no effect instead of debugging a mismatch later.
+        if not accepts_supported_entity and not accepts_supported_entities:
+            dropped_keys = [
+                key
+                for key in (
+                    RecognizerListLoader.SUPPORTED_ENTITY,
+                    RecognizerListLoader.SUPPORTED_ENTITIES,
+                )
+                if key in kwargs
+            ]
+            if dropped_keys:
+                logger.warning(
+                    "%s does not accept 'supported_entity' or 'supported_entities'; "
+                    "ignoring %s from its configuration because %s defines its "
+                    "supported entities from its own configuration.",
+                    recognizer_cls.__name__,
+                    " and ".join(dropped_keys),
+                    recognizer_cls.__name__,
+                )
 
         # 1. Normalize: Convert plural -> singular if needed
         # (Only when singular is accepted and plural is NOT accepted)
