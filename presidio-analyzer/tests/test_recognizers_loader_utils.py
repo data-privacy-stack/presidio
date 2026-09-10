@@ -15,6 +15,9 @@ from presidio_analyzer.predefined_recognizers import (
     CreditCardRecognizer,
     UsSsnRecognizer,
 )
+from presidio_analyzer.predefined_recognizers.third_party.basic_langextract_recognizer import (  # noqa: E501
+    BasicLangExtractRecognizer,
+)
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerConfigurationLoader,
@@ -283,6 +286,155 @@ def test_uninspectable_signature_drops_entity_keys():
     assert "supported_entity" not in kwargs
 
 
+def test_dropped_entity_key_warns_for_class_defining_its_own_entities(caplog):
+    """A class that has neither supported_entity nor supported_entities
+    reachable anywhere in its constructor chain (it defines its entities from
+    its own configuration, e.g. a LangExtract config file) still loads when
+    the entry sets supported_entities -- but a WARNING naming the class and
+    the ineffective key is logged instead of staying silent about it.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = prepare(
+            recognizer_conf={"supported_entities": ["X"]},
+            recognizer_cls=BasicLangExtractRecognizer,
+        )
+
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert any(
+        "BasicLangExtractRecognizer" in m and "supported_entities" in m
+        for m in warning_messages
+    ), f"expected an ineffective-entity-key WARNING, got {warning_messages!r}"
+    # Unchanged behavior: supported_entities still reaches kwargs (the class
+    # accepts **kwargs and simply ignores it, using its config-file entities).
+    assert kwargs["supported_entities"] == ["X"]
+
+
+def test_context_dropped_with_warning_for_class_not_accepting_it(caplog):
+    """A registry entry that sets context for a class whose constructor does
+    not accept it (a multi-entity recognizer such as MedicalNERRecognizer)
+    must still load: the key is dropped and a WARNING names the class and
+    the key, instead of the constructor raising TypeError and taking the
+    whole registry down.
+    """
+    from presidio_analyzer.predefined_recognizers import MedicalNERRecognizer
+
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+            recognizer_conf={},
+            language_conf={"supported_language": "en", "context": ["patient"]},
+            recognizer_cls=MedicalNERRecognizer,
+        )
+
+    assert "context" not in kwargs
+    assert kwargs["supported_language"] == "en"
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert any(
+        "MedicalNERRecognizer" in m and "'context'" in m for m in warning_messages
+    ), f"expected a dropped-context WARNING, got {warning_messages!r}"
+
+
+def test_context_kept_without_warning_for_class_accepting_it(caplog):
+    """A class that accepts context (single-entity pattern recognizers, and
+    classes forwarding **kwargs to a parent that accepts it) receives it
+    unchanged and nothing is logged.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+            recognizer_conf={},
+            language_conf={"supported_language": "en", "context": ["visa"]},
+            recognizer_cls=CreditCardRecognizer,
+        )
+
+    assert kwargs["context"] == ["visa"]
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+
+
+def test_no_warning_when_entity_key_is_reachable_through_kwargs_forwarding(caplog):
+    """A subclass whose own signature names neither entity key but forwards
+    **kwargs to a parent that accepts one (StanzaRecognizer -> SpacyRecognizer)
+    does apply the key, so no "ignoring" warning may be logged and the key must
+    stay in kwargs.
+    """
+    from presidio_analyzer.predefined_recognizers import StanzaRecognizer
+
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+            recognizer_conf={"supported_entities": ["PERSON"]},
+            language_conf={"supported_language": "en", "context": ["name"]},
+            recognizer_cls=StanzaRecognizer,
+        )
+
+    assert kwargs["supported_entities"] == ["PERSON"]
+    assert kwargs["context"] == ["name"]
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+
+
+def test_reachable_init_param_names_stops_at_first_init_without_kwargs():
+    """StanzaRecognizer forwards **kwargs, so SpacyRecognizer's parameters are
+    reachable; MedicalNERRecognizer does not, so HuggingFaceNerRecognizer's
+    ``context`` is not, even though the parent accepts it.
+    """
+    from presidio_analyzer.predefined_recognizers import (
+        MedicalNERRecognizer,
+        StanzaRecognizer,
+    )
+
+    stanza = RecognizerListLoader._reachable_init_param_names(StanzaRecognizer)
+    assert {"supported_entities", "context", "supported_language"} <= stanza
+
+    medical = RecognizerListLoader._reachable_init_param_names(MedicalNERRecognizer)
+    assert "context" not in medical
+    assert "supported_entities" in medical
+
+
+def test_no_warning_when_class_accepts_the_entity_key(caplog):
+    """A class that does accept supported_entity/supported_entities (e.g.
+    CreditCardRecognizer, which accepts the singular form) logs nothing --
+    the warning is specific to classes that define their entities themselves.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        prepare(
+            recognizer_conf={"supported_entities": ["CREDIT_CARD"]},
+            recognizer_cls=CreditCardRecognizer,
+        )
+
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+
+
+def test_no_warning_when_kwargs_forwarding_reaches_a_declaring_parent(caplog):
+    """A class whose own __init__ declares neither key but forwards **kwargs
+    to a base class that does declare supported_entities (e.g.
+    TransformersRecognizer/StanzaRecognizer forwarding to SpacyRecognizer)
+    genuinely applies the value further up the chain -- it must not be
+    reported as ignored.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        kwargs = prepare(
+            recognizer_conf={"supported_entities": ["ENT"]},
+            recognizer_cls=ChildForwardsKwargs,
+        )
+
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+    # The value really does reach StrictParent's declared parameter.
+    assert kwargs["supported_entities"] == ["ENT"]
+
+
 def test_inheritance_forwarding_does_not_crash():
     """Test that inheritance forwarding to strict parent does not crash."""
     # Verify both:
@@ -328,6 +480,7 @@ def test_country_filter_includes_tagged_custom_recognizer():
     """A custom recognizer that opts in via class-level ``COUNTRY_CODE`` is
     included when the filter is loaded with the matching country.
     """
+
     class _BrCpfRecognizer(PatternRecognizer):
         COUNTRY_CODE = "br"
 
@@ -367,6 +520,7 @@ def test_country_filter_warns_on_unknown_country(caplog):
     list, a WARNING is logged so silent zero-result filters are easier to
     debug.
     """
+
     class _XUsRecognizer(PatternRecognizer):
         COUNTRY_CODE = "us"
 
@@ -501,6 +655,7 @@ def test_filter_by_countries_normalizes_case_and_whitespace():
 
     ``" US "`` matches a ``COUNTRY_CODE = "us"`` recognizer.
     """
+
     class TaggedRecognizer(PatternRecognizer):
         COUNTRY_CODE = "us"
 

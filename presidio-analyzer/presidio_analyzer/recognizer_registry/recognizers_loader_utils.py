@@ -269,6 +269,45 @@ class RecognizerListLoader:
         )
 
     @staticmethod
+    def _reachable_init_param_names(recognizer_cls: Type[EntityRecognizer]) -> Set[str]:
+        """Return the constructor parameter names reachable through the MRO.
+
+        Walks ``recognizer_cls.__mro__``. Each class that defines its own
+        ``__init__`` contributes its parameter names (excluding ``self`` and
+        the ``*args`` / ``**kwargs`` slots). Traversal stops after the first
+        ``__init__`` that does not accept ``**kwargs``: once a constructor
+        stops forwarding keyword arguments, a parameter declared only further
+        up the chain can no longer be reached from a registry entry.
+
+        :param recognizer_cls: The recognizer class to inspect.
+        """
+        names: Set[str] = set()
+        for klass in recognizer_cls.__mro__:
+            init = klass.__dict__.get("__init__")
+            if init is None:
+                continue
+            try:
+                parameters = inspect.signature(init).parameters
+            except (TypeError, ValueError):
+                break
+            names.update(
+                name
+                for name, param in parameters.items()
+                if name != "self"
+                and param.kind
+                not in (
+                    inspect.Parameter.VAR_KEYWORD,
+                    inspect.Parameter.VAR_POSITIONAL,
+                )
+            )
+            if not any(
+                param.kind == inspect.Parameter.VAR_KEYWORD
+                for param in parameters.values()
+            ):
+                break
+        return names
+
+    @staticmethod
     def _prepare_recognizer_kwargs(
         recognizer_conf: Dict[str, Any],
         language_conf: Dict[str, Any],
@@ -279,6 +318,11 @@ class RecognizerListLoader:
 
         This function adapts supported_entity/supported_entities based on the
         recognizer class __init__ signature to avoid passing unexpected kwargs.
+        Note: a key can remain present in the returned kwargs while still being
+        effectively ignored by the constructed recognizer -- e.g. a class that
+        accepts **kwargs but never reads ``supported_entities`` from it. This
+        function only controls what reaches the constructor call, not whether
+        the constructor uses it.
 
         - If recognizer accepts only supported_entity (singular), convert
           supported_entities -> supported_entity (first element).
@@ -289,6 +333,12 @@ class RecognizerListLoader:
             - supported_entity: kept only if explicitly accepted.
             - supported_entities: kept if explicitly accepted or if the recognizer
               accepts **kwargs.
+
+        If the key is unreachable anywhere in the class's constructor chain (it
+        defines its supported entities from its own configuration, e.g. a
+        LangExtract config file) and the entry set one anyway, a
+        ``logger.warning`` names the class and the key that has no effect,
+        instead of staying silent about it.
         """
         kwargs = {**recognizer_conf, **language_conf}
 
@@ -315,6 +365,60 @@ class RecognizerListLoader:
 
         accepts_supported_entity = RecognizerListLoader.SUPPORTED_ENTITY in params
         accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
+
+        # Parameters reachable through the constructor chain: the leaf signature
+        # plus, while each ``__init__`` forwards ``**kwargs``, its parents'. A
+        # subclass such as StanzaRecognizer accepts ``supported_entities`` and
+        # ``context`` through SpacyRecognizer even though its own signature
+        # names neither, so the two warnings below key off this set and not the
+        # leaf signature alone.
+        reachable = RecognizerListLoader._reachable_init_param_names(recognizer_cls)
+
+        # ``context`` is one flat word list applied to every result a recognizer
+        # emits, so it only makes sense for recognizers that detect a single
+        # entity type. Recognizers that detect several (NER models, remote PHI
+        # services, LLM extractors) deliberately do not accept it. When a
+        # registry entry sets context for such a class, drop it with a warning
+        # instead of letting the constructor raise ``TypeError`` and take the
+        # whole registry down.
+        if "context" in kwargs and "context" not in reachable:
+            kwargs.pop("context")
+            logger.warning(
+                "%s does not accept 'context'; ignoring the context words "
+                "configured for it. Context words boost every result a "
+                "recognizer emits, so recognizers that detect several entity "
+                "types do not support them.",
+                recognizer_cls.__name__,
+            )
+
+        # A class that accepts neither key anywhere in its constructor chain
+        # defines its entities itself (e.g. from a config file, as
+        # LangExtract-based recognizers do) rather than from the registry entry.
+        # Warn -- rather than silently dropping the value -- when the entry
+        # actually tried to set one, so a user relying on it finds out why it
+        # had no effect instead of debugging a mismatch later.
+        entity_key_reachable = (
+            RecognizerListLoader.SUPPORTED_ENTITY in reachable
+            or RecognizerListLoader.SUPPORTED_ENTITIES in reachable
+        )
+        if not entity_key_reachable:
+            dropped_keys = [
+                key
+                for key in (
+                    RecognizerListLoader.SUPPORTED_ENTITY,
+                    RecognizerListLoader.SUPPORTED_ENTITIES,
+                )
+                if key in kwargs
+            ]
+            if dropped_keys:
+                logger.warning(
+                    "%s does not apply 'supported_entity' or 'supported_entities'; "
+                    "ignoring %s from its configuration because %s defines its "
+                    "supported entities from its own configuration.",
+                    recognizer_cls.__name__,
+                    " and ".join(dropped_keys),
+                    recognizer_cls.__name__,
+                )
 
         # 1. Normalize: Convert plural -> singular if needed
         # (Only when singular is accepted and plural is NOT accepted)
