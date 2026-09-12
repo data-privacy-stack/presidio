@@ -733,3 +733,58 @@ def test_when_newly_registered_yaml_recognizers_enabled_then_they_load(tmp_path)
     ).create_recognizer_registry()
 
     assert targets <= _recognizer_class_names(registry)
+
+
+# ---------------------------------------------------------------------------
+# ``default_recognizers.yaml`` hygiene
+# ---------------------------------------------------------------------------
+
+
+def _default_recognizers_conf():
+    conf_path = (
+        Path(__file__).parent.parent
+        / "presidio_analyzer"
+        / "conf"
+        / "default_recognizers.yaml"
+    )
+    return yaml.safe_load(conf_path.read_text())
+
+
+def test_default_recognizers_yaml_has_no_duplicate_entries():
+    """A name listed twice is instantiated twice.
+
+    ``UkPostcodeRecognizer`` was added by #1858 and again by #1857, which
+    merged later, so the file carried two identical blocks and the registry
+    built two identical recognizers. Results happen to dedupe downstream, so
+    nothing looked wrong from the outside while the regexes ran twice.
+    """
+    names = [rec["name"] for rec in _default_recognizers_conf()["recognizers"]]
+    duplicates = sorted({name for name in names if names.count(name) > 1})
+
+    assert duplicates == [], f"duplicate recognizer entries: {duplicates}"
+
+
+def test_default_recognizers_yaml_declares_languages_not_countries():
+    """``supported_languages`` holds language codes; ``country_code`` holds the country.
+
+    The Korean entries listed ``kr`` — the ISO 3166-1 country code — next to
+    ``ko``, the ISO 639-1 language code. The loader builds one recognizer per
+    listed language, so ``kr`` either produced a "language is not supported"
+    warning on every load or, for a registry configured with it, a second copy
+    of all five Korean recognizers that no NLP engine can ever serve.
+
+    ``ConfigurationValidator.validate_language_codes`` does not catch this:
+    ``kr`` is a well-formed two-letter code, just not the right one.
+    """
+    # ISO 639-1 codes the shipped recognizers are written against. Adding one
+    # here should be a deliberate decision, not a side effect of a new entry.
+    known_languages = {"de", "en", "es", "fi", "fr", "it", "ko", "pl", "sv", "th", "tr"}
+
+    offenders = {}
+    for recognizer in _default_recognizers_conf()["recognizers"]:
+        for language in recognizer.get("supported_languages") or []:
+            code = language if isinstance(language, str) else language["language"]
+            if code not in known_languages:
+                offenders.setdefault(recognizer["name"], []).append(code)
+
+    assert offenders == {}, f"non-language codes in supported_languages: {offenders}"

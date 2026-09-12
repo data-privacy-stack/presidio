@@ -136,15 +136,15 @@ def test_accepts_name_kwarg():
     assert recognizer.name == "CustomKrPassport"
 
 
-@pytest.mark.parametrize("language", ["ko", "kr"])
-def test_loads_from_default_recognizers_yaml(language):
+def test_loads_from_default_recognizers_yaml():
     """Recognizer is registered in the default YAML and loads once enabled.
 
-    The constructor default is ``ko`` (see above), but the shipped entry
-    advertises ``kr`` as well, matching the four sibling ``Kr*`` entries already
-    in the file. Both codes are asserted here because an entry that lists a
-    language it cannot serve is the same class of defect this PR fixes.
+    ``ko`` is the only code asserted here. The shipped entry used to advertise
+    ``kr`` as well, matching the four sibling ``Kr*`` entries, but ``kr`` is the
+    ISO 3166-1 country code the entry already carries in ``country_code``, not a
+    language the recognizer can be served in.
     """
+    language = "ko"
     conf = Path(presidio_analyzer.__file__).parent / "conf" / "default_recognizers.yaml"
     recognizers = yaml.safe_load(conf.read_text(encoding="utf-8"))["recognizers"]
     entries = [r for r in recognizers if r.get("name") == "KrPassportRecognizer"]
