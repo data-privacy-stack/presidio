@@ -286,15 +286,20 @@ class AnalyzerEngine:
         results = self.__remove_low_scores(results, score_threshold, recognizers)
         results = EntityRecognizer.remove_duplicates(results)
 
+        if allow_list:
+            results = self._remove_allow_list(
+                results, allow_list, text, regex_flags, allow_list_match
+            )
+
         if merge_adjacent_entities:
             results = EntityRecognizer.merge_adjacent_text_entities(
                 results, text, entity_types=merge_adjacent_entities
             )
             results = EntityRecognizer.remove_duplicates(results)
-        if allow_list:
-            results = self._remove_allow_list(
-                results, allow_list, text, regex_flags, allow_list_match
-            )
+            if allow_list:
+                results = self._remove_allow_list(
+                    results, allow_list, text, regex_flags, allow_list_match
+                )
 
         if not return_decision_process:
             results = self.__remove_decision_process(results)

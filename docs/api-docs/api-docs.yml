@@ -434,6 +434,11 @@ components:
             description: "The context word"
             type: string
             example: "address"
+        merge_adjacent_entities:
+          type: array
+          description: "List of entity types for which adjacent same-type results separated only by whitespace should be merged into a single result. Off by default; entity types not listed are never merged."
+          items:
+            $ref: "#/components/schemas/EntityTypes"
 
     AnonymizeRequest:
       type: object
