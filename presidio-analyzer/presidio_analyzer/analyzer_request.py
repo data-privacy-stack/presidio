@@ -19,6 +19,8 @@ class AnalyzerRequest:
         be logged
         return_decision_process: Should the decision points within the analysis
         returned as part of the response
+        merge_adjacent_entities: List of entity types for which adjacent
+        same-type spans separated only by whitespace should be merged
     """
 
     def __init__(self, req_data: Dict):
@@ -40,3 +42,4 @@ class AnalyzerRequest:
         self.regex_flags = req_data.get(
             "regex_flags", re.DOTALL | re.MULTILINE | re.IGNORECASE
         )
+        self.merge_adjacent_entities = req_data.get("merge_adjacent_entities")

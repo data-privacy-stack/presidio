@@ -143,3 +143,4 @@ mkdocs/
 # Visual Studio
 /.vs
 /TestResults
+scripts/presidio_repo_split.ps1
