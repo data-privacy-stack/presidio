@@ -107,8 +107,13 @@ def patched_loads(monkeypatch):
 # ``load()`` (GLiNER, Stanza, Transformers NER) are absent on purpose -- this
 # suite patches ``load`` to a no-op, so they construct without the extra.
 OPTIONAL_DEPENDENCY_MODULES: Dict[str, Tuple[str, ...]] = {
-    "AzureAILanguageRecognizer": ("azure.ai.textanalytics",),
-    "AzureHealthDeidRecognizer": ("azure.health.deidentification",),
+    # azure.ai.textanalytics and azure.core.credentials are imported in the
+    # same try block; either missing leaves both None and the constructor
+    # raises. Probed separately so a partial install of just one still skips.
+    "AzureAILanguageRecognizer": ("azure.ai.textanalytics", "azure.core"),
+    # get_azure_credential() (called when no client is passed explicitly, as
+    # this test does) requires azure.identity in addition to the SDK itself.
+    "AzureHealthDeidRecognizer": ("azure.health.deidentification", "azure.identity"),
     "AzureOpenAILangExtractRecognizer": ("langextract",),
     "BasicLangExtractRecognizer": ("langextract",),
     # transformers is a separate extra from torch, and installing one does not
@@ -544,16 +549,12 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
 
     assert instance.name == f"conf_{cls.__name__}"
     assert instance.supported_language == "en"
-    # Mirrors the loader: context is dropped only for a strict leaf signature
-    # that cannot reach a ``context`` parameter. A leaf accepting **kwargs keeps
-    # the key, so no warning fires for it.
-    leaf_params = inspect.signature(cls.__init__).parameters
-    leaf_accepts_var_kw = any(
-        p.kind == inspect.Parameter.VAR_KEYWORD for p in leaf_params.values()
-    )
-    accepts_context = (
-        "context" in _reachable_init_param_names(cls) or leaf_accepts_var_kw
-    )
+    # Mirrors the loader: context is dropped whenever it is unreachable
+    # through the **kwargs-forwarding MRO chain, regardless of whether the
+    # leaf itself has **kwargs (keeping it in that case is not provably safe
+    # -- see test_context_dropped_for_leaf_forwarding_kwargs_to_a_strict_parent
+    # in test_recognizers_loader_utils.py).
+    accepts_context = "context" in _reachable_init_param_names(cls)
     context_warnings = [
         r.getMessage()
         for r in caplog.records
@@ -668,8 +669,13 @@ def test_unknown_key_is_not_silent(caplog):
             RecognizerRegistryProvider(
                 registry_configuration=configuration
             ).create_recognizer_registry()
-        except ValueError:
-            raised = True
+        except ValueError as exc:
+            # Only counts if it actually names the unknown key -- an unrelated
+            # ValueError must not be mistaken for the gap having been closed.
+            if "no_such_key" in str(exc):
+                raised = True
+            else:
+                raise
 
     warned = any("no_such_key" in record.getMessage() for record in caplog.records)
     assert raised or warned, (

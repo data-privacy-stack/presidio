@@ -316,22 +316,27 @@ class RecognizerListLoader:
         """
         Prepare kwargs for recognizer instantiation.
 
-        This function adapts supported_entity/supported_entities based on the
-        recognizer class __init__ signature to avoid passing unexpected kwargs.
-        Note: a key can remain present in the returned kwargs while still being
-        effectively ignored by the constructed recognizer -- e.g. a class that
-        accepts **kwargs but never reads ``supported_entities`` from it. This
-        function only controls what reaches the constructor call, not whether
-        the constructor uses it.
+        This function adapts supported_entity/supported_entities based on which
+        of them is reachable through the recognizer class's **kwargs-forwarding
+        constructor chain (see ``_reachable_init_param_names``), to avoid
+        passing a kwarg no reachable ``__init__`` declares. Note: a key can
+        remain present in the returned kwargs while still being effectively
+        ignored by the constructed recognizer -- e.g. a class that accepts
+        **kwargs but never reads ``supported_entities`` from it. This function
+        only controls what reaches the constructor call, not whether the
+        constructor uses it.
 
-        - If recognizer accepts only supported_entity (singular), convert
+        - If only supported_entity (singular) is reachable, convert
           supported_entities -> supported_entity (first element).
-        - If recognizer accepts only supported_entities (plural), remove
+        - If only supported_entities (plural) is reachable, remove
           supported_entity.
-        - If recognizer accepts both, keep keys as provided (after None cleanup).
+        - If both are reachable, keep keys as provided (after None cleanup).
         - Filtering policy:
-            - supported_entity: kept only if explicitly accepted.
-            - supported_entities: kept if explicitly accepted or if the recognizer
+            - supported_entity: kept only if reachable -- unlike
+              supported_entities, never kept on **kwargs alone, since a strict
+              ancestor further up a forwarding chain may accept only the
+              plural form and reject the singular one it does not declare.
+            - supported_entities: kept if reachable or if the leaf recognizer
               accepts **kwargs.
 
         If the key is unreachable anywhere in the class's constructor chain (it
@@ -363,7 +368,6 @@ class RecognizerListLoader:
             p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
         )
 
-        accepts_supported_entity = RecognizerListLoader.SUPPORTED_ENTITY in params
         accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
 
         # Parameters reachable through the constructor chain: the leaf signature
@@ -413,10 +417,9 @@ class RecognizerListLoader:
         # which always removes ``supported_entity`` when it is not explicitly
         # declared and keeps ``supported_entities`` when the class accepts
         # ``**kwargs``.
-        entity_key_reachable = (
-            RecognizerListLoader.SUPPORTED_ENTITY in reachable
-            or RecognizerListLoader.SUPPORTED_ENTITIES in reachable
-        )
+        entity_singular_reachable = RecognizerListLoader.SUPPORTED_ENTITY in reachable
+        entity_plural_reachable = RecognizerListLoader.SUPPORTED_ENTITIES in reachable
+        entity_key_reachable = entity_singular_reachable or entity_plural_reachable
         if not entity_key_reachable:
             ineffective_keys = [
                 key
@@ -437,8 +440,11 @@ class RecognizerListLoader:
                 )
 
         # 1. Normalize: Convert plural -> singular if needed
-        # (Only when singular is accepted and plural is NOT accepted)
-        if accepts_supported_entity and not accepts_supported_entities:
+        # (Only when singular is reachable and plural is NOT -- reachable, not
+        # leaf-only, so a leaf forwarding **kwargs to a parent that declares
+        # only the singular form still gets converted instead of forwarding
+        # an unconverted plural that parent does not know about.)
+        if entity_singular_reachable and not entity_plural_reachable:
             if RecognizerListLoader.SUPPORTED_ENTITIES in kwargs:
                 supported_entities = kwargs.get(RecognizerListLoader.SUPPORTED_ENTITIES)
 
@@ -468,9 +474,12 @@ class RecognizerListLoader:
         if not accepts_supported_entities and not has_var_kw:
             kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES, None)
 
-        # Drop unsupported 'supported_entity' even for **kwargs
-        # to prevent leaking into strict parent __init__.
-        if not accepts_supported_entity:
+        # Drop 'supported_entity' when it is unreachable through the whole
+        # **kwargs-forwarding chain (reachable, not leaf-only): a leaf's own
+        # **kwargs does not make forwarding it safe, since the class that
+        # actually receives it might be a strict parent that does not declare
+        # it -- e.g. one that only accepts the plural form.
+        if not entity_singular_reachable:
             kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITY, None)
 
         return kwargs

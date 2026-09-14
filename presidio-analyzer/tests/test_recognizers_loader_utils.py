@@ -98,6 +98,20 @@ class ChildForwardsKwargs(StrictParent):
         super().__init__(**kwargs)
 
 
+class StrictSingularParent:
+    """Parent class that accepts only supported_entity (no **kwargs)."""
+
+    def __init__(self, supported_entity=None):
+        pass
+
+
+class ChildForwardsKwargsToSingularParent(StrictSingularParent):
+    """Child class that accepts **kwargs and forwards to a singular-only parent."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 # Helper: partial to avoid passing empty lang_conf every time
 prepare = functools.partial(
     RecognizerListLoader._prepare_recognizer_kwargs, language_conf={}
@@ -388,6 +402,31 @@ def test_context_dropped_for_leaf_forwarding_kwargs_to_a_strict_parent(caplog):
     # does not declare) reached StrictParent.__init__.
     kwargs.pop("supported_language", None)
     ChildForwardsKwargs(**kwargs)
+
+
+def test_plural_converted_to_singular_when_only_singular_is_reachable():
+    """A leaf forwarding **kwargs to a singular-only parent gets the
+    plural-to-singular conversion, not just the leaf's own signature.
+
+    Before this fix, the conversion (step 1) and the singular-drop safety net
+    (step 3) both looked only at the leaf's own signature. A leaf like
+    ``ChildForwardsKwargsToSingularParent`` declares neither key itself, so
+    the plural form was left unconverted and, because the leaf has
+    **kwargs, kept in the returned kwargs (the plural-compat rule) -- then
+    forwarded to ``StrictSingularParent``, which only accepts the singular
+    form, raising TypeError. Reproduced directly before this fix:
+    ``ChildForwardsKwargsToSingularParent(supported_entities=["PERSON"])``
+    raised "unexpected keyword argument 'supported_entities'". Asserted here
+    by actually constructing the class with the prepared kwargs.
+    """
+    kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+        recognizer_conf={"supported_entities": ["PERSON"]},
+        language_conf={},
+        recognizer_cls=ChildForwardsKwargsToSingularParent,
+    )
+
+    assert kwargs == {"supported_entity": "PERSON"}
+    ChildForwardsKwargsToSingularParent(**kwargs)
 
 
 def test_no_warning_when_entity_key_is_reachable_through_kwargs_forwarding(caplog):
