@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Set, Tuple, Type
 import presidio_analyzer.predefined_recognizers  # noqa: F401 -- see below
 import pytest
 from presidio_analyzer import EntityRecognizer
+from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerListLoader,
@@ -105,30 +106,33 @@ def patched_loads(monkeypatch):
 # test rather than turning green. Classes whose optional import happens only in
 # ``load()`` (GLiNER, Stanza, Transformers NER) are absent on purpose -- this
 # suite patches ``load`` to a no-op, so they construct without the extra.
-OPTIONAL_DEPENDENCY_MODULES: Dict[str, str] = {
-    "AzureAILanguageRecognizer": "azure.ai.textanalytics",
-    "AzureHealthDeidRecognizer": "azure.health.deidentification",
-    "AzureOpenAILangExtractRecognizer": "langextract",
-    "BasicLangExtractRecognizer": "langextract",
-    "HuggingFaceNerRecognizer": "transformers",
-    "MedicalNERRecognizer": "transformers",
+OPTIONAL_DEPENDENCY_MODULES: Dict[str, Tuple[str, ...]] = {
+    "AzureAILanguageRecognizer": ("azure.ai.textanalytics",),
+    "AzureHealthDeidRecognizer": ("azure.health.deidentification",),
+    "AzureOpenAILangExtractRecognizer": ("langextract",),
+    "BasicLangExtractRecognizer": ("langextract",),
+    # transformers is a separate extra from torch, and installing one does not
+    # install the other; both must be probed, or a partial environment (e.g.
+    # transformers without torch) reaches the constructor and fails instead
+    # of skipping.
+    "HuggingFaceNerRecognizer": ("transformers", "torch"),
+    "MedicalNERRecognizer": ("transformers", "torch"),
 }
 
 
 def _skip_if_optional_dependency_missing(class_name: str) -> None:
     """Skip when the class needs an optional extra that is not installed."""
-    module = OPTIONAL_DEPENDENCY_MODULES.get(class_name)
-    if module is None:
-        return
-    try:
-        found = importlib.util.find_spec(module) is not None
-    except (ImportError, ValueError):
-        found = False
-    if not found:
-        pytest.skip(
-            f"{class_name} needs optional dependency {module!r}; install the "
-            f"extras (uv sync --all-extras) to run this conformance case"
-        )
+    for module in OPTIONAL_DEPENDENCY_MODULES.get(class_name, ()):
+        try:
+            found = importlib.util.find_spec(module) is not None
+        except (ImportError, ValueError):
+            found = False
+        if not found:
+            pytest.skip(
+                f"{class_name} needs optional dependency {module!r}; install "
+                f"the extras (uv sync --all-extras) to run this conformance "
+                f"case"
+            )
 
 
 def test_optional_dependency_modules_names_only_real_classes():
@@ -620,10 +624,14 @@ def test_entry_context_is_dropped_for_bare_language_list():
         r for r in registry.recognizers if type(r).__name__ == "CreditCardRecognizer"
     ][0]
 
-    assert instance.context != entry_context, (
-        "entry-level context now reaches the recognizer for a bare language "
-        "list -- the silent drop this test documents has been fixed, so update "
-        "it to assert the contract instead"
+    default_context = CreditCardRecognizer().context
+    assert instance.context == default_context, (
+        f"expected the entry-level context to be silently dropped (the "
+        f"instance keeps CreditCardRecognizer's own default, "
+        f"{default_context!r}), got {instance.context!r}. If this now equals "
+        f"{entry_context!r}, the silent drop this test documents has been "
+        f"fixed -- update this test to assert the contract instead of "
+        f"pinning the gap."
     )
 
 

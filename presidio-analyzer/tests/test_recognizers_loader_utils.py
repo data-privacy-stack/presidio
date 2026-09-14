@@ -356,14 +356,17 @@ def test_context_kept_without_warning_for_class_accepting_it(caplog):
     assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
 
 
-def test_context_kept_for_leaf_accepting_kwargs_without_declaring_it(caplog):
-    """A leaf constructor accepting **kwargs keeps context even when no
-    ``context`` parameter is reachable along its MRO.
+def test_context_dropped_for_leaf_forwarding_kwargs_to_a_strict_parent(caplog):
+    """A leaf constructor accepting **kwargs is not enough to keep context.
 
-    Such a class can read context straight out of **kwargs without declaring
-    it, and it cannot raise TypeError on an unexpected keyword, so dropping the
-    key would silently remove configuration from out-of-tree recognizers. The
-    drop is therefore scoped to strict leaf signatures.
+    ``_reachable_init_param_names`` already assumes **kwargs may be forwarded
+    while computing reachability, so "unreachable" means some class in that
+    forwarding chain has no **kwargs of its own and does not declare
+    ``context`` -- e.g. ``ChildForwardsKwargs`` blindly forwarding to
+    ``StrictParent``. Keeping the key in that case is not safe in general: it
+    still raises TypeError once forwarding reaches ``StrictParent``. Asserted
+    by actually constructing the class, not just inspecting the prepared
+    dict -- that is exactly what the registry loader does next.
     """
     with caplog.at_level("WARNING", logger="presidio-analyzer"):
         kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
@@ -372,15 +375,19 @@ def test_context_kept_for_leaf_accepting_kwargs_without_declaring_it(caplog):
             recognizer_cls=ChildForwardsKwargs,
         )
 
-    assert kwargs["context"] == ["visa"]
+    assert "context" not in kwargs
     context_warnings = [
         r.getMessage()
         for r in caplog.records
         if r.levelname == "WARNING" and "'context'" in r.getMessage()
     ]
-    assert not context_warnings, (
-        f"expected no context WARNING for a **kwargs leaf, got {context_warnings!r}"
-    )
+    assert context_warnings, "expected a context WARNING for a **kwargs leaf"
+
+    # The value this test cares about: construction must not raise, which it
+    # would if `context` (or `supported_language`, which StrictParent also
+    # does not declare) reached StrictParent.__init__.
+    kwargs.pop("supported_language", None)
+    ChildForwardsKwargs(**kwargs)
 
 
 def test_no_warning_when_entity_key_is_reachable_through_kwargs_forwarding(caplog):

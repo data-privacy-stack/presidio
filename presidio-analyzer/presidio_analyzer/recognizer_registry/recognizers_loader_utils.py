@@ -381,16 +381,19 @@ class RecognizerListLoader:
         # registry entry sets context for such a class, drop it with a warning
         # instead of letting the constructor raise ``TypeError`` and take the
         # whole registry down.
-        # The ``has_var_kw`` guard keeps this rule backward compatible: before
-        # it existed, a leaf constructor accepting ``**kwargs`` received
-        # ``context`` and could consume it without declaring the parameter.
-        # Dropping the key for those classes would be a silent loss of
-        # configuration for out-of-tree recognizers, so the drop is scoped to
-        # strict leaf signatures -- the only ones that raise TypeError on an
-        # unexpected keyword. Every in-repo recognizer that fails the
-        # reachability check has a strict leaf signature, so the shipped set
-        # behaves identically either way.
-        if "context" in kwargs and "context" not in reachable and not has_var_kw:
+        # Dropped whenever unreachable, regardless of whether the *leaf*
+        # constructor itself has **kwargs: ``_reachable_init_param_names``
+        # already assumes **kwargs is forwarded up the MRO while deciding
+        # reachability, so "unreachable" means some class in that forwarding
+        # chain does *not* declare ``context`` and has no **kwargs of its own
+        # -- e.g. a leaf that forwards blindly to a strict parent
+        # (``ChildForwardsKwargs`` -> ``StrictParent`` in the test suite).
+        # Keeping the key in kwargs for a leaf with **kwargs is therefore not
+        # provably safe in general: it still raises TypeError once forwarding
+        # reaches that stricter ancestor. Registry-build safety takes priority
+        # over preserving a value a hypothetical out-of-tree recognizer might
+        # read from **kwargs without declaring it.
+        if "context" in kwargs and "context" not in reachable:
             kwargs.pop("context")
             logger.warning(
                 "%s does not accept 'context'; ignoring the context words "
