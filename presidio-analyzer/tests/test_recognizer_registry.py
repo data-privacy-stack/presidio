@@ -819,7 +819,7 @@ def test_default_recognizers_yaml_has_no_duplicate_entries():
 def test_default_recognizers_yaml_declares_languages_not_countries():
     """``supported_languages`` holds language codes; ``country_code`` holds the country.
 
-    The Korean entries listed ``kr`` -- the ISO 3166-1 country code -- next to
+    The Korean entries listed ``kr`` — the ISO 3166-1 country code — next to
     ``ko``, the ISO 639-1 language code. The loader builds one recognizer per
     listed language, so on a registry that does not name ``kr`` every such
     instance is built and then dropped by
@@ -833,11 +833,27 @@ def test_default_recognizers_yaml_declares_languages_not_countries():
     # here should be a deliberate decision, not a side effect of a new entry.
     known_languages = {"de", "en", "es", "fi", "fr", "it", "ko", "pl", "sv", "th", "tr"}
 
+    # ``kr`` survives on these two entries as a backward-compatibility alias,
+    # not as a language. Both classes defaulted to ``supported_language="kr"``
+    # until it was moved to ``ko`` — #1742 (2025-10-08) for the RRN, #2170
+    # (2026-08-05) for the passport — so a registry still configured with the
+    # old code would go quiet if the alias were dropped now. The three sibling
+    # ``Kr*`` recognizers never had a ``kr`` default and carry no such
+    # allowance.
+    #
+    # Deprecated in favour of ``ko`` and scheduled for removal in
+    # <release TBD>. Delete these two entries in the same change.
+    deprecated_language_aliases = {
+        "KrRrnRecognizer": {"kr"},
+        "KrPassportRecognizer": {"kr"},
+    }
+
     offenders = {}
     for entry in _default_recognizers_conf()["recognizers"]:
         name = _entry_name(entry)
+        allowed = known_languages | deprecated_language_aliases.get(name, set())
         for code in _declared_languages(entry):
-            if code not in known_languages:
+            if code not in allowed:
                 offenders.setdefault(name, []).append(code)
 
     assert offenders == {}, f"non-language codes in supported_languages: {offenders}"

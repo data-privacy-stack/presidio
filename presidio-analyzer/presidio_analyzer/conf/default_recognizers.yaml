@@ -345,6 +345,7 @@ recognizers:
   - name: KrRrnRecognizer
     supported_languages: 
     - ko
+    - kr
     type: predefined
     enabled: false
     country_code: kr
@@ -366,6 +367,7 @@ recognizers:
   - name: KrPassportRecognizer
     supported_languages:
     - ko
+    - kr
     type: predefined
     enabled: false
     country_code: kr
