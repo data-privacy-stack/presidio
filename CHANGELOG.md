@@ -35,6 +35,9 @@ All notable changes to this project will be documented in this file.
 #### Added
 - Philippine passport (`PH_PASSPORT`) recognizer with pattern matching and context support. Disabled by default.
 
+#### Deprecated
+- The `kr` language code is deprecated in favor of the ISO 639-1 code `ko`. `KrRrnRecognizer` and `KrPassportRecognizer` still accept `kr` in `supported_languages` as a backward-compatibility alias for registries configured against their original class defaults; the alias will be removed in <release TBD>. `KrBrnRecognizer`, `KrDriverLicenseRecognizer` and `KrFrnRecognizer` have only ever defaulted to `ko`, so `kr` was removed from their `default_recognizers.yaml` entries in this release. (#2236)
+
 ### Anonymizer
 #### Security
 - Bumped `cryptography` lower bound to `>=48.0.1` to resolve GHSA-537c-gmf6-5ccf (HIGH, vulnerable OpenSSL statically linked into wheels below 48.0.1) (#2144) (Thanks @Copilot)
