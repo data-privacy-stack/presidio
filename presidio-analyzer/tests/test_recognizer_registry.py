@@ -857,3 +857,38 @@ def test_default_recognizers_yaml_declares_languages_not_countries():
                 offenders.setdefault(name, []).append(code)
 
     assert offenders == {}, f"non-language codes in supported_languages: {offenders}"
+
+
+def test_deprecated_kr_alias_still_loads_its_recognizers():
+    """The retained ``kr`` alias has to actually serve a registry that names it.
+
+    This is the configuration the carve-out above exists for. With
+    ``supported_languages: ["kr"]`` the loader builds one instance per declared
+    language and ``_is_language_supported_globally`` then drops every instance
+    whose language the registry does not list, so only the entries that still
+    declare ``kr`` survive. Drop the alias and this registry loads nothing —
+    which is the breakage the deprecation is being staged to avoid.
+    """
+    korean_entries = [
+        entry
+        for entry in _default_recognizers_conf()["recognizers"]
+        if _entry_name(entry).startswith("Kr")
+    ]
+    assert {"KrRrnRecognizer", "KrPassportRecognizer"} <= {
+        _entry_name(entry) for entry in korean_entries
+    }, "the two alias entries are missing from the shipped file"
+
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["kr"],
+            "recognizers": [dict(entry, enabled=True) for entry in korean_entries],
+        }
+    ).create_recognizer_registry()
+
+    assert _recognizer_class_names(registry) == {
+        "KrRrnRecognizer",
+        "KrPassportRecognizer",
+    }
+    # The three entries that only declare ``ko`` are built and then dropped,
+    # so nothing survives under a language the registry never asked for.
+    assert {rec.supported_language for rec in registry.recognizers} == {"kr"}
