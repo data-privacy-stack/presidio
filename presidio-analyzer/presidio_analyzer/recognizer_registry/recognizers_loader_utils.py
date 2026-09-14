@@ -70,8 +70,8 @@ class RecognizerListLoader:
 
     @staticmethod
     def _split_recognizers(
-        recognizers_conf: Union[Dict[str, Any], str],
-    ) -> Tuple[List[Union[str, Dict[str, Any]]], List[Union[str, Dict[str, Any]]]]:
+        recognizers_conf: Iterable[Union[Dict[str, Any], str]],
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Split the recognizer list to predefined and custom.
 
@@ -79,19 +79,32 @@ class RecognizerListLoader:
         type: 'custom' can be mentioned as well.
         This function supports the previous format as well.
 
+        A bare string entry (``- CreditCardRecognizer``) is the shorthand the
+        configuration schema accepts for a predefined recognizer that needs no
+        further settings. It is expanded to its dict equivalent here, because
+        every step after this one indexes the entry as a mapping: left as a
+        string it matches neither list and the recognizer is never built.
+
         :param recognizers_conf: The recognizers' configuration
         """
 
+        normalized = [
+            {"name": recognizer_conf, "type": "predefined"}
+            if isinstance(recognizer_conf, str)
+            else recognizer_conf
+            for recognizer_conf in recognizers_conf
+        ]
+
         predefined = [
             recognizer_conf
-            for recognizer_conf in recognizers_conf
+            for recognizer_conf in normalized
             if isinstance(recognizer_conf, dict)
             and ("type" in recognizer_conf and recognizer_conf["type"] == "predefined")
         ]
         custom = [
             recognizer_conf
-            for recognizer_conf in recognizers_conf
-            if not isinstance(recognizer_conf, str)
+            for recognizer_conf in normalized
+            if isinstance(recognizer_conf, dict)
             and ("type" not in recognizer_conf or recognizer_conf["type"] == "custom")
         ]
         return predefined, custom

@@ -271,10 +271,21 @@ def test_known_contract_gaps_names_only_real_classes():
 
 
 def _shipped_entries() -> List[Dict[str, Any]]:
-    """Normalize every entry of the shipped ``default_recognizers.yaml``."""
+    """Normalize every entry of the shipped ``default_recognizers.yaml``.
+
+    Mirrors ``RecognizerListLoader._split_recognizers``, which expands the
+    bare-string shorthand into the same dict before building anything. The
+    shorthand's own load path is covered directly in
+    ``tests/test_recognizers_loader_utils.py`` (``test_bare_string_*``), so the
+    parametrization here only needs each entry in its mapping form.
+    """
     entries = []
     for entry in DEFAULT_CONF_DATA["recognizers"]:
-        entries.append({"name": entry} if isinstance(entry, str) else dict(entry))
+        entries.append(
+            {"name": entry, "type": "predefined"}
+            if isinstance(entry, str)
+            else dict(entry)
+        )
     return entries
 
 

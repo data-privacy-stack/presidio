@@ -20,6 +20,7 @@ from presidio_analyzer.predefined_recognizers.third_party.basic_langextract_reco
 )
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
+    PredefinedRecognizerNotFoundError,
     RecognizerConfigurationLoader,
     RecognizerListLoader,
 )
@@ -368,6 +369,179 @@ def test_context_kept_without_warning_for_class_accepting_it(caplog):
         r.getMessage() for r in caplog.records if r.levelname == "WARNING"
     ]
     assert not warning_messages, f"expected no WARNING, got {warning_messages!r}"
+
+
+def _build_registry(recognizers, languages=("en",)):
+    """Build a registry from a recognizers list, the way a user's YAML does."""
+    configuration = {
+        "global_regex_flags": GLOBAL_REGEX_FLAGS,
+        "supported_languages": list(languages),
+        "recognizers": recognizers,
+    }
+    provider = RecognizerRegistryProvider(registry_configuration=configuration)
+    return provider.create_recognizer_registry().recognizers
+
+
+# ---------------------------------------------------------------------------
+# Bare-string entries: ``recognizers: [CreditCardRecognizer]``
+# ---------------------------------------------------------------------------
+
+
+def test_split_recognizers_expands_a_bare_string_to_a_predefined_entry():
+    """``_split_recognizers`` normalizes the bare-string shorthand.
+
+    Left as a string the entry matched neither the predefined nor the custom
+    list, so the recognizer was never constructed and the registry came back
+    empty with no error.
+    """
+    predefined_confs, custom_confs = RecognizerListLoader._split_recognizers(
+        ["CreditCardRecognizer"]
+    )
+
+    assert predefined_confs == [{"name": "CreditCardRecognizer", "type": "predefined"}]
+    assert custom_confs == []
+
+
+def test_bare_string_entry_builds_the_recognizer():
+    """The bare-string shorthand constructs the named predefined recognizer."""
+    recognizers = _build_registry(["CreditCardRecognizer"])
+
+    assert [type(r).__name__ for r in recognizers] == ["CreditCardRecognizer"]
+    instance = recognizers[0]
+    assert instance.supported_language == "en"
+    # No entry to take settings from, so the class defaults must survive.
+    assert instance.context == CreditCardRecognizer().context
+    assert instance.supported_entities == CreditCardRecognizer().supported_entities
+
+
+def test_bare_string_entry_builds_one_instance_per_registry_language():
+    """A bare string carries no languages, so it follows the registry's."""
+    recognizers = _build_registry(["CreditCardRecognizer"], languages=("en", "es"))
+
+    assert sorted(r.supported_language for r in recognizers) == ["en", "es"]
+    assert {type(r).__name__ for r in recognizers} == {"CreditCardRecognizer"}
+
+
+def test_bare_string_and_dict_entries_load_together():
+    """A mixed list keeps both forms; the string one is no longer dropped."""
+    recognizers = _build_registry(
+        [
+            "EmailRecognizer",
+            {
+                "name": "CreditCardRecognizer",
+                "type": "predefined",
+                "supported_languages": ["en"],
+            },
+        ]
+    )
+
+    assert sorted(type(r).__name__ for r in recognizers) == [
+        "CreditCardRecognizer",
+        "EmailRecognizer",
+    ]
+
+
+def test_bare_string_naming_an_unknown_class_raises():
+    """An unresolvable bare name fails loudly rather than loading nothing.
+
+    Before the entry was normalized it was silently discarded, so a typo in a
+    bare-string entry produced an empty registry and no diagnostic.
+    """
+    with pytest.raises(PredefinedRecognizerNotFoundError) as exc_info:
+        _build_registry(["credit_card"])
+
+    assert "credit_card" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# Custom (YAML-defined) recognizers are unaffected by the predefined-path rules
+# ---------------------------------------------------------------------------
+
+
+def test_custom_entry_keeps_its_fields_and_logs_no_warning(caplog):
+    """A ``type: custom`` entry is built from YAML, not from a class.
+
+    Custom entries never reach ``_prepare_recognizer_kwargs``, so the context
+    and entity-key rules that govern predefined entries must not touch them:
+    every field set here has to reach the instance, and none of the loader's
+    "ignoring" warnings may fire.
+    """
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        recognizers = _build_registry(
+            [
+                {
+                    "name": "my_custom",
+                    "type": "custom",
+                    "supported_entity": "MY_ENTITY",
+                    "context": ["ctx"],
+                    "patterns": [{"name": "p", "regex": r"\d{3}", "score": 0.5}],
+                }
+            ]
+        )
+
+    assert len(recognizers) == 1
+    instance = recognizers[0]
+    assert isinstance(instance, PatternRecognizer)
+    assert instance.name == "my_custom"
+    assert instance.supported_entities == ["MY_ENTITY"]
+    assert instance.context == ["ctx"]
+    assert [p.regex for p in instance.patterns] == [r"\d{3}"]
+
+    warning_messages = [
+        r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+    ]
+    assert not warning_messages, (
+        f"a custom entry must not trigger the predefined-path warnings, got "
+        f"{warning_messages!r}"
+    )
+
+
+def test_custom_entry_without_a_type_key_is_still_custom():
+    """The legacy format omits ``type``; such an entry stays custom.
+
+    ``_split_recognizers`` now keys both lists off a mapping check, so this
+    pins that the change did not reroute untyped entries to the predefined
+    branch, where the name would be resolved as a class and fail.
+    """
+    recognizers = _build_registry(
+        [
+            {
+                "name": "legacy_custom",
+                "supported_entity": "LEGACY_ENTITY",
+                "deny_list": ["alpha", "beta"],
+            }
+        ]
+    )
+
+    assert len(recognizers) == 1
+    instance = recognizers[0]
+    assert isinstance(instance, PatternRecognizer)
+    assert instance.name == "legacy_custom"
+    assert instance.supported_entities == ["LEGACY_ENTITY"]
+
+
+def test_custom_entry_builds_one_instance_per_configured_language():
+    """A custom entry with several languages keeps each one's context."""
+    recognizers = _build_registry(
+        [
+            {
+                "name": "multi_custom",
+                "type": "custom",
+                "supported_entity": "MULTI_ENTITY",
+                "supported_languages": [
+                    {"language": "en", "context": ["english"]},
+                    {"language": "es", "context": ["spanish"]},
+                ],
+                "patterns": [{"name": "p", "regex": r"\d{3}", "score": 0.5}],
+            }
+        ],
+        languages=("en", "es"),
+    )
+
+    by_language = {r.supported_language: r for r in recognizers}
+    assert sorted(by_language) == ["en", "es"]
+    assert by_language["en"].context == ["english"]
+    assert by_language["es"].context == ["spanish"]
 
 
 def test_context_dropped_for_leaf_forwarding_kwargs_to_a_strict_parent(caplog):
