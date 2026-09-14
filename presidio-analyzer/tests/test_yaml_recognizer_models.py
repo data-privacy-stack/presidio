@@ -383,6 +383,33 @@ def test_custom_recognizer_config_with_deny_list():
     assert config.deny_list_score == 0.1
 
 
+def test_custom_recognizer_config_omitted_deny_list_score_excluded_from_dump():
+    """Omitted deny_list_score should stay None and drop out of model_dump().
+
+    PatternRecognizer.from_dict() forwards model_dump() output straight to the
+    constructor, so the key must be absent entirely (not present with a None
+    value) for PatternRecognizer's own default (1.0) to take effect.
+    """
+    config = CustomRecognizerConfig(
+        name="custom_test",
+        supported_entity="CUSTOM_ENTITY",
+        deny_list=["exclude", "this"],
+    )
+    assert config.deny_list_score is None
+    assert "deny_list_score" not in config.model_dump()
+
+
+def test_custom_recognizer_config_explicit_deny_list_score_kept_in_dump():
+    """An explicitly set deny_list_score is preserved through model_dump()."""
+    config = CustomRecognizerConfig(
+        name="custom_test",
+        supported_entity="CUSTOM_ENTITY",
+        deny_list=["exclude", "this"],
+        deny_list_score=0.1,
+    )
+    assert config.model_dump()["deny_list_score"] == 0.1
+
+
 def test_custom_recognizer_config_invalid_patterns_not_list():
     """Test that patterns must be a list."""
     with pytest.raises(ValidationError) as exc_info:
