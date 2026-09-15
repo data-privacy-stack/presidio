@@ -383,20 +383,20 @@ def test_custom_recognizer_config_with_deny_list():
     assert config.deny_list_score == 0.1
 
 
-def test_custom_recognizer_config_omitted_deny_list_score_excluded_from_dump():
-    """Omitted deny_list_score should stay None and drop out of model_dump().
+def test_custom_recognizer_config_omitted_deny_list_score_defaults_to_one():
+    """Omitted deny_list_score should match PatternRecognizer's own default (1.0).
 
     PatternRecognizer.from_dict() forwards model_dump() output straight to the
-    constructor, so the key must be absent entirely (not present with a None
-    value) for PatternRecognizer's own default (1.0) to take effect.
+    constructor, so the dumped value has to already be 1.0 for an omitted
+    YAML field to behave the same as constructing PatternRecognizer directly.
     """
     config = CustomRecognizerConfig(
         name="custom_test",
         supported_entity="CUSTOM_ENTITY",
         deny_list=["exclude", "this"],
     )
-    assert config.deny_list_score is None
-    assert "deny_list_score" not in config.model_dump()
+    assert config.deny_list_score == 1.0
+    assert config.model_dump()["deny_list_score"] == 1.0
 
 
 def test_custom_recognizer_config_explicit_deny_list_score_kept_in_dump():
