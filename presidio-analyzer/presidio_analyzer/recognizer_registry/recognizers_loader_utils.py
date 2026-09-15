@@ -329,34 +329,11 @@ class RecognizerListLoader:
         """
         Prepare kwargs for recognizer instantiation.
 
-        This function adapts supported_entity/supported_entities based on which
-        of them is reachable through the recognizer class's **kwargs-forwarding
-        constructor chain (see ``_reachable_init_param_names``), to avoid
-        passing a kwarg no reachable ``__init__`` declares. Note: a key can
-        remain present in the returned kwargs while still being effectively
-        ignored by the constructed recognizer -- e.g. a class that accepts
-        **kwargs but never reads ``supported_entities`` from it. This function
-        only controls what reaches the constructor call, not whether the
-        constructor uses it.
-
-        - If only supported_entity (singular) is reachable, convert
-          supported_entities -> supported_entity (first element).
-        - If only supported_entities (plural) is reachable, remove
-          supported_entity.
-        - If both are reachable, keep keys as provided (after None cleanup).
-        - Filtering policy:
-            - supported_entity: kept only if reachable -- unlike
-              supported_entities, never kept on **kwargs alone, since a strict
-              ancestor further up a forwarding chain may accept only the
-              plural form and reject the singular one it does not declare.
-            - supported_entities: kept if reachable or if the leaf recognizer
-              accepts **kwargs.
-
-        If the key is unreachable anywhere in the class's constructor chain (it
-        defines its supported entities from its own configuration, e.g. a
-        LangExtract config file) and the entry set one anyway, a
-        ``logger.warning`` names the class and the key that has no effect,
-        instead of staying silent about it.
+        Converts supported_entities -> supported_entity (or drops either)
+        based on which is reachable through the constructor's **kwargs-
+        forwarding chain (see ``_reachable_init_param_names``), and drops
+        ``context`` the same way. A key unreachable anywhere in the chain
+        logs a warning naming the class instead of failing silently.
         """
         kwargs = {**recognizer_conf, **language_conf}
 
@@ -383,33 +360,13 @@ class RecognizerListLoader:
 
         accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
 
-        # Parameters reachable through the constructor chain: the leaf signature
-        # plus, while each ``__init__`` forwards ``**kwargs``, its parents'. A
-        # subclass such as StanzaRecognizer accepts ``supported_entities`` and
-        # ``context`` through SpacyRecognizer even though its own signature
-        # names neither, so the two warnings below key off this set and not the
-        # leaf signature alone.
+        # Reachable via **kwargs-forwarding up the MRO, not just the leaf
+        # signature (see _reachable_init_param_names).
         reachable = RecognizerListLoader._reachable_init_param_names(recognizer_cls)
 
-        # ``context`` is one flat word list applied to every result a recognizer
-        # emits, so it only makes sense for recognizers that detect a single
-        # entity type. Recognizers that detect several (NER models, remote PHI
-        # services, LLM extractors) deliberately do not accept it. When a
-        # registry entry sets context for such a class, drop it with a warning
-        # instead of letting the constructor raise ``TypeError`` and take the
-        # whole registry down.
-        # Dropped whenever unreachable, regardless of whether the *leaf*
-        # constructor itself has **kwargs: ``_reachable_init_param_names``
-        # already assumes **kwargs is forwarded up the MRO while deciding
-        # reachability, so "unreachable" means some class in that forwarding
-        # chain does *not* declare ``context`` and has no **kwargs of its own
-        # -- e.g. a leaf that forwards blindly to a strict parent
-        # (``ChildForwardsKwargs`` -> ``StrictParent`` in the test suite).
-        # Keeping the key in kwargs for a leaf with **kwargs is therefore not
-        # provably safe in general: it still raises TypeError once forwarding
-        # reaches that stricter ancestor. Registry-build safety takes priority
-        # over preserving a value a hypothetical out-of-tree recognizer might
-        # read from **kwargs without declaring it.
+        # context only makes sense for a single-entity recognizer; dropped
+        # whenever unreachable, even for a **kwargs leaf, since forwarding
+        # can still reach a stricter ancestor that rejects it.
         if "context" in kwargs and "context" not in reachable:
             kwargs.pop("context")
             logger.warning(
@@ -420,16 +377,8 @@ class RecognizerListLoader:
                 recognizer_cls.__name__,
             )
 
-        # A class that accepts neither key anywhere in its constructor chain
-        # defines its entities itself (e.g. from a config file, as
-        # LangExtract-based recognizers do) rather than from the registry entry.
-        # Warn -- rather than staying silent -- when the entry actually tried
-        # to set one, so a user relying on it finds out why it had no effect
-        # instead of debugging a mismatch later. This branch only warns; what
-        # actually reaches the constructor is decided by the filter below,
-        # which always removes ``supported_entity`` when it is not explicitly
-        # declared and keeps ``supported_entities`` when the class accepts
-        # ``**kwargs``.
+        # A class with neither key reachable defines its own entities (e.g.
+        # from a LangExtract config file); warn instead of staying silent.
         entity_singular_reachable = RecognizerListLoader.SUPPORTED_ENTITY in reachable
         entity_plural_reachable = RecognizerListLoader.SUPPORTED_ENTITIES in reachable
         entity_key_reachable = entity_singular_reachable or entity_plural_reachable
@@ -452,11 +401,7 @@ class RecognizerListLoader:
                     recognizer_cls.__name__,
                 )
 
-        # 1. Normalize: Convert plural -> singular if needed
-        # (Only when singular is reachable and plural is NOT -- reachable, not
-        # leaf-only, so a leaf forwarding **kwargs to a parent that declares
-        # only the singular form still gets converted instead of forwarding
-        # an unconverted plural that parent does not know about.)
+        # 1. Normalize: convert plural -> singular when only singular is reachable.
         if entity_singular_reachable and not entity_plural_reachable:
             if RecognizerListLoader.SUPPORTED_ENTITIES in kwargs:
                 supported_entities = kwargs.get(RecognizerListLoader.SUPPORTED_ENTITIES)
@@ -487,11 +432,8 @@ class RecognizerListLoader:
         if not accepts_supported_entities and not has_var_kw:
             kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES, None)
 
-        # Drop 'supported_entity' when it is unreachable through the whole
-        # **kwargs-forwarding chain (reachable, not leaf-only): a leaf's own
-        # **kwargs does not make forwarding it safe, since the class that
-        # actually receives it might be a strict parent that does not declare
-        # it -- e.g. one that only accepts the plural form.
+        # supported_entity is always dropped if unreachable, even for
+        # **kwargs (an ancestor may accept only the plural form).
         if not entity_singular_reachable:
             kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITY, None)
 
