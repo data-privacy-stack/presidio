@@ -8,6 +8,9 @@ from presidio_analyzer.predefined_recognizers.ner.medical_ner_recognizer import 
 from presidio_analyzer.predefined_recognizers.ner.huggingface_ner_recognizer import (
     HuggingFaceNerRecognizer,
 )
+from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
+    RecognizerListLoader,
+)
 
 
 def _make_pipeline_prediction(entity_group, score, word, start, end):
@@ -84,6 +87,35 @@ def test_default_model_name(recognizer):
 def test_default_aggregation_strategy(recognizer):
     """Default aggregation_strategy should be 'simple'."""
     assert recognizer.aggregation_strategy == "simple"
+
+
+def test_loader_with_language_context():
+    """YAML loader should be able to pass language context."""
+    recognizer_conf = {
+        "name": "MedicalNERRecognizer",
+        "type": "predefined",
+        "supported_languages": [
+            {"language": "en", "context": ["diagnosis", "medication"]}
+        ],
+    }
+
+    with (
+        patch(_PATCH_HF, new=MagicMock()),
+        patch(_PATCH_TORCH, new=MagicMock()),
+        patch(_PATCH_DEVICE) as mock_dd,
+    ):
+        mock_dd.get_device.return_value = "cpu"
+        recognizers = list(
+            RecognizerListLoader.get(
+                recognizers=[recognizer_conf],
+                supported_languages=["en"],
+                global_regex_flags=26,
+            )
+        )
+
+    assert len(recognizers) == 1
+    assert isinstance(recognizers[0], MedicalNERRecognizer)
+    assert recognizers[0].context == ["diagnosis", "medication"]
 
 
 def test_custom_supported_entities():
