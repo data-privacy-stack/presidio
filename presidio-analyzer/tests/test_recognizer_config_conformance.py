@@ -146,43 +146,6 @@ def test_optional_dependency_modules_names_only_real_classes():
     assert set(OPTIONAL_DEPENDENCY_MODULES) <= names
 
 
-def _reachable_init_param_names(cls: Type[EntityRecognizer]) -> Set[str]:
-    """Union of ``__init__`` parameter names reachable from the loader.
-
-    Walks ``cls.__mro__`` starting at ``cls`` itself. Each class along the
-    chain that defines its own ``__init__`` contributes its parameter names
-    (excluding ``self`` and the ``*args``/``**kwargs`` slots themselves) to
-    the union. Traversal stops right after the first ``__init__`` that does
-    NOT accept ``**kwargs``: once a constructor stops forwarding arbitrary
-    keyword arguments to its superclass, a key the registry loader passes
-    for a parameter declared only further up the MRO can never actually
-    reach that superclass, so it is not "reachable" from the loader's point
-    of view.
-    """
-    names: Set[str] = set()
-    for klass in cls.__mro__:
-        init = klass.__dict__.get("__init__")
-        if init is None:
-            continue
-        try:
-            parameters = inspect.signature(init).parameters
-        except (TypeError, ValueError):
-            break
-        names.update(
-            name
-            for name, param in parameters.items()
-            if name != "self"
-            and param.kind
-            not in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
-        )
-        has_var_kw = any(
-            param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters.values()
-        )
-        if not has_var_kw:
-            break
-    return names
-
-
 # ---------------------------------------------------------------------------
 # Story 1 & 2: base-class contract conformance
 # ---------------------------------------------------------------------------
@@ -190,9 +153,10 @@ def _reachable_init_param_names(cls: Type[EntityRecognizer]) -> Set[str]:
 # Keys ``RecognizerListLoader`` injects into every predefined recognizer it
 # builds from a registry entry (see ``RecognizerListLoader.get`` /
 # ``_prepare_recognizer_kwargs``). ``context`` is also injected when the
-# entry sets it, but it is not a contract requirement: context words boost
-# every result a recognizer emits, which only makes sense for single-entity
-# recognizers, so multi-entity recognizers (NER models, remote PHI services,
+# entry sets it, but it is not a contract requirement: context words only
+# boost a result's score when they match text near the recognized entity,
+# which only makes sense for single-entity recognizers, so multi-entity
+# recognizers (NER models, remote PHI services,
 # LLM extractors) do not accept it and ``_prepare_recognizer_kwargs`` drops
 # it for them with a warning. See ``test_context_dropped_with_warning...``
 # in ``test_recognizers_loader_utils.py`` and the round-trip test below.
@@ -213,8 +177,9 @@ ENTITIES_FROM_OWN_CONFIG = {
 
 # Regression lock: classes whose constructor cannot yet accept every key the
 # registry loader injects, mapped to exactly which keys are missing.
-# Verified against the real signatures via ``_reachable_init_param_names``
-# below -- the test asserts the *actual* gap set equals this dict exactly,
+# Verified against the real signatures via
+# ``RecognizerListLoader._reachable_init_param_names`` -- the test asserts
+# the *actual* gap set equals this dict exactly,
 # so fixing a class without shrinking this dict fails the test, and so does
 # a newly introduced regression.
 #
@@ -225,7 +190,7 @@ KNOWN_CONTRACT_GAPS: Dict[str, Set[str]] = {}
 
 
 def _missing_registry_keys(cls: Type[EntityRecognizer]) -> Set[str]:
-    reachable = _reachable_init_param_names(cls)
+    reachable = RecognizerListLoader._reachable_init_param_names(cls)
     missing = {key for key in REGISTRY_INJECTED_KEYS if key not in reachable}
     if cls.__name__ not in ENTITIES_FROM_OWN_CONFIG and not any(
         key in reachable for key in ENTITY_KEYS
@@ -565,7 +530,7 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
     # leaf itself has **kwargs (keeping it in that case is not provably safe
     # -- see test_context_dropped_for_leaf_forwarding_kwargs_to_a_strict_parent
     # in test_recognizers_loader_utils.py).
-    accepts_context = "context" in _reachable_init_param_names(cls)
+    accepts_context = "context" in RecognizerListLoader._reachable_init_param_names(cls)
     context_warnings = [
         r.getMessage()
         for r in caplog.records

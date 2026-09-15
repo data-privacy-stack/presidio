@@ -371,9 +371,10 @@ class RecognizerListLoader:
             kwargs.pop("context")
             logger.warning(
                 "%s does not accept 'context'; ignoring the context words "
-                "configured for it. Context words boost every result a "
-                "recognizer emits, so recognizers that detect several entity "
-                "types do not support them.",
+                "configured for it. Context words boost a result's score "
+                "only when they match text near the recognized entity, "
+                "and recognizers that detect several entity types do not "
+                "support them.",
                 recognizer_cls.__name__,
             )
 
