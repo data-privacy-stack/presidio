@@ -28,6 +28,11 @@ class LangExtractRecognizer(LMRecognizer, ABC):
     Subclasses implement _call_langextract() for specific LLM providers.
     """
 
+    # langextract is not imported directly above -- required transitively by
+    # check_langextract_available() (presidio_analyzer.llm_utils), called in
+    # __init__ below. Inherited by every subclass.
+    OPTIONAL_DEPENDENCY_MODULES = ("langextract",)
+
     def __init__(
         self,
         config_path: str,

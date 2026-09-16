@@ -79,6 +79,9 @@ def _concrete_recognizer_classes() -> List[Type[EntityRecognizer]]:
 # subclass presidio ships. Computed once at import time and reused by every
 # story below so they all agree on exactly what "every recognizer" means.
 CONCRETE_RECOGNIZER_CLASSES = _concrete_recognizer_classes()
+CONCRETE_RECOGNIZER_CLASSES_BY_NAME: Dict[str, Type[EntityRecognizer]] = {
+    cls.__name__: cls for cls in CONCRETE_RECOGNIZER_CLASSES
+}
 
 
 @pytest.fixture
@@ -95,55 +98,37 @@ def patched_loads(monkeypatch):
         monkeypatch.setattr(cls, "load", lambda self: None, raising=False)
 
 
-# Recognizers whose *constructor* imports an optional extra, mapped to the
-# module that extra provides. On the supported core/dev install (no
-# ``--all-extras``) these constructors refuse to build with an actionable
-# ImportError/ValueError -- intended behavior, not a conformance failure -- so
-# the parametrized cases below report a skip instead of a hard failure.
+# A recognizer whose constructor imports an optional extra declares the
+# modules it needs on the class itself, via
+# ``EntityRecognizer.OPTIONAL_DEPENDENCY_MODULES`` (see its docstring) --
+# colocated with the code that needs it rather than a list maintained here,
+# so a subclass with the same requirement (e.g. ``MedicalNERRecognizer``
+# inheriting from ``HuggingFaceNerRecognizer``) picks it up automatically,
+# and a newly added optional-dependency recognizer is covered the moment its
+# author follows the same one-line pattern as its siblings.
 #
-# The skip is decided by probing for the module, not by catching the exception:
-# an unexpected ImportError from any class, including these, still fails the
-# test rather than turning green. Classes whose optional import happens only in
-# ``load()`` (GLiNER, Stanza, Transformers NER) are absent on purpose -- this
-# suite patches ``load`` to a no-op, so they construct without the extra.
-OPTIONAL_DEPENDENCY_MODULES: Dict[str, Tuple[str, ...]] = {
-    # azure.ai.textanalytics and azure.core.credentials are imported in the
-    # same try block; either missing leaves both None and the constructor
-    # raises. Probed separately so a partial install of just one still skips.
-    "AzureAILanguageRecognizer": ("azure.ai.textanalytics", "azure.core"),
-    # get_azure_credential() (called when no client is passed explicitly, as
-    # this test does) requires azure.identity in addition to the SDK itself.
-    "AzureHealthDeidRecognizer": ("azure.health.deidentification", "azure.identity"),
-    "AzureOpenAILangExtractRecognizer": ("langextract",),
-    "BasicLangExtractRecognizer": ("langextract",),
-    # transformers is a separate extra from torch, and installing one does not
-    # install the other; both must be probed, or a partial environment (e.g.
-    # transformers without torch) reaches the constructor and fails instead
-    # of skipping.
-    "HuggingFaceNerRecognizer": ("transformers", "torch"),
-    "MedicalNERRecognizer": ("transformers", "torch"),
-}
-
-
-def _skip_if_optional_dependency_missing(class_name: str) -> None:
+# On the supported core/dev install (no ``--all-extras``) these constructors
+# refuse to build with an actionable ImportError/ValueError -- intended
+# behavior, not a conformance failure -- so the parametrized cases below
+# report a skip instead of a hard failure. The skip is decided by probing
+# for the module, not by catching the exception: an unexpected ImportError
+# from any class still fails the test rather than turning green. A class
+# whose optional import happens only in ``load()`` (GLiNER, Stanza,
+# Transformers NER) declares nothing here -- this suite patches ``load`` to
+# a no-op, so it constructs without the extra.
+def _skip_if_optional_dependency_missing(cls: Type[EntityRecognizer]) -> None:
     """Skip when the class needs an optional extra that is not installed."""
-    for module in OPTIONAL_DEPENDENCY_MODULES.get(class_name, ()):
+    for module in cls.OPTIONAL_DEPENDENCY_MODULES:
         try:
             found = importlib.util.find_spec(module) is not None
         except (ImportError, ValueError):
             found = False
         if not found:
             pytest.skip(
-                f"{class_name} needs optional dependency {module!r}; install "
+                f"{cls.__name__} needs optional dependency {module!r}; install "
                 f"the extras (uv sync --all-extras) to run this conformance "
                 f"case"
             )
-
-
-def test_optional_dependency_modules_names_only_real_classes():
-    """Guard ``OPTIONAL_DEPENDENCY_MODULES`` against stale entries."""
-    names = {cls.__name__ for cls in CONCRETE_RECOGNIZER_CLASSES}
-    assert set(OPTIONAL_DEPENDENCY_MODULES) <= names
 
 
 # ---------------------------------------------------------------------------
@@ -323,7 +308,9 @@ def test_shipped_entry_fields_reach_constructed_recognizer(
     ``test_recognizers_loader_utils.py``).
     """
     entry_id = _entry_id(entry)
-    _skip_if_optional_dependency_missing(entry_id)
+    entry_cls = CONCRETE_RECOGNIZER_CLASSES_BY_NAME.get(entry_id)
+    if entry_cls is not None:
+        _skip_if_optional_dependency_missing(entry_cls)
     language_configs = _entry_language_configs(entry)
     languages = [language for language, _ in language_configs]
     conf_entry = dict(entry, enabled=True)
@@ -500,7 +487,7 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
     the entry must still load: the loader drops the key, logs a WARNING
     naming the class, and the instance keeps the base-class default ``[]``.
     """
-    _skip_if_optional_dependency_missing(cls.__name__)
+    _skip_if_optional_dependency_missing(cls)
     for name, value in REQUIRED_ENV.get(cls.__name__, {}).items():
         monkeypatch.setenv(name, value)
 

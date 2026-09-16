@@ -79,6 +79,10 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         >>> analyzer.registry.add_recognizer(recognizer)
     """
 
+    # transformers and torch are separate extras -- installing one does not
+    # install the other, and __init__ below requires both.
+    OPTIONAL_DEPENDENCY_MODULES = ("transformers", "torch")
+
     # Default label mapping from common NER models to Presidio entities
     DEFAULT_LABEL_MAPPING = {
         # Standard NER labels (CoNLL format)
