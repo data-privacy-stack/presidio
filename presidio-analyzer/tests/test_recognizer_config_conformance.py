@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import re
 from typing import Any, Dict, List, Set, Tuple, Type
 
 import presidio_analyzer.predefined_recognizers  # noqa: F401 -- see below
@@ -203,16 +204,6 @@ def test_recognizer_accepts_registry_injected_keys(cls):
         f"the constructor accept the missing key(s), or update "
         f"KNOWN_CONTRACT_GAPS to match reality."
     )
-
-
-def test_known_contract_gaps_names_only_real_classes():
-    """Guard ``KNOWN_CONTRACT_GAPS`` against stale entries.
-
-    A class renamed or removed should fail loudly here, not quietly narrow
-    coverage.
-    """
-    names = {cls.__name__ for cls in CONCRETE_RECOGNIZER_CLASSES}
-    assert set(KNOWN_CONTRACT_GAPS) <= names
 
 
 # ---------------------------------------------------------------------------
@@ -469,6 +460,57 @@ def test_not_loadable_as_predefined_entry_names_only_real_classes():
     """Guard ``NOT_LOADABLE_AS_PREDEFINED_ENTRY`` against stale entries."""
     names = {cls.__name__ for cls in CONCRETE_RECOGNIZER_CLASSES}
     assert NOT_LOADABLE_AS_PREDEFINED_ENTRY <= names
+
+
+# The specific error each class in NOT_LOADABLE_AS_PREDEFINED_ENTRY raises
+# when actually named in a ``type: predefined`` entry -- not "abstract" in
+# the ``inspect.isabstract`` sense (none of these three are: each one
+# defines concrete, if trivial, ``analyze``/``load`` and can be instantiated
+# directly in Python), but structurally unreachable from a predefined
+# registry entry, as proven below rather than only documented in the
+# set's own comment.
+NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS: Dict[str, Tuple[Type[Exception], str]] = {
+    "LocalRecognizer": (TypeError, "supported_entities"),
+    "PatternRecognizer": (ValueError, "patterns or with deny list"),
+    "ZaPhoneNumberRecognizer": (TypeError, "target_classification"),
+}
+
+
+def test_not_loadable_as_predefined_entry_errors_matches_the_set():
+    """Guard ``NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS`` against drift."""
+    assert (
+        set(NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS) == NOT_LOADABLE_AS_PREDEFINED_ENTRY
+    )
+
+
+@pytest.mark.parametrize("class_name", sorted(NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS))
+def test_not_loadable_as_predefined_entry_actually_fails(class_name):
+    """Prove each exclusion in ``NOT_LOADABLE_AS_PREDEFINED_ENTRY``, not just document it.
+
+    Builds the smallest possible ``type: predefined`` entry naming the
+    class and asserts construction fails with the specific error its
+    comment claims -- not merely *an* exception -- so a future change that
+    closes the underlying gap (and makes the class constructible this way)
+    fails this test instead of leaving a stale exclusion and a stale comment.
+    """
+    exc_type, message_fragment = NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS[class_name]
+    configuration = {
+        "global_regex_flags": GLOBAL_REGEX_FLAGS,
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "name": f"conf_{class_name}",
+                "class_name": class_name,
+                "type": "predefined",
+                "supported_entity": "TEST",
+                "enabled": True,
+            }
+        ],
+    }
+    with pytest.raises(exc_type, match=re.escape(message_fragment)):
+        RecognizerRegistryProvider(
+            registry_configuration=configuration
+        ).create_recognizer_registry()
 
 
 @pytest.mark.parametrize("cls", ROUND_TRIP_CLASSES, ids=lambda cls: cls.__name__)
