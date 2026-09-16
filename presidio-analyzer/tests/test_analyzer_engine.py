@@ -1274,3 +1274,132 @@ def test_when_regex_allow_list_is_all_empty_entries_then_results_are_kept():
     )
 
     assert filtered == results
+
+
+def test_when_merge_adjacent_entities_requested_then_spans_are_merged():
+    """merge_adjacent_entities should fuse adjacent same-type spans separated only by whitespace."""
+
+    class DaveRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
+        def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+            return [RecognizerResult("PERSON", 0, 4, 0.6)]
+
+    class JonesRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
+        def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+            return [RecognizerResult("PERSON", 5, 10, 0.85)]
+
+    registry = RecognizerRegistry()
+    registry.add_recognizer(DaveRecognizer(supported_entities=["PERSON"]))
+    registry.add_recognizer(JonesRecognizer(supported_entities=["PERSON"]))
+
+    analyzer_engine = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NlpEngineMock(),
+        default_score_threshold=0,
+    )
+
+    text = "Dave Jones"
+
+    results = analyzer_engine.analyze(text=text, language="en", entities=["PERSON"])
+    assert len(results) == 2
+
+    merged_results = analyzer_engine.analyze(
+        text=text,
+        language="en",
+        entities=["PERSON"],
+        merge_adjacent_entities=["PERSON"],
+    )
+
+    assert len(merged_results) == 1
+    assert merged_results[0].start == 0
+    assert merged_results[0].end == 10
+    assert merged_results[0].score == 0.85
+
+
+def test_when_merge_adjacent_entities_with_allow_list_then_allowed_span_is_filtered():
+    """An allow-listed individual span should not survive by being merged into another."""
+
+    class DaveRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
+        def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+            return [RecognizerResult("PERSON", 0, 4, 0.6)]
+
+    class JonesRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
+        def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+            return [RecognizerResult("PERSON", 5, 10, 0.85)]
+
+    registry = RecognizerRegistry()
+    registry.add_recognizer(DaveRecognizer(supported_entities=["PERSON"]))
+    registry.add_recognizer(JonesRecognizer(supported_entities=["PERSON"]))
+
+    analyzer_engine = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NlpEngineMock(),
+        default_score_threshold=0,
+    )
+
+    text = "Dave Jones"
+
+    # "Dave" is allow-listed: it should be filtered before merging, so the
+    # merge should never fuse it with "Jones" into an unfiltered "Dave Jones".
+    results = analyzer_engine.analyze(
+        text=text,
+        language="en",
+        entities=["PERSON"],
+        merge_adjacent_entities=["PERSON"],
+        allow_list=["Dave"],
+    )
+
+    assert len(results) == 1
+    assert results[0].start == 5
+    assert results[0].end == 10
+
+
+def test_when_merge_adjacent_entities_then_merged_span_allow_list_still_applies():
+    """An allow-listed full merged span should also be filtered after merging."""
+
+    class DaveRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
+        def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+            return [RecognizerResult("PERSON", 0, 4, 0.6)]
+
+    class JonesRecognizer(EntityRecognizer, ABC):
+        def load(self):
+            return None
+
+        def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+            return [RecognizerResult("PERSON", 5, 10, 0.85)]
+
+    registry = RecognizerRegistry()
+    registry.add_recognizer(DaveRecognizer(supported_entities=["PERSON"]))
+    registry.add_recognizer(JonesRecognizer(supported_entities=["PERSON"]))
+
+    analyzer_engine = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NlpEngineMock(),
+        default_score_threshold=0,
+    )
+
+    text = "Dave Jones"
+
+    results = analyzer_engine.analyze(
+        text=text,
+        language="en",
+        entities=["PERSON"],
+        merge_adjacent_entities=["PERSON"],
+        allow_list=["Dave Jones"],
+    )
+
+    assert len(results) == 0

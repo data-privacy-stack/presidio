@@ -98,6 +98,7 @@ class Server:
                     allow_list=req_data.allow_list,
                     allow_list_match=req_data.allow_list_match,
                     regex_flags=req_data.regex_flags,
+                    merge_adjacent_entities=req_data.merge_adjacent_entities,
                     n_process=min(
                         len(batch),
                         int(os.environ.get("N_PROCESS", DEFAULT_N_PROCESS))
