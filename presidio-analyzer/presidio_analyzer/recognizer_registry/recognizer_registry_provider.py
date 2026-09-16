@@ -73,7 +73,15 @@ class RecognizerRegistryProvider:
         # below, but RecognizerListLoader.get -- called first, right here --
         # iterates this value directly and raises TypeError on None. Apply
         # the same ["en"] default before that call, not just after it.
-        supported_languages = self.configuration.get("supported_languages") or ["en"]
+        #
+        # Checked against None specifically, not falsiness: an explicit
+        # supported_languages: [] is a distinct, deliberately preserved
+        # configuration (RecognizerRegistryConfig keeps it as [], see
+        # test_recognizer_registry_config_empty_languages) -- "or" would
+        # have silently coerced it to ["en"] too.
+        supported_languages = self.configuration.get("supported_languages")
+        if supported_languages is None:
+            supported_languages = ["en"]
         global_regex_flags = self.configuration.get("global_regex_flags")
         recognizers_conf = self.configuration.get("recognizers")
         recognizers = RecognizerListLoader.get(

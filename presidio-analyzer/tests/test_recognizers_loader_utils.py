@@ -488,6 +488,29 @@ def test_bare_string_entry_builds_when_supported_languages_is_omitted():
     assert registry.supported_languages == ["en"]
 
 
+def test_explicit_empty_supported_languages_is_not_coerced_to_en():
+    """An explicit ``supported_languages: []`` must not silently build an 'en' recognizer.
+
+    ``RecognizerRegistryConfig`` deliberately preserves an explicit empty
+    list rather than treating it as "omitted" (see
+    ``test_recognizer_registry_config_empty_languages`` in
+    ``test_yaml_recognizer_models.py``). The ``None``-defaulting fix for the
+    previous case used a falsy check (``or ["en"]``), which also coerced
+    this distinct, deliberately-empty configuration to ``["en"]`` and built
+    a ``CreditCardRecognizer`` the caller never asked for. Fixed by checking
+    ``is None`` specifically.
+    """
+    configuration = {
+        "global_regex_flags": GLOBAL_REGEX_FLAGS,
+        "supported_languages": [],
+        "recognizers": ["CreditCardRecognizer"],
+    }
+    provider = RecognizerRegistryProvider(registry_configuration=configuration)
+    registry = provider.create_recognizer_registry()
+
+    assert registry.recognizers == []
+
+
 # ---------------------------------------------------------------------------
 # Custom (YAML-defined) recognizers are unaffected by the predefined-path rules
 # ---------------------------------------------------------------------------
