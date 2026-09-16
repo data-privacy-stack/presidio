@@ -89,6 +89,46 @@ def test_when_get_recognizers_unsupported_language_then_return(
         registry.get_recognizers(language="brrrr", entities=["PERSON"])
 
 
+def test_when_get_recognizers_with_unsupported_entity_then_raise_error(
+    mock_recognizer_registry,
+):
+    registry = mock_recognizer_registry
+    with pytest.raises(ValueError) as err:
+        registry.get_recognizers(
+            language="en", entities=["PERSON", "UNSUPPORTED_ENTITY"]
+        )
+
+    assert "UNSUPPORTED_ENTITY" in str(err.value)
+
+
+def test_when_get_recognizers_entity_only_supported_in_other_language_then_raise(
+    mock_recognizer_registry,
+):
+    # ADDRESS is supported in de and he, but not in en.
+    registry = mock_recognizer_registry
+    with pytest.raises(ValueError) as err:
+        registry.get_recognizers(language="en", entities=["ADDRESS"])
+
+    assert "ADDRESS" in str(err.value)
+
+
+def test_when_get_recognizers_with_ad_hoc_recognizer_then_no_error(
+    mock_recognizer_registry,
+):
+    registry = mock_recognizer_registry
+    ad_hoc_recognizer = create_mock_pattern_recognizer(
+        "en", "UNSUPPORTED_ENTITY", "ad hoc"
+    )
+    recognizers = registry.get_recognizers(
+        language="en",
+        entities=["UNSUPPORTED_ENTITY"],
+        ad_hoc_recognizers=[ad_hoc_recognizer],
+    )
+
+    assert len(recognizers) == 1
+    assert recognizers[0].name == "ad hoc"
+
+
 def test_when_get_recognizers_specific_language_and_entity_then_return_one_result(
     mock_recognizer_registry,
 ):

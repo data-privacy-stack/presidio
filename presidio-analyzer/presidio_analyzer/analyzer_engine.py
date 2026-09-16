@@ -207,6 +207,10 @@ class AnalyzerEngine:
         :param regex_flags: regex flags to be used for when allow_list_match is "regex"
         :param nlp_artifacts: precomputed NlpArtifacts
         :return: an array of the found entities in the text
+        :raises ValueError: if an entity in `entities` has no matching recognizer
+        for the requested language, since it cannot be served by this engine.
+        To get the servable entities, call
+        `AnalyzerEngine.get_supported_entities(language)`.
 
         :Example:
 

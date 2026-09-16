@@ -201,6 +201,8 @@ class RecognizerRegistry:
         as part of the request
         :return: A list of the recognizers which supports the supplied entities
         and language
+        :raises ValueError: if any entity in `entities` has no recognizer for the
+        requested language.
         """
         if language is None:
             raise ValueError("No language provided")
@@ -221,6 +223,7 @@ class RecognizerRegistry:
                 if language == rec.supported_language
             ]
         else:
+            unsupported_entities = []
             for entity in entities:
                 subset = [
                     rec
@@ -230,6 +233,7 @@ class RecognizerRegistry:
                 ]
 
                 if not subset:
+                    unsupported_entities.append(entity)
                     logger.warning(
                         "Entity %s doesn't have the corresponding"
                         " recognizer in language : %s",
@@ -238,6 +242,15 @@ class RecognizerRegistry:
                     )
                 else:
                     to_return.update(set(subset))
+
+            if unsupported_entities:
+                raise ValueError(
+                    "No matching recognizers were found to serve the "
+                    "request. The following entities are not supported "
+                    f"in language '{language}': {sorted(unsupported_entities)}. "
+                    "Use get_supported_entities to get the list of "
+                    "supported entities for this language."
+                )
 
         logger.debug(
             "Returning a total of %s recognizers",
