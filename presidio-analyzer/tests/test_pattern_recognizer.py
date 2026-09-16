@@ -660,12 +660,16 @@ def test_when_same_regex_uses_different_capture_groups_then_each_group_is_report
     ]
 
 
+@pytest.mark.parametrize("capture_group", [2, "b"])
 def test_when_regex_flags_remove_capture_group_then_pattern_is_skipped_with_warning(
-    caplog,
+    caplog, capture_group
 ):
-    # With re.VERBOSE, "# (b)" is a comment, so the regex has only one group
+    # With re.VERBOSE, "# (?P<b>b)" is a comment, so the regex has only one group
     verbose_dependent = Pattern(
-        name="verbose_dependent", regex=r"(secret\w*) # (b)", score=0.5, capture_group=2
+        name="verbose_dependent",
+        regex=r"(secret\w*) # (?P<b>b)",
+        score=0.5,
+        capture_group=capture_group,
     )
     plain = Pattern(name="plain", regex=r"\b\d+\b", score=0.6)
     recognizer = PatternRecognizer(
@@ -681,15 +685,19 @@ def test_when_regex_flags_remove_capture_group_then_pattern_is_skipped_with_warn
         (12, 15, 0.6)
     ]
     # Logged once per analyze call, not once per match
-    assert (
-        caplog.text.count(
-            "Regex pattern 'verbose_dependent' has no capture group 2 "
-            "when compiled with the regex flags in use, skipping."
-        )
-        == 1
+    warning = (
+        f"Regex pattern 'verbose_dependent' has no capture group {capture_group!r} "
+        "when compiled with the regex flags in use, skipping."
     )
+    assert caplog.text.count(warning) == 1
     assert "secretvalue" not in caplog.text
     assert "secretother" not in caplog.text
+
+    # The warning does not depend on the text containing a candidate match
+    caplog.clear()
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        assert recognizer.analyze("no candidates here", ["TEST"]) == []
+    assert caplog.text.count(warning) == 1
 
 
 def test_when_capture_group_set_then_recognizer_round_trips_through_dict():

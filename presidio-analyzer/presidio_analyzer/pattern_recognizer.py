@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import regex as re
 
@@ -192,6 +192,12 @@ class PatternRecognizer(LocalRecognizer):
         )
         return explanation
 
+    @staticmethod
+    def __regex_has_group(compiled_regex, capture_group: Union[int, str]) -> bool:
+        if isinstance(capture_group, str):
+            return capture_group in compiled_regex.groupindex
+        return capture_group <= compiled_regex.groups
+
     def __analyze_patterns(
         self, text: str, flags: int = None
     ) -> List[RecognizerResult]:
@@ -214,6 +220,19 @@ class PatternRecognizer(LocalRecognizer):
                 pattern.compiled_with_flags = flags
                 pattern.compiled_regex = re.compile(pattern.regex, flags=flags)
 
+            # Flags such as re.VERBOSE can change the groups in a regex
+            if pattern.capture_group is not None and not self.__regex_has_group(
+                pattern.compiled_regex, pattern.capture_group
+            ):
+                logger.warning(
+                    "Regex pattern '%s' has no capture group %r "
+                    "when compiled with the regex flags in use, skipping.",
+                    pattern.name,
+                    pattern.capture_group,
+                )
+                continue
+            group = 0 if pattern.capture_group is None else pattern.capture_group
+
             try:
                 matches = pattern.compiled_regex.finditer(
                     text, timeout=REGEX_TIMEOUT_SECONDS
@@ -225,19 +244,8 @@ class PatternRecognizer(LocalRecognizer):
                     match_time.total_seconds(),
                 )
 
-                group = 0 if pattern.capture_group is None else pattern.capture_group
                 for match in matches:
-                    try:
-                        start, end = match.span(group)
-                    except IndexError:
-                        # Flags such as re.VERBOSE can change the groups in a regex
-                        logger.warning(
-                            "Regex pattern '%s' has no capture group %r "
-                            "when compiled with the regex flags in use, skipping.",
-                            pattern.name,
-                            group,
-                        )
-                        break
+                    start, end = match.span(group)
                     current_match = text[start:end]
 
                     # Skip empty results, including a capture group that did not
