@@ -139,6 +139,7 @@ class PatternRecognizer(LocalRecognizer):
 
         :param pattern_text: the text to validated.
         Only the part in text that was detected by the regex engine
+        (the pattern's capture group if set, otherwise the whole match)
         :return: A bool indicating whether the validation was successful.
         """
         return None
@@ -151,6 +152,7 @@ class PatternRecognizer(LocalRecognizer):
 
         :param pattern_text: the text to validated.
         Only the part in text that was detected by the regex engine
+        (the pattern's capture group if set, otherwise the whole match)
         :return: A bool indicating whether the result is invalidated
         """
         return None
@@ -223,11 +225,23 @@ class PatternRecognizer(LocalRecognizer):
                     match_time.total_seconds(),
                 )
 
+                group = 0 if pattern.capture_group is None else pattern.capture_group
                 for match in matches:
-                    start, end = match.span()
+                    try:
+                        start, end = match.span(group)
+                    except IndexError:
+                        # Flags such as re.VERBOSE can change the groups in a regex
+                        logger.warning(
+                            "Regex pattern '%s' has no capture group %r "
+                            "when compiled with the regex flags in use, skipping.",
+                            pattern.name,
+                            group,
+                        )
+                        break
                     current_match = text[start:end]
 
-                    # Skip empty results
+                    # Skip empty results, including a capture group that did not
+                    # participate in the match (its span is (-1, -1))
                     if current_match == "":
                         continue
 
