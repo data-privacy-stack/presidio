@@ -66,7 +66,14 @@ class RecognizerRegistryProvider:
 
     def create_recognizer_registry(self) -> RecognizerRegistry:
         """Create a recognizer registry according to configuration loaded previously."""
-        supported_languages = self.configuration.get("supported_languages")
+        # A raw dict registry_configuration that supplies "recognizers" and
+        # "global_regex_flags" but omits "supported_languages" skips the
+        # defaults merge in RecognizerConfigurationLoader.get, leaving this
+        # None. RecognizerRegistry.__init__ falls back to ["en"] a few lines
+        # below, but RecognizerListLoader.get -- called first, right here --
+        # iterates this value directly and raises TypeError on None. Apply
+        # the same ["en"] default before that call, not just after it.
+        supported_languages = self.configuration.get("supported_languages") or ["en"]
         global_regex_flags = self.configuration.get("global_regex_flags")
         recognizers_conf = self.configuration.get("recognizers")
         recognizers = RecognizerListLoader.get(

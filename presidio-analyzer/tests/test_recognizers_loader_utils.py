@@ -86,9 +86,16 @@ class Uninspectable:
 
 
 class StrictParent:
-    """Parent class that accepts only supported_entities (no **kwargs)."""
+    """Parent accepting the registry-injected keys but not context or **kwargs.
 
-    def __init__(self, supported_entities=None):
+    Declares ``supported_entities``, ``name`` and ``supported_language`` --
+    every key the registry loader always injects -- so a test constructing
+    ``ChildForwardsKwargs`` with the full realistic prepared kwargs doesn't
+    need to strip any of them out first; only ``context`` is deliberately
+    absent, since that's the key under test.
+    """
+
+    def __init__(self, supported_entities=None, name=None, supported_language="en"):
         pass
 
 
@@ -453,6 +460,34 @@ def test_bare_string_naming_an_unknown_class_raises():
     assert "credit_card" in str(exc_info.value)
 
 
+def test_bare_string_entry_builds_when_supported_languages_is_omitted():
+    """A predefined entry must not crash when the registry omits languages.
+
+    A raw dict ``registry_configuration`` supplying ``recognizers`` and
+    ``global_regex_flags`` but omitting ``supported_languages`` skips the
+    defaults merge in ``RecognizerConfigurationLoader.get``, leaving it
+    ``None``. Before the fix, ``RecognizerRegistryProvider.
+    create_recognizer_registry`` passed that ``None`` straight into
+    ``RecognizerListLoader.get``, which iterates it directly and raised
+    ``TypeError: 'NoneType' object is not iterable`` -- reproduced with both
+    a bare-string and a mapping-form predefined entry before this fix.
+    ``RecognizerRegistry`` itself already falls back to ``["en"]``, but only
+    after that crash. Not specific to the bare-string shorthand this module
+    otherwise tests, but newly reachable through it: before that shorthand
+    fix, a bare-string entry never reached this code path at all.
+    """
+    configuration = {
+        "global_regex_flags": GLOBAL_REGEX_FLAGS,
+        "recognizers": ["CreditCardRecognizer"],
+    }
+    provider = RecognizerRegistryProvider(registry_configuration=configuration)
+    registry = provider.create_recognizer_registry()
+
+    assert [type(r).__name__ for r in registry.recognizers] == ["CreditCardRecognizer"]
+    assert registry.recognizers[0].supported_language == "en"
+    assert registry.supported_languages == ["en"]
+
+
 # ---------------------------------------------------------------------------
 # Custom (YAML-defined) recognizers are unaffected by the predefined-path rules
 # ---------------------------------------------------------------------------
@@ -558,7 +593,7 @@ def test_context_dropped_for_leaf_forwarding_kwargs_to_a_strict_parent(caplog):
     """
     with caplog.at_level("WARNING", logger="presidio-analyzer"):
         kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
-            recognizer_conf={},
+            recognizer_conf={"name": "conf_test"},
             language_conf={"supported_language": "en", "context": ["visa"]},
             recognizer_cls=ChildForwardsKwargs,
         )
@@ -571,10 +606,10 @@ def test_context_dropped_for_leaf_forwarding_kwargs_to_a_strict_parent(caplog):
     ]
     assert context_warnings, "expected a context WARNING for a **kwargs leaf"
 
-    # The value this test cares about: construction must not raise, which it
-    # would if `context` (or `supported_language`, which StrictParent also
-    # does not declare) reached StrictParent.__init__.
-    kwargs.pop("supported_language", None)
+    # Constructs with the unmodified prepared kwargs -- the same dict the
+    # real registry loader would pass -- rather than stripping any key out
+    # first, so a regression in another injected key's handling would fail
+    # here too, not just for context.
     ChildForwardsKwargs(**kwargs)
 
 
@@ -600,6 +635,29 @@ def test_plural_converted_to_singular_when_only_singular_is_reachable():
     )
 
     assert kwargs == {"supported_entity": "PERSON"}
+    ChildForwardsKwargsToSingularParent(**kwargs)
+
+
+def test_empty_plural_dropped_when_only_singular_is_reachable():
+    """An explicitly empty ``supported_entities`` list must still be dropped.
+
+    Before this fix, the plural key was only removed when the list was
+    truthy (``isinstance(x, list) and x``), so ``supported_entities: []``
+    left the plural key in the returned kwargs -- kept by the leaf's
+    **kwargs-compat filter (step 3) since the leaf itself declares neither
+    key -- and then forwarded to ``StrictSingularParent``, which does not
+    accept it. Reproduced directly before this fix:
+    ``ChildForwardsKwargsToSingularParent(supported_entities=[])`` raised
+    "unexpected keyword argument 'supported_entities'". Asserted here by
+    actually constructing the class with the prepared kwargs.
+    """
+    kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
+        recognizer_conf={"supported_entities": []},
+        language_conf={},
+        recognizer_cls=ChildForwardsKwargsToSingularParent,
+    )
+
+    assert kwargs == {}
     ChildForwardsKwargsToSingularParent(**kwargs)
 
 

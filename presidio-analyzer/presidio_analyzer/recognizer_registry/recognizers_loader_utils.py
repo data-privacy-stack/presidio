@@ -405,11 +405,10 @@ class RecognizerListLoader:
         # 1. Normalize: convert plural -> singular when only singular is reachable.
         if entity_singular_reachable and not entity_plural_reachable:
             if RecognizerListLoader.SUPPORTED_ENTITIES in kwargs:
-                supported_entities = kwargs.get(RecognizerListLoader.SUPPORTED_ENTITIES)
+                supported_entities = kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES)
 
                 # Use the first entity if available
                 if isinstance(supported_entities, list) and supported_entities:
-                    kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES)
                     kwargs.setdefault(
                         RecognizerListLoader.SUPPORTED_ENTITY, supported_entities[0]
                     )

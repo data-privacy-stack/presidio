@@ -677,7 +677,12 @@ def test_unknown_key_is_not_silent(caplog):
         except ValueError as exc:
             # Only counts if it actually names the unknown key -- an unrelated
             # ValueError must not be mistaken for the gap having been closed.
-            if "no_such_key" in str(exc):
+            # ConfigurationValidator wraps the underlying pydantic
+            # ValidationError in a generic "Invalid recognizer registry
+            # configuration" ValueError (see its `raise ... from e`); the key
+            # name survives only on `__cause__`, not on the wrapper's own
+            # message, so both must be checked or this never flips to XPASS.
+            if "no_such_key" in str(exc) or "no_such_key" in str(exc.__cause__):
                 raised = True
             else:
                 raise
