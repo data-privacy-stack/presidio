@@ -70,7 +70,7 @@ Configuration file supports the following parameters in a yaml file:
 
 - allow - list of tokens that should not be marked as PII.
 
-- threshold - only show problems/findings whose scores are at or above this threshold.
+- threshold - only show problems/findings whose scores are at or above this threshold. Must be a number between 0 and 1.
 
 Note: a file requires at least one parameter to be set.
 
