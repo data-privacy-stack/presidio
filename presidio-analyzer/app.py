@@ -124,10 +124,6 @@ class Server:
                 self.logger.error(error_msg)
                 return jsonify(error=error_msg), 400
 
-            except ValueError as ve:
-                self.logger.error(f"Invalid /analyze request. {ve.args[0]}")
-                return jsonify(error=ve.args[0]), 400
-
             except Exception as e:
                 self.logger.error(
                     f"A fatal error occurred during execution of "

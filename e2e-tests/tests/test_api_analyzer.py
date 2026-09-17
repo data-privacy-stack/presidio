@@ -105,7 +105,7 @@ def test_given_a_incorrect_analyze_language_input_then_return_error():
 
     response_status, response_content = analyze(request_body)
 
-    assert response_status == 400
+    assert response_status == 500
     expected_response = """ 
          {"error": "No matching recognizers were found to serve the request."}
     """
@@ -113,7 +113,7 @@ def test_given_a_incorrect_analyze_language_input_then_return_error():
 
 
 @pytest.mark.api
-def test_given_partially_unsupported_entities_then_return_error():
+def test_given_partially_unsupported_entities_then_return_supported_results():
     request_body = """
     {
         "text": "codice fiscale RSSMRA85M01H501Q, IBAN IT60X0542811101000000123456",
@@ -124,7 +124,13 @@ def test_given_partially_unsupported_entities_then_return_error():
 
     response_status, response_content = analyze(request_body)
 
-    assert response_status == 400
+    expected_response = """
+    [
+        {"entity_type": "IBAN_CODE", "start": 38, "end": 65, "score": 1.0, "analysis_explanation": null}
+    ]
+    """
+    assert response_status == 200
+    assert equal_json_strings(expected_response, response_content)
 
 
 @pytest.mark.api
@@ -328,7 +334,7 @@ def test_given_a_unsupported_language_for_supported_entities_then_expect_an_erro
     expected_response = """
        {"error": "No matching recognizers were found to serve the request."}
     """
-    assert response_status == 400
+    assert response_status == 500
     assert equal_json_strings(expected_response, response_content)
 
 

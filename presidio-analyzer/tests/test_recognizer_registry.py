@@ -75,10 +75,14 @@ def test_when_get_recognizers_then_return_all_fields(mock_recognizer_registry):
 
 def test_when_get_recognizers_one_language_then_return_one_entity(
     mock_recognizer_registry,
+    caplog,
 ):
     registry = mock_recognizer_registry
     recognizers = registry.get_recognizers(language="de", entities=["PERSON"])
-    assert len(recognizers) == 1
+    assert recognizers == [registry.recognizers[1]]
+    assert not any(
+        "Ignoring unsupported entities" in record.message for record in caplog.records
+    )
 
 
 def test_when_get_recognizers_unsupported_language_then_return(
@@ -89,31 +93,46 @@ def test_when_get_recognizers_unsupported_language_then_return(
         registry.get_recognizers(language="brrrr", entities=["PERSON"])
 
 
-def test_when_get_recognizers_with_unsupported_entity_then_raise_error(
+@pytest.mark.parametrize("unsupported_entity", ["UNSUPPORTED_ENTITY", "ADDRESS"])
+def test_when_get_recognizers_with_unsupported_entity_then_warn_and_return_supported(
     mock_recognizer_registry,
+    caplog,
+    unsupported_entity,
 ):
     registry = mock_recognizer_registry
-    with pytest.raises(ValueError) as err:
-        registry.get_recognizers(
-            language="en", entities=["PERSON", "UNSUPPORTED_ENTITY"]
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        recognizers = registry.get_recognizers(
+            language="en", entities=["PERSON", unsupported_entity]
         )
 
-    assert "UNSUPPORTED_ENTITY" in str(err.value)
+    assert recognizers == [registry.recognizers[0]]
+    warnings = [
+        record.message for record in caplog.records if record.levelname == "WARNING"
+    ]
+    assert len(warnings) == 1
+    assert unsupported_entity in warnings[0]
+    assert "language : en" in warnings[0]
+    assert "deprecated" in warnings[0]
+    assert "future version" in warnings[0]
+    assert "raise" in warnings[0]
+    assert "get_supported_entities" in warnings[0]
 
 
-def test_when_get_recognizers_entity_only_supported_in_other_language_then_raise(
+@pytest.mark.parametrize("entity", ["ADDRESS", "UNSUPPORTED_ENTITY"])
+def test_when_get_recognizers_without_matching_entities_then_raise(
     mock_recognizer_registry,
+    entity,
 ):
-    # ADDRESS is supported in de and he, but not in en.
     registry = mock_recognizer_registry
     with pytest.raises(ValueError) as err:
-        registry.get_recognizers(language="en", entities=["ADDRESS"])
+        registry.get_recognizers(language="en", entities=[entity])
 
-    assert "ADDRESS" in str(err.value)
+    assert str(err.value) == "No matching recognizers were found to serve the request."
 
 
 def test_when_get_recognizers_with_ad_hoc_recognizer_then_no_error(
     mock_recognizer_registry,
+    caplog,
 ):
     registry = mock_recognizer_registry
     ad_hoc_recognizer = create_mock_pattern_recognizer(
@@ -125,8 +144,10 @@ def test_when_get_recognizers_with_ad_hoc_recognizer_then_no_error(
         ad_hoc_recognizers=[ad_hoc_recognizer],
     )
 
-    assert len(recognizers) == 1
-    assert recognizers[0].name == "ad hoc"
+    assert recognizers == [ad_hoc_recognizer]
+    assert not any(
+        "Ignoring unsupported entities" in record.message for record in caplog.records
+    )
 
 
 def test_when_get_recognizers_specific_language_and_entity_then_return_one_result(

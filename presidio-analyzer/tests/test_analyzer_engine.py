@@ -18,8 +18,10 @@ from presidio_analyzer import (
 )
 from presidio_analyzer.nlp_engine import (
     NlpArtifacts,
+    NoOpNlpEngine,
     SpacyNlpEngine,
 )
+from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 # noqa: F401
@@ -312,15 +314,14 @@ def test_when_analyze_added_pattern_recognizer_then_succeed(unit_test_guid):
     text = "rocket is my favorite transportation"
     entities = ["CREDIT_CARD", "ROCKET"]
 
-    # The analyzer cannot serve ROCKET before the recognizer is added,
-    # so requesting it is rejected instead of silently ignored.
-    with pytest.raises(ValueError):
-        analyze_engine.analyze(
-            correlation_id=unit_test_guid,
-            text=text,
-            entities=entities,
-            language="en",
-        )
+    results = analyze_engine.analyze(
+        correlation_id=unit_test_guid,
+        text=text,
+        entities=entities,
+        language="en",
+    )
+
+    assert len(results) == 0
 
     # Add a new recognizer for the word "rocket" (case insensitive)
     mock_recognizer_registry.add_recognizer(pattern_recognizer)
@@ -482,15 +483,14 @@ def test_when_removed_pattern_recognizer_then_doesnt_work(unit_test_guid):
     text = "spaceship is my favorite transportation"
     entities = ["CREDIT_CARD", "SPACESHIP"]
 
-    # The analyzer cannot serve SPACESHIP before the recognizer is added,
-    # so requesting it is rejected instead of silently ignored.
-    with pytest.raises(ValueError):
-        analyze_engine.analyze(
-            correlation_id=unit_test_guid,
-            text=text,
-            entities=entities,
-            language="en",
-        )
+    results = analyze_engine.analyze(
+        correlation_id=unit_test_guid,
+        text=text,
+        entities=entities,
+        language="en",
+    )
+
+    assert len(results) == 0
 
     # Add a new recognizer for the word "rocket" (case insensitive)
     mock_recognizer_registry.add_recognizer(pattern_recognizer)
@@ -507,13 +507,14 @@ def test_when_removed_pattern_recognizer_then_doesnt_work(unit_test_guid):
     # Remove recognizer
     mock_recognizer_registry.remove_recognizer("Spaceship recognizer")
     # Test again to see we didn't get any results
-    with pytest.raises(ValueError):
-        analyze_engine.analyze(
-            correlation_id=unit_test_guid,
-            text=text,
-            entities=entities,
-            language="en",
-        )
+    results = analyze_engine.analyze(
+        correlation_id=unit_test_guid,
+        text=text,
+        entities=entities,
+        language="en",
+    )
+
+    assert len(results) == 0
 
 
 def test_when_analyze_with_language_then_returns_correct_response(
@@ -1277,33 +1278,36 @@ def test_when_regex_allow_list_is_all_empty_entries_then_results_are_kept():
     assert filtered == results
 
 
-def test_when_analyze_with_unsupported_entity_then_raise_value_error(
-    mock_registry, mock_nlp_engine
+@pytest.mark.parametrize(
+    "entities",
+    [["CREDIT_CARD"], ["CREDIT_CARD", "UNSUPPORTED_ENTITY"]],
+)
+def test_when_analyze_with_supported_entities_then_return_exact_results(
+    entities,
+    caplog,
 ):
     analyzer_engine = AnalyzerEngine(
-        registry=mock_registry, nlp_engine=mock_nlp_engine
+        registry=RecognizerRegistry([CreditCardRecognizer()]),
+        nlp_engine=NoOpNlpEngine(models=[{"lang_code": "en", "model_name": "no_op"}]),
     )
-    with pytest.raises(ValueError) as err:
-        analyzer_engine.analyze(
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        results = analyzer_engine.analyze(
             text="My name is David and his number is 4095-2609-9393-4932",
-            entities=["CREDIT_CARD", "UNSUPPORTED_ENTITY"],
+            entities=entities,
             language="en",
         )
 
-    assert "UNSUPPORTED_ENTITY" in str(err.value)
-
-
-def test_when_analyze_with_supported_entities_then_return_exact_results(
-    mock_registry, mock_nlp_engine
-):
-    analyzer_engine = AnalyzerEngine(
-        registry=mock_registry, nlp_engine=mock_nlp_engine
-    )
-    results = analyzer_engine.analyze(
-        text="My name is David and his number is 4095-2609-9393-4932",
-        entities=["CREDIT_CARD"],
-        language="en",
-    )
-
     assert len(results) == 1
     assert_result(results[0], "CREDIT_CARD", 35, 54, 1.0)
+    warnings = [
+        record.message for record in caplog.records if record.levelname == "WARNING"
+    ]
+    if "UNSUPPORTED_ENTITY" in entities:
+        assert len(warnings) == 1
+        assert "UNSUPPORTED_ENTITY" in warnings[0]
+        assert "language : en" in warnings[0]
+        assert "deprecated" in warnings[0]
+        assert "will raise an error in a future version" in warnings[0]
+        assert "get_supported_entities" in warnings[0]
+    else:
+        assert warnings == []

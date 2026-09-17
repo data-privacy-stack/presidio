@@ -201,8 +201,13 @@ class RecognizerRegistry:
         as part of the request
         :return: A list of the recognizers which supports the supplied entities
         and language
-        :raises ValueError: if any entity in `entities` has no recognizer for the
-        requested language.
+        :raises ValueError: if language is None, entities is None when all_fields
+        is False, or no recognizers match the request.
+
+        Unsupported entities are ignored with a logged warning. This behavior
+        is deprecated and will raise an error in a future version. Use
+        AnalyzerEngine.get_supported_entities(language) to find supported entities,
+        or provide matching ad-hoc recognizers.
         """
         if language is None:
             raise ValueError("No language provided")
@@ -223,7 +228,6 @@ class RecognizerRegistry:
                 if language == rec.supported_language
             ]
         else:
-            unsupported_entities = []
             for entity in entities:
                 subset = [
                     rec
@@ -233,24 +237,17 @@ class RecognizerRegistry:
                 ]
 
                 if not subset:
-                    unsupported_entities.append(entity)
                     logger.warning(
                         "Entity %s doesn't have the corresponding"
-                        " recognizer in language : %s",
+                        " recognizer in language : %s. Ignoring unsupported entities"
+                        " is deprecated and will raise an error in a future version."
+                        " Use AnalyzerEngine.get_supported_entities(language) to find"
+                        " supported entities, or add a matching recognizer.",
                         entity,
                         language,
                     )
                 else:
                     to_return.update(set(subset))
-
-            if unsupported_entities:
-                raise ValueError(
-                    "No matching recognizers were found to serve the "
-                    "request. The following entities are not supported "
-                    f"in language '{language}': {sorted(unsupported_entities)}. "
-                    "Use get_supported_entities to get the list of "
-                    "supported entities for this language."
-                )
 
         logger.debug(
             "Returning a total of %s recognizers",
