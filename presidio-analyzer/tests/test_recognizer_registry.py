@@ -13,6 +13,9 @@ from presidio_analyzer import (
     RecognizerRegistry,
 )
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
+    RecognizerListLoader,
+)
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer, UsSsnRecognizer
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerListLoader,
@@ -851,3 +854,159 @@ def test_when_newly_registered_yaml_recognizers_enabled_then_they_load(tmp_path)
     ).create_recognizer_registry()
 
     assert targets <= _recognizer_class_names(registry)
+
+
+# ---------------------------------------------------------------------------
+# ``default_recognizers.yaml`` hygiene
+# ---------------------------------------------------------------------------
+
+
+def _default_recognizers_conf():
+    conf_path = (
+        Path(__file__).parent.parent
+        / "presidio_analyzer"
+        / "conf"
+        / "default_recognizers.yaml"
+    )
+    return yaml.safe_load(conf_path.read_text())
+
+
+def _entry_name(entry):
+    """Return the instance name an entry declares.
+
+    ``RecognizerListLoader.get_recognizer_name`` answers a different question:
+    it resolves the *class* to instantiate and so prefers ``class_name``. That
+    makes it the wrong key for the duplicate check below, where two entries may
+    legitimately share a class as long as ``name`` tells the instances apart.
+    It is still the right fallback for a bare-string entry such as
+    ``- SpacyRecognizer`` and for a dict that names only a class, because there
+    the class name is also the instance name.
+    """
+    if isinstance(entry, dict) and entry.get("name"):
+        return entry["name"]
+    return RecognizerListLoader.get_recognizer_name(entry)
+
+
+def _declared_languages(entry):
+    """Return every language code an entry declares, in all the loader's shapes.
+
+    ``RecognizerListLoader._get_recognizer_languages`` reads
+    ``supported_languages`` three ways: absent or ``None``, in which case one
+    recognizer is built per registry language and the entry declares no code of
+    its own; a list of plain codes; or a list of
+    ``{"language": ..., "context": ...}`` mappings. A bare-string entry carries
+    no configuration at all and falls into the first case. Only the second and
+    third declare anything for this test to check.
+    """
+    if isinstance(entry, str):
+        return []
+    languages = entry.get("supported_languages")
+    if not languages:
+        return []
+    return [
+        language if isinstance(language, str) else language["language"]
+        for language in languages
+    ]
+
+
+def test_default_recognizers_yaml_has_no_duplicate_entries():
+    """A name listed twice is instantiated twice.
+
+    ``UkPostcodeRecognizer`` was added by #1858 and again by #1857, which
+    merged later, so the file carried two identical blocks and the registry
+    built two identical recognizers. Results happen to dedupe downstream, so
+    nothing looked wrong from the outside while the regexes ran twice.
+
+    Worse, construction is per entry but removal is per class:
+    ``RecognizerRegistryProvider.__remove_disabled_nlp_recognizers`` resolves
+    the not-enabled entries to classes and drops every instance of those
+    classes, so enabling one of a same-class pair and leaving the other
+    disabled builds the recognizer and then silently removes it again.
+
+    Keyed on the instance name rather than the class, deliberately: two entries
+    of the same class are legitimate as long as ``class_name`` carries the class
+    and ``name`` distinguishes the instances. What the shipped file must not
+    carry is the same name twice.
+    """
+    names = [_entry_name(entry) for entry in _default_recognizers_conf()["recognizers"]]
+    duplicates = sorted({name for name in names if names.count(name) > 1})
+
+    assert duplicates == [], f"duplicate recognizer entries: {duplicates}"
+
+
+def test_default_recognizers_yaml_declares_languages_not_countries():
+    """``supported_languages`` holds language codes; ``country_code`` holds the country.
+
+    The Korean entries listed ``kr`` — the ISO 3166-1 country code — next to
+    ``ko``, the ISO 639-1 language code. The loader builds one recognizer per
+    listed language, so on a registry that does not name ``kr`` every such
+    instance is built and then dropped by
+    ``RecognizerListLoader._is_language_supported_globally``, one warning
+    apiece, on every registry build.
+
+    ``ConfigurationValidator.validate_language_codes`` does not catch this:
+    ``kr`` is a well-formed two-letter code, just not the right one.
+    """
+    # ISO 639-1 codes the shipped recognizers are written against. Adding one
+    # here should be a deliberate decision, not a side effect of a new entry.
+    known_languages = {"de", "en", "es", "fi", "fr", "it", "ko", "pl", "sv", "th", "tr"}
+
+    # ``kr`` survives on these two entries as a backward-compatibility alias,
+    # not as a language. Both classes defaulted to ``supported_language="kr"``
+    # until it was moved to ``ko`` — #1742 (2025-10-08) for the RRN, #2170
+    # (2026-08-05) for the passport — so a registry still configured with the
+    # old code would go quiet if the alias were dropped now. The three sibling
+    # ``Kr*`` recognizers never had a ``kr`` default and carry no such
+    # allowance.
+    #
+    # Deprecated in favour of ``ko`` and scheduled for removal in
+    # <release TBD>. Delete these two entries in the same change.
+    deprecated_language_aliases = {
+        "KrRrnRecognizer": {"kr"},
+        "KrPassportRecognizer": {"kr"},
+    }
+
+    offenders = {}
+    for entry in _default_recognizers_conf()["recognizers"]:
+        name = _entry_name(entry)
+        allowed = known_languages | deprecated_language_aliases.get(name, set())
+        for code in _declared_languages(entry):
+            if code not in allowed:
+                offenders.setdefault(name, []).append(code)
+
+    assert offenders == {}, f"non-language codes in supported_languages: {offenders}"
+
+
+def test_deprecated_kr_alias_still_loads_its_recognizers():
+    """The retained ``kr`` alias has to actually serve a registry that names it.
+
+    This is the configuration the carve-out above exists for. With
+    ``supported_languages: ["kr"]`` the loader builds one instance per declared
+    language and ``_is_language_supported_globally`` then drops every instance
+    whose language the registry does not list, so only the entries that still
+    declare ``kr`` survive. Drop the alias and this registry loads nothing —
+    which is the breakage the deprecation is being staged to avoid.
+    """
+    korean_entries = [
+        entry
+        for entry in _default_recognizers_conf()["recognizers"]
+        if _entry_name(entry).startswith("Kr")
+    ]
+    assert {"KrRrnRecognizer", "KrPassportRecognizer"} <= {
+        _entry_name(entry) for entry in korean_entries
+    }, "the two alias entries are missing from the shipped file"
+
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["kr"],
+            "recognizers": [dict(entry, enabled=True) for entry in korean_entries],
+        }
+    ).create_recognizer_registry()
+
+    assert _recognizer_class_names(registry) == {
+        "KrRrnRecognizer",
+        "KrPassportRecognizer",
+    }
+    # The three entries that only declare ``ko`` are built and then dropped,
+    # so nothing survives under a language the registry never asked for.
+    assert {rec.supported_language for rec in registry.recognizers} == {"kr"}
