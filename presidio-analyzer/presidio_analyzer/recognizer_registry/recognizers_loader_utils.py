@@ -70,8 +70,8 @@ class RecognizerListLoader:
 
     @staticmethod
     def _split_recognizers(
-        recognizers_conf: Union[Dict[str, Any], str],
-    ) -> Tuple[List[Union[str, Dict[str, Any]]], List[Union[str, Dict[str, Any]]]]:
+        recognizers_conf: Iterable[Union[Dict[str, Any], str]],
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Split the recognizer list to predefined and custom.
 
@@ -79,19 +79,32 @@ class RecognizerListLoader:
         type: 'custom' can be mentioned as well.
         This function supports the previous format as well.
 
+        A bare string entry (``- CreditCardRecognizer``) is the shorthand the
+        configuration schema accepts for a predefined recognizer that needs no
+        further settings. It is expanded to its dict equivalent here, because
+        every step after this one indexes the entry as a mapping: left as a
+        string it matches neither list and the recognizer is never built.
+
         :param recognizers_conf: The recognizers' configuration
         """
 
+        normalized = [
+            {"name": recognizer_conf, "type": "predefined"}
+            if isinstance(recognizer_conf, str)
+            else recognizer_conf
+            for recognizer_conf in recognizers_conf
+        ]
+
         predefined = [
             recognizer_conf
-            for recognizer_conf in recognizers_conf
+            for recognizer_conf in normalized
             if isinstance(recognizer_conf, dict)
             and ("type" in recognizer_conf and recognizer_conf["type"] == "predefined")
         ]
         custom = [
             recognizer_conf
-            for recognizer_conf in recognizers_conf
-            if not isinstance(recognizer_conf, str)
+            for recognizer_conf in normalized
+            if isinstance(recognizer_conf, dict)
             and ("type" not in recognizer_conf or recognizer_conf["type"] == "custom")
         ]
         return predefined, custom
@@ -269,6 +282,45 @@ class RecognizerListLoader:
         )
 
     @staticmethod
+    def _reachable_init_param_names(recognizer_cls: Type[EntityRecognizer]) -> Set[str]:
+        """Return the constructor parameter names reachable through the MRO.
+
+        Walks ``recognizer_cls.__mro__``. Each class that defines its own
+        ``__init__`` contributes its parameter names (excluding ``self`` and
+        the ``*args`` / ``**kwargs`` slots). Traversal stops after the first
+        ``__init__`` that does not accept ``**kwargs``: once a constructor
+        stops forwarding keyword arguments, a parameter declared only further
+        up the chain can no longer be reached from a registry entry.
+
+        :param recognizer_cls: The recognizer class to inspect.
+        """
+        names: Set[str] = set()
+        for klass in recognizer_cls.__mro__:
+            init = klass.__dict__.get("__init__")
+            if init is None:
+                continue
+            try:
+                parameters = inspect.signature(init).parameters
+            except (TypeError, ValueError):
+                break
+            names.update(
+                name
+                for name, param in parameters.items()
+                if name != "self"
+                and param.kind
+                not in (
+                    inspect.Parameter.VAR_KEYWORD,
+                    inspect.Parameter.VAR_POSITIONAL,
+                )
+            )
+            if not any(
+                param.kind == inspect.Parameter.VAR_KEYWORD
+                for param in parameters.values()
+            ):
+                break
+        return names
+
+    @staticmethod
     def _prepare_recognizer_kwargs(
         recognizer_conf: Dict[str, Any],
         language_conf: Dict[str, Any],
@@ -277,18 +329,11 @@ class RecognizerListLoader:
         """
         Prepare kwargs for recognizer instantiation.
 
-        This function adapts supported_entity/supported_entities based on the
-        recognizer class __init__ signature to avoid passing unexpected kwargs.
-
-        - If recognizer accepts only supported_entity (singular), convert
-          supported_entities -> supported_entity (first element).
-        - If recognizer accepts only supported_entities (plural), remove
-          supported_entity.
-        - If recognizer accepts both, keep keys as provided (after None cleanup).
-        - Filtering policy:
-            - supported_entity: kept only if explicitly accepted.
-            - supported_entities: kept if explicitly accepted or if the recognizer
-              accepts **kwargs.
+        Converts supported_entities -> supported_entity (or drops either)
+        based on which is reachable through the constructor's **kwargs-
+        forwarding chain (see ``_reachable_init_param_names``), and drops
+        ``context`` the same way. A key unreachable anywhere in the chain
+        logs a warning naming the class instead of failing silently.
         """
         kwargs = {**recognizer_conf, **language_conf}
 
@@ -313,18 +358,57 @@ class RecognizerListLoader:
             p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
         )
 
-        accepts_supported_entity = RecognizerListLoader.SUPPORTED_ENTITY in params
         accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
 
-        # 1. Normalize: Convert plural -> singular if needed
-        # (Only when singular is accepted and plural is NOT accepted)
-        if accepts_supported_entity and not accepts_supported_entities:
+        # Reachable via **kwargs-forwarding up the MRO, not just the leaf
+        # signature (see _reachable_init_param_names).
+        reachable = RecognizerListLoader._reachable_init_param_names(recognizer_cls)
+
+        # context only makes sense for a single-entity recognizer; dropped
+        # whenever unreachable, even for a **kwargs leaf, since forwarding
+        # can still reach a stricter ancestor that rejects it.
+        if "context" in kwargs and "context" not in reachable:
+            kwargs.pop("context")
+            logger.warning(
+                "%s does not accept 'context'; ignoring the context words "
+                "configured for it. Context words boost a result's score "
+                "only when they match text near the recognized entity, "
+                "and recognizers that detect several entity types do not "
+                "support them.",
+                recognizer_cls.__name__,
+            )
+
+        # A class with neither key reachable defines its own entities (e.g.
+        # from a LangExtract config file); warn instead of staying silent.
+        entity_singular_reachable = RecognizerListLoader.SUPPORTED_ENTITY in reachable
+        entity_plural_reachable = RecognizerListLoader.SUPPORTED_ENTITIES in reachable
+        entity_key_reachable = entity_singular_reachable or entity_plural_reachable
+        if not entity_key_reachable:
+            ineffective_keys = [
+                key
+                for key in (
+                    RecognizerListLoader.SUPPORTED_ENTITY,
+                    RecognizerListLoader.SUPPORTED_ENTITIES,
+                )
+                if key in kwargs
+            ]
+            if ineffective_keys:
+                logger.warning(
+                    "%s does not apply 'supported_entity' or 'supported_entities'; "
+                    "ignoring %s from its configuration because %s defines its "
+                    "supported entities from its own configuration.",
+                    recognizer_cls.__name__,
+                    " and ".join(ineffective_keys),
+                    recognizer_cls.__name__,
+                )
+
+        # 1. Normalize: convert plural -> singular when only singular is reachable.
+        if entity_singular_reachable and not entity_plural_reachable:
             if RecognizerListLoader.SUPPORTED_ENTITIES in kwargs:
-                supported_entities = kwargs.get(RecognizerListLoader.SUPPORTED_ENTITIES)
+                supported_entities = kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES)
 
                 # Use the first entity if available
                 if isinstance(supported_entities, list) and supported_entities:
-                    kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES)
                     kwargs.setdefault(
                         RecognizerListLoader.SUPPORTED_ENTITY, supported_entities[0]
                     )
@@ -348,9 +432,9 @@ class RecognizerListLoader:
         if not accepts_supported_entities and not has_var_kw:
             kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES, None)
 
-        # Drop unsupported 'supported_entity' even for **kwargs
-        # to prevent leaking into strict parent __init__.
-        if not accepts_supported_entity:
+        # supported_entity is always dropped if unreachable, even for
+        # **kwargs (an ancestor may accept only the plural form).
+        if not entity_singular_reachable:
             kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITY, None)
 
         return kwargs

@@ -47,6 +47,17 @@ class EntityRecognizer:
     #: instance methods.
     COUNTRY_CODE: ClassVar[Optional[str]] = None
 
+    #: Module names this class's constructor needs but that presidio-analyzer's
+    #: core install does not ship (an optional "extra"). A recognizer whose
+    #: constructor imports a third-party package declares it here, on the
+    #: class that actually needs it -- a subclass with the same requirement
+    #: inherits the value automatically. The conformance test suite reads
+    #: this to skip a case when the extra is not installed, instead of
+    #: failing on the resulting ImportError/ValueError. Include a module
+    #: reached only transitively (e.g. through a shared helper function)
+    #: even though it is not imported directly by this class.
+    OPTIONAL_DEPENDENCY_MODULES: ClassVar[Tuple[str, ...]] = ()
+
     def __init__(
         self,
         supported_entities: List[str],
