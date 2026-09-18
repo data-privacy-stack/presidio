@@ -41,6 +41,9 @@ def nlp_engines(request, nlp_engine_provider) -> Dict[str, NlpEngine]:
             available_engines[f"{name}_en"] = engine_cls(
                 models=[{"lang_code": "en", "model_name": "en"}]
             )
+            available_engines[f"{name}_de"] = engine_cls(
+                models=[{"lang_code": "de", "model_name": "de"}]
+            )
         elif name == "transformers":
             available_engines[f"{name}_en"] = engine_cls(
                 models=[
@@ -79,6 +82,22 @@ def skip_by_engine(request, nlp_engines):
 @pytest.fixture(scope="session")
 def spacy_nlp_engine(nlp_engines):
     nlp_engine = nlp_engines.get("spacy_en", None)
+    if nlp_engine:
+        nlp_engine.load()
+    return nlp_engine
+
+
+@pytest.fixture(scope="session")
+def stanza_nlp_engine(nlp_engines):
+    nlp_engine = nlp_engines.get("stanza_en", None)
+    if nlp_engine:
+        nlp_engine.load()
+    return nlp_engine
+
+
+@pytest.fixture(scope="session")
+def stanza_de_nlp_engine(nlp_engines):
+    nlp_engine = nlp_engines.get("stanza_de", None)
     if nlp_engine:
         nlp_engine.load()
     return nlp_engine
