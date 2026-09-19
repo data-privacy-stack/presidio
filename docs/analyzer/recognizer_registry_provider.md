@@ -209,9 +209,15 @@ want on the English image:
     country_code: it
 ```
 
-You can list both `en` and `it` if the same deployment also serves Italian
-(`language: it`) requests. Keep `country_code: it` unchanged so country
-filtering still works (see [Filtering recognizers by country](filtering_by_country.md)).
+Listing `it` next to `en` on the recognizer is harmless but has no effect on
+the default image: requests with `language: it` are still rejected, because the
+registry and the NLP engine only support `en`. To serve Italian requests as
+well, configure the analyzer and NLP engine for `it` (see
+[Languages](languages.md)); adding `it` to the registry alone makes the analyzer
+fail at startup with a "supported languages have to be consistent" error.
+
+Keep `country_code: it` unchanged so country filtering still works (see
+[Filtering recognizers by country](filtering_by_country.md)).
 
 Apply the same pattern to other native-language-only country recognizers as
 needed (for example `ItVatCodeRecognizer`, `EsNifRecognizer`).
@@ -237,6 +243,13 @@ curl -s http://localhost:5002/analyze \
 You should receive an `IT_FISCAL_CODE` result. Check
 `GET /supportedentities?language=en` as well — `IT_FISCAL_CODE` should appear
 after the override.
+
+With this override, omocodic codes (for example `RSSMRA85M01H50MI`) are also
+detected at score `1.0`. A code with a wrong check character is still reported,
+but typically at score `0.3`, so score-threshold integrations should treat those
+cases differently. (Measurements from GiorgioDotcom’s verification of this
+guide against `presidio-analyzer:2.2.364` — see the discussion on
+[PR #2271](https://github.com/data-privacy-stack/presidio/pull/2271).)
 
 ### Python / SDK equivalent
 
