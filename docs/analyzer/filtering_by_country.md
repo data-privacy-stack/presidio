@@ -42,6 +42,17 @@ When the registry is built from a YAML file, this top-level
 `supported_countries` is applied automatically inside the loader; you
 don't need to pass `countries=` again from Python.
 
+!!! note "Country filter ≠ request language"
+
+    `supported_countries` / `countries=` controls **which country-tagged
+    recognizers are loaded**. Separately, each recognizer's
+    `supported_languages` controls **which request `language` values it
+    serves**. Several pattern recognizers (Italian, Spanish, Polish, …) ship
+    with a native language code only, so they stay inactive on the default
+    `en` image even when their country is included. To run them under
+    `language: en`, override the registry — see
+    [Enabling country-specific pattern recognizers on the default English image](recognizer_registry_provider.md#enabling-country-specific-pattern-recognizers-on-the-default-english-image).
+
 ## How the filter works
 
 A recognizer can be tagged with a country in two ways, reconciled at

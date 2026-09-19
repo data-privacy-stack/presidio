@@ -74,6 +74,15 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |IT_PASSPORT|An Italian passport number.|Pattern match and context|
 |IT_IDENTITY_CARD|An Italian identity card number. <https://en.wikipedia.org/wiki/Italian_electronic_identity_card>|Pattern match and context|
 
+!!! note "Default English Docker image"
+
+    In `default_recognizers.yaml`, Italian recognizers are registered with
+    `supported_languages: [it]`. On the default `en`-only analyzer image they
+    are not available until you override the registry (for example set
+    `ItFiscalCodeRecognizer` `supported_languages` to include `en` and point
+    `RECOGNIZER_REGISTRY_CONF_FILE` at that file). See
+    [Enabling country-specific pattern recognizers on the default English image](analyzer/recognizer_registry_provider.md#enabling-country-specific-pattern-recognizers-on-the-default-english-image).
+
 ### Poland
 
 |Entity Type|Description|Detection Method|

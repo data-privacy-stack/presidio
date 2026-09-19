@@ -184,6 +184,11 @@ US-only, EU-only) without manually enumerating recognizer classes. See
 the [Filtering recognizers by country](filtering_by_country.md) guide
 for usage and the rules for tagging custom recognizers.
 
+To enable native-language country pattern recognizers (such as
+`IT_FISCAL_CODE`) on the default English Docker image, override the registry
+with `RECOGNIZER_REGISTRY_CONF_FILE` — see
+[Recognizer registry from file](recognizer_registry_provider.md#enabling-country-specific-pattern-recognizers-on-the-default-english-image).
+
 ## Outputting the analyzer decision process
 
 Presidio analyzer has a built in mechanism for tracing each decision made. This can be useful when attempting to understand a specific PII detection. For more info, see the [decision process](decision_process.md) documentation.
