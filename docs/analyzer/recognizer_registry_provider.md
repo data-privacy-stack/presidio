@@ -138,3 +138,128 @@ The recognizer list comprises of both the predefined and custom recognizers, for
       supported_languages: ["ko"]
       enabled: false
     ```
+
+## Enabling country-specific pattern recognizers on the default English image
+
+The published `presidio-analyzer` image (for example
+`ghcr.io/data-privacy-stack/presidio-analyzer`) loads only the English NLP
+model and uses
+[`default_recognizers.yaml`](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
+with top-level `supported_languages: [en]`.
+
+Many country-specific pattern recognizers are registered for their **native
+language only**. Examples from the default registry:
+
+| Recognizer | Entity | Default `supported_languages` |
+| --- | --- | --- |
+| `ItFiscalCodeRecognizer` | `IT_FISCAL_CODE` | `it` |
+| `EsNifRecognizer` | `ES_NIF` | `es` |
+| `PlPeselRecognizer` | `PL_PESEL` | `pl` |
+
+Those recognizers are pattern- and checksum-based: they do **not** need an
+Italian/Spanish/Polish NLP model. They still will not run when the request
+`language` is `en`, because the registry only attaches them to their native
+language code.
+
+US, UK, AU, and similar recognizers are already registered with `en`, so they
+work on the default image without an override.
+
+!!! warning "Unsupported entities can be skipped silently"
+
+    On the default `en` image, requesting only `IT_FISCAL_CODE` fails with
+    `No matching recognizers were found to serve the request.` Requesting it
+    **together with** a supported entity (for example `IBAN_CODE`) can return
+    HTTP 200 with results for the supported entities only — `IT_FISCAL_CODE` is
+    omitted with no error. Integrations that mix entity lists should enable the
+    recognizer via the override below (or treat mixed lists carefully). See
+    [issue #2256](https://github.com/data-privacy-stack/presidio/issues/2256).
+
+Defaults stay native-language-only on purpose: loading every country
+recognizer for `en` would increase false positives for operators who never see
+that country's identifiers. Prefer an explicit registry override for the
+countries you need.
+
+### Override with `RECOGNIZER_REGISTRY_CONF_FILE`
+
+The analyzer server reads configuration from environment variables (see
+`presidio-analyzer/app.py`):
+
+| Environment variable | Role |
+| --- | --- |
+| `RECOGNIZER_REGISTRY_CONF_FILE` | Path to the recognizer registry YAML |
+| `ANALYZER_CONF_FILE` | Path to the analyzer engine YAML |
+| `NLP_CONF_FILE` | Path to the NLP engine YAML |
+
+`RECOGNIZER_REGISTRY_CONF_FILE` **replaces** the registry configuration; it is
+not a merge of a single recognizer into the defaults. Start from a full copy of
+`default_recognizers.yaml`, then change only the entries you need.
+
+#### 1. Change the recognizer entry
+
+Copy
+`presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml`
+and set `supported_languages` to include `en` for each pattern recognizer you
+want on the English image:
+
+```yaml
+  - name: ItFiscalCodeRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    country_code: it
+```
+
+You can list both `en` and `it` if the same deployment also serves Italian
+(`language: it`) requests. Keep `country_code: it` unchanged so country
+filtering still works (see [Filtering recognizers by country](filtering_by_country.md)).
+
+Apply the same pattern to other native-language-only country recognizers as
+needed (for example `ItVatCodeRecognizer`, `EsNifRecognizer`).
+
+#### 2. Point the Docker image at the file
+
+```sh
+# Assume ./recognizers.yaml is your edited copy of default_recognizers.yaml
+docker run -d -p 5002:3000 \
+  -v "$(pwd)/recognizers.yaml:/app/recognizers.yaml:ro" \
+  -e RECOGNIZER_REGISTRY_CONF_FILE=/app/recognizers.yaml \
+  ghcr.io/data-privacy-stack/presidio-analyzer:latest
+```
+
+#### 3. Verify
+
+```sh
+curl -s http://localhost:5002/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text":"codice fiscale RSSMRA85M01H501Q","language":"en","entities":["IT_FISCAL_CODE"]}'
+```
+
+You should receive an `IT_FISCAL_CODE` result. Check
+`GET /supportedentities?language=en` as well — `IT_FISCAL_CODE` should appear
+after the override.
+
+### Python / SDK equivalent
+
+When embedding `AnalyzerEngine` (for example in LiteLLM), load the same YAML
+with `RecognizerRegistryProvider`:
+
+```python
+from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+
+provider = RecognizerRegistryProvider(
+    conf_file="./recognizers.yaml"  # copy of default_recognizers.yaml with en
+)
+registry = provider.create_recognizer_registry()
+analyzer = AnalyzerEngine(registry=registry)
+
+results = analyzer.analyze(
+    text="codice fiscale RSSMRA85M01H501Q",
+    language="en",
+    entities=["IT_FISCAL_CODE"],
+)
+print(results)
+```
+
+You can also pass `recognizer_registry_conf_file` to
+[`AnalyzerEngineProvider`](analyzer_engine_provider.md).

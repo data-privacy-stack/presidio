@@ -130,6 +130,12 @@ The structure of the configuration files is as follows:
 
 - Recognizer registry configuration file structure is examined thoroughly in the [Customizing recognizer registry from file](recognizer_registry_provider.md) section.
 
+When running the analyzer HTTP server / Docker image, the same paths can be
+set with `ANALYZER_CONF_FILE`, `NLP_CONF_FILE`, and
+`RECOGNIZER_REGISTRY_CONF_FILE`. For enabling country pattern recognizers such
+as `IT_FISCAL_CODE` on the default `en` image, see
+[Enabling country-specific pattern recognizers on the default English image](recognizer_registry_provider.md#enabling-country-specific-pattern-recognizers-on-the-default-english-image).
+
 ## Using the default configuration
 
 Create an `AnalyzerEngineProvider` without any parameters. This will load the default configuration:
