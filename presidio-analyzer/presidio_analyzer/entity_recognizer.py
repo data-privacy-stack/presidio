@@ -283,28 +283,52 @@ class EntityRecognizer:
         :return: List[RecognizerResult]
         """
         results = list(set(results))
-        results = sorted(results, key=lambda x: (-x.score, x.start, -(x.end - x.start)))
+        results = sorted(
+            results,
+            key=lambda x: (
+                x.entity_type,
+                x.start,
+                -(x.end - x.start),
+                -x.score,
+            ),
+        )
         filtered_results = []
+        active_results = []
+        current_entity_type = None
 
         for result in results:
+            if result.entity_type != current_entity_type:
+                active_results = []
+                current_entity_type = result.entity_type
+
             if result.score == 0:
                 continue
 
-            to_keep = result not in filtered_results  # equals based comparison
-            if to_keep:
-                for filtered in filtered_results:
-                    # If result is contained in one of the other results
-                    if (
-                        result.contained_in(filtered)
-                        and result.entity_type == filtered.entity_type
-                    ):
-                        to_keep = False
-                        break
+            # Only overlapping results can contain the current result.
+            active_results = [
+                filtered for filtered in active_results if filtered.end >= result.start
+            ]
+
+            to_keep = True
+            for filtered in active_results:
+                # If result is contained in one of the other results
+                if (
+                    result.contained_in(filtered)
+                    and result.score <= filtered.score
+                    and result.entity_type == filtered.entity_type
+                ):
+                    to_keep = False
+                    break
 
             if to_keep:
                 filtered_results.append(result)
+                active_results.append(result)
 
-        return filtered_results
+        # Restore the existing score-first result order.
+        return sorted(
+            filtered_results,
+            key=lambda x: (-x.score, x.start, -(x.end - x.start)),
+        )
 
     @staticmethod
     def sanitize_value(text: str, replacement_pairs: List[Tuple[str, str]]) -> str:
