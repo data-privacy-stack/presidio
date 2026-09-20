@@ -30,13 +30,20 @@ from typing import Any, Dict, List, Set, Tuple, Type
 
 import presidio_analyzer.predefined_recognizers  # noqa: F401 -- see below
 import pytest
-from presidio_analyzer import EntityRecognizer
+from presidio_analyzer import EntityRecognizer, PatternRecognizer
+from presidio_analyzer.input_validation.yaml_recognizer_models import (
+    CONFIG_MODEL_MAP,
+    BaseRecognizerConfig,
+    CustomRecognizerConfig,
+    PredefinedRecognizerConfig,
+)
 from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerListLoader,
 )
 from presidio_analyzer.score_thresholds import normalize_score_thresholds
+from pydantic_core import PydanticUndefined
 
 from tests.test_recognizers_loader_utils import (
     DEFAULT_CONF_DATA,
@@ -691,4 +698,140 @@ def test_unknown_key_is_not_silent(caplog):
     assert raised or warned, (
         "expected 'no_such_key' to raise ValueError or log a WARNING naming "
         "it; today it is silently dropped"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Schema default vs constructor default
+# ---------------------------------------------------------------------------
+
+# Keys the loader strips from a validated entry before calling the constructor
+# (``predefined_to_exclude`` / ``custom_to_exclude`` in ``RecognizerListLoader``),
+# so a schema default for one of them can never reach a constructor and is free
+# to differ.
+REGISTRY_ONLY_FIELDS = {
+    "enabled",
+    "type",
+    "class_name",
+    "score_thresholds",
+    "supported_languages",
+    "country_code",
+}
+
+
+def _constructor_default(cls: type, param_name: str) -> Any:
+    """Default of ``param_name`` in the first ``__init__`` that declares it.
+
+    Walks the MRO the way the loader's reachability check does, stopping at the
+    first ``__init__`` that does not forward ``**kwargs``. Returns
+    ``inspect.Parameter.empty`` when the parameter is not reachable.
+    """
+    for klass in cls.__mro__:
+        init = klass.__dict__.get("__init__")
+        if init is None:
+            continue
+        try:
+            parameters = inspect.signature(init).parameters
+        except (TypeError, ValueError):
+            return inspect.Parameter.empty
+        if param_name in parameters:
+            return parameters[param_name].default
+        if not any(
+            param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters.values()
+        ):
+            break
+    return inspect.Parameter.empty
+
+
+# Config model paired with the recognizer class it validates entries for.
+# CONFIG_MODEL_MAP covers the per-class models; CustomRecognizerConfig is the
+# schema for a ``type: custom`` entry, which always builds a PatternRecognizer.
+MODEL_CLASS_PAIRS = [
+    (CustomRecognizerConfig, PatternRecognizer),
+] + [
+    (model, RecognizerListLoader.get_existing_recognizer_cls(class_name))
+    for class_name, model in sorted(CONFIG_MODEL_MAP.items())
+]
+
+
+def _default_drift_cases() -> List[Tuple[type, type, str]]:
+    """(model, recognizer class, field) for every comparable default."""
+    cases = []
+    for model, cls in MODEL_CLASS_PAIRS:
+        for field_name, field in model.model_fields.items():
+            if field_name in REGISTRY_ONLY_FIELDS:
+                continue
+            schema_default = field.get_default(call_default_factory=False)
+            # A None default is the "not set" marker the loader strips before
+            # construction, so it cannot override anything.
+            if schema_default is None or schema_default is PydanticUndefined:
+                continue
+            if _constructor_default(cls, field_name) is inspect.Parameter.empty:
+                continue
+            cases.append((model, cls, field_name))
+    return cases
+
+
+DEFAULT_DRIFT_CASES = _default_drift_cases()
+
+
+@pytest.mark.parametrize(
+    ("model", "cls", "field_name"),
+    DEFAULT_DRIFT_CASES,
+    ids=[f"{m.__name__}.{f}" for m, _, f in DEFAULT_DRIFT_CASES],
+)
+def test_schema_default_matches_constructor_default(model, cls, field_name):
+    """A schema default that reaches a constructor must match its default.
+
+    A field whose schema default is not None survives the loader's
+    ``exclude_none`` dump, so it is passed to the constructor even when the
+    YAML entry omits the key -- overriding the class default with whatever the
+    schema happens to say. The two defaults live in different files with
+    nothing tying them together, so they drift silently: ``deny_list_score``
+    defaulted to 0.0 in the schema against 1.0 on ``PatternRecognizer``, which
+    made every YAML-defined deny list score 0.0 and detect nothing.
+
+    Until presence rather than value drives application, the only thing
+    keeping the two in step is that they hold the same literal. This asserts
+    it.
+    """
+    schema_default = model.model_fields[field_name].get_default(
+        call_default_factory=False
+    )
+    constructor_default = _constructor_default(cls, field_name)
+
+    assert schema_default == constructor_default, (
+        f"{model.__name__}.{field_name} defaults to {schema_default!r} but "
+        f"{cls.__name__}.__init__ defaults it to {constructor_default!r}. An "
+        f"entry omitting '{field_name}' is built with the schema's value, so "
+        f"these must match until application becomes presence-aware"
+    )
+
+
+@pytest.mark.parametrize(
+    "model",
+    [BaseRecognizerConfig, PredefinedRecognizerConfig],
+    ids=lambda model: model.__name__,
+)
+def test_shared_config_models_declare_no_reaching_defaults(model):
+    """The shared models must not default a field that reaches a constructor.
+
+    ``BaseRecognizerConfig`` and ``PredefinedRecognizerConfig`` validate
+    entries for every predefined recognizer, so there is no single constructor
+    to compare a default against: a non-None default here would be imposed on
+    all of them at once. Registry-only keys are exempt because the loader
+    strips them before construction.
+    """
+    offenders = {
+        field_name: field.get_default(call_default_factory=False)
+        for field_name, field in model.model_fields.items()
+        if field_name not in REGISTRY_ONLY_FIELDS
+        and field.get_default(call_default_factory=False) is not None
+        and field.get_default(call_default_factory=False) is not PydanticUndefined
+    }
+
+    assert not offenders, (
+        f"{model.__name__} defaults {offenders!r}; a non-None default on a "
+        f"shared model is passed to every predefined recognizer whose entry "
+        f"omits the key, overriding each class's own default"
     )
