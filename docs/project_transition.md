@@ -32,7 +32,7 @@ Now that the migration is complete:
 
 * Repositories, documentation links, and package references have moved to the new organization. Please update your references.
 * Legacy GitHub URLs and documentation links redirect to the new location.
-* New Docker image releases are published to[GitHub Container Registry](https://github.com/orgs/data-privacy-stack/packages) under the Data Privacy Stack organization. Legacy Microsoft Container Registry (MCR) images remain available for older tags but are no longer updated; update `mcr.microsoft.com/presidio-*` image references to `ghcr.io/data-privacy-stack/presidio-*`.
+* New Docker image releases are published to [GitHub Container Registry](https://github.com/orgs/data-privacy-stack/packages) under the Data Privacy Stack organization. Legacy Microsoft Container Registry (MCR) images remain available for older tags but are no longer updated; update `mcr.microsoft.com/presidio-*` image references to `ghcr.io/data-privacy-stack/presidio-*`.
 * Contribution and governance processes are now community-driven.
 * The Technical Steering Committee (TSC) includes maintainers and contributors from across the community.
 
