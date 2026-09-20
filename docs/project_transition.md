@@ -26,8 +26,7 @@ Integrations, dependencies, and usage patterns continue to work as expected.
 
 Over the years, Presidio has grown beyond its original scope and has been adopted by organizations, researchers, and developers across industries. Moving to an independent community initiative positions the project for long-term sustainability, broader collaboration, and open governance.
 
-## What to expect during the transition
-
+## What to expect next
 Now that the migration is complete:
 
 * Repositories, documentation links, and package references have moved to the new organization. Please update your references.
