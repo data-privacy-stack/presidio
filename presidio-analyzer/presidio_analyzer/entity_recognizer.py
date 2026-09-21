@@ -276,10 +276,10 @@ class EntityRecognizer:
     @staticmethod
     def remove_duplicates(results: List[RecognizerResult]) -> List[RecognizerResult]:
         """
-        Remove duplicate results.
+        Remove duplicate, zero-score, and contained results.
 
-        Remove duplicates in case the two results
-        have identical start and ends and types.
+        Results with a score of zero are removed. A result is also removed if another
+        result of the same type fully contains it and has an equal or higher score.
         :param results: List[RecognizerResult]
         :return: List[RecognizerResult]
         """
