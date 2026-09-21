@@ -286,7 +286,7 @@ class EntityRecognizer:
         results = sorted(
             results,
             key=lambda x: (
-                x.entity_type,
+                str(x.entity_type),
                 x.start,
                 -(x.end - x.start),
                 -x.score,

@@ -163,6 +163,17 @@ def test_when_contained_results_have_different_types_then_both_kept():
     assert results == [outer, inner]
 
 
+def test_when_entity_type_is_missing_then_remove_duplicates_does_not_raise():
+    result_without_type = RecognizerResult.from_json(
+        {"start": 0, "end": 5, "score": 0.5}
+    )
+    person = RecognizerResult(entity_type="PERSON", start=10, end=15, score=0.9)
+
+    results = EntityRecognizer.remove_duplicates([result_without_type, person])
+
+    assert results == [person, result_without_type]
+
+
 def test_when_results_have_same_end_then_contained_result_removed():
     outer = RecognizerResult(entity_type="x", start=0, end=10, score=0.5)
     inner = RecognizerResult(entity_type="x", start=5, end=10, score=0.5)
