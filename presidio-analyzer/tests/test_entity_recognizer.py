@@ -1,7 +1,5 @@
 # ruff: noqa: D103,E501,I001
 
-import time
-
 import pytest
 
 from presidio_analyzer import AnalysisExplanation, EntityRecognizer, RecognizerResult
@@ -216,7 +214,16 @@ def test_when_results_are_kept_then_returned_in_priority_order():
     assert results == [high_score, longer, shorter]
 
 
-def test_when_number_of_results_is_large_then_remove_duplicates_finishes_in_reasonable_time():
+def test_when_results_do_not_overlap_then_no_containment_checks(monkeypatch):
+    def fail_if_contained_in_is_called(*_args):
+        pytest.fail("contained_in should not be called for non-overlapping results")
+
+    monkeypatch.setattr(
+        RecognizerResult,
+        "contained_in",
+        fail_if_contained_in_is_called,
+    )
+
     results = [
         RecognizerResult(
             entity_type="x",
@@ -227,12 +234,9 @@ def test_when_number_of_results_is_large_then_remove_duplicates_finishes_in_reas
         for i in range(20_000)
     ]
 
-    start_time = time.perf_counter()
     results = EntityRecognizer.remove_duplicates(results)
-    duration = time.perf_counter() - start_time
 
     assert len(results) == 20_000
-    assert duration < 5
 
 
 sanitizer_test_set = [
