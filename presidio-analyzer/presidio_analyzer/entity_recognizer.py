@@ -312,11 +312,7 @@ class EntityRecognizer:
             to_keep = True
             for filtered in active_results:
                 # If result is contained in one of the other results
-                if (
-                    result.contained_in(filtered)
-                    and result.score <= filtered.score
-                    and result.entity_type == filtered.entity_type
-                ):
+                if result.contained_in(filtered) and result.score <= filtered.score:
                     to_keep = False
                     break
 
