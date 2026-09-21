@@ -202,9 +202,10 @@ class RecognizerRegistry:
         :return: A list of the recognizers which supports the supplied entities
         and language
         :raises ValueError: if language is None, entities is None when all_fields
-        is False, or no recognizers match the request.
+        is False, or if no recognizers match the request at all.
 
-        Unsupported entities are ignored with a logged warning. This behavior
+        Partly unsupported requests log a warning and return the matching
+        recognizers. This warn-and-ignore behavior
         is deprecated and will raise an error in a future version. Use
         AnalyzerEngine.get_supported_entities(language) to find supported entities,
         or provide matching ad-hoc recognizers.
