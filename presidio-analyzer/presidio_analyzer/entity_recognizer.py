@@ -1,5 +1,6 @@
 import logging
 from abc import abstractmethod
+from itertools import groupby
 from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional, Tuple
 
 from presidio_analyzer import RecognizerResult
@@ -293,32 +294,33 @@ class EntityRecognizer:
             ),
         )
         filtered_results = []
-        active_results = []
-        current_entity_type = None
 
-        for result in results:
-            if result.entity_type != current_entity_type:
-                active_results = []
-                current_entity_type = result.entity_type
+        for _, entity_results in groupby(
+            results, key=lambda result: result.entity_type
+        ):
+            active_results = []
 
-            if result.score == 0:
-                continue
+            for result in entity_results:
+                if result.score == 0:
+                    continue
 
-            # Only overlapping results can contain the current result.
-            active_results = [
-                filtered for filtered in active_results if filtered.end >= result.start
-            ]
+                # Only overlapping results can contain the current result.
+                active_results = [
+                    filtered
+                    for filtered in active_results
+                    if filtered.end >= result.start
+                ]
 
-            to_keep = True
-            for filtered in active_results:
-                # If result is contained in one of the other results
-                if result.contained_in(filtered) and result.score <= filtered.score:
-                    to_keep = False
-                    break
+                to_keep = True
+                for filtered in active_results:
+                    # If result is contained in one of the other results
+                    if result.contained_in(filtered) and result.score <= filtered.score:
+                        to_keep = False
+                        break
 
-            if to_keep:
-                filtered_results.append(result)
-                active_results.append(result)
+                if to_keep:
+                    filtered_results.append(result)
+                    active_results.append(result)
 
         # Restore the existing score-first result order.
         return sorted(
