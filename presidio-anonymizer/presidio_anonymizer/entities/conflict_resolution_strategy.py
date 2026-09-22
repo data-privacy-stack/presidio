@@ -12,10 +12,10 @@ class ConflictResolutionStrategy(Enum):
     between similar or contained entities.
     REMOVE_INTERSECTIONS: Effectively resolves both intersection conflicts
     among entities and default strategy conflicts.
-    KEEP_CONTAINED_WITH_HIGHER_SCORE: Keeps an entity contained in another one
-    when its score is higher than the score of the containing entity, and then
-    removes the intersections. The other strategies always drop the contained
-    entity, whatever its score.
+    KEEP_CONTAINED_WITH_HIGHER_SCORE: Gives every character to the highest scored
+    entity covering it, so an entity contained in a lower scored one is kept and
+    the containing entity is split around it. The other strategies always drop
+    the contained entity, whatever its score.
     NONE: No conflict resolution will be performed.
     """
 
