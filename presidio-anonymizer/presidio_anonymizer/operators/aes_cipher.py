@@ -20,7 +20,8 @@ class AESCipher:
                               instead of drawing it at random, so that the same
                               text always encrypts to the same value. This is an
                               opt-in trade-off: it enables referential integrity
-                              across a dataset, but it leaks equality, since
+                              across a dataset, but it reveals which values
+                              are equal and how often each occurs, since
                               identical values become identical ciphertexts.
         :returns: The encrypted text.
         """
@@ -56,23 +57,37 @@ class AESCipher:
         decrypted_text = decryptor.update(ct) + decryptor.finalize()
         return (unpadder.update(decrypted_text) + unpadder.finalize()).decode("utf-8")
 
+    _IV_DERIVATION_LABEL = b"presidio-anonymizer/deterministic-iv"
+
     @staticmethod
     def _derive_iv(key: bytes, encoded_text: bytes) -> bytes:
         """
         Derive a synthetic IV (SIV) from the encryption key and the text.
 
-        The IV is an HMAC keyed with the encryption key rather than a bare hash
-        of the plaintext: an unkeyed digest would be reproducible by anyone, so
-        an attacker could confirm a guessed value straight from the IV, without
-        the key. Keying it means only a key holder can reproduce the IV, and the
-        ciphertext therefore leaks equality between values and nothing else.
+        The IV is keyed rather than a bare hash of the plaintext: an unkeyed
+        digest would be reproducible by anyone, so an attacker could confirm a
+        guessed value straight from the IV, without holding the key.
+
+        The key that keys it is a separate one, derived from the encryption key
+        under a fixed label, so that the key driving AES is not also used to
+        produce a value published in the clear. RFC 5297 separates the two keys
+        of SIV mode for the same reason.
+
+        What a deterministic ciphertext still reveals is which values are equal,
+        and so how often each value occurs, on top of the approximate length
+        CBC padding reveals either way.
         :param key: AES encryption key in bytes.
         :param encoded_text: The UTF-8 encoded text for encryption.
         :returns: A 16 byte IV, identical for the same key and text.
         """
+        iv_key = AESCipher._hmac_sha256(key, AESCipher._IV_DERIVATION_LABEL)
+        return AESCipher._hmac_sha256(iv_key, encoded_text)[:16]
+
+    @staticmethod
+    def _hmac_sha256(key: bytes, message: bytes) -> bytes:
         mac = hmac.HMAC(key, hashes.SHA256())
-        mac.update(encoded_text)
-        return mac.finalize()[:16]
+        mac.update(message)
+        return mac.finalize()
 
     @staticmethod
     def is_valid_key_size(key: bytes) -> bool:

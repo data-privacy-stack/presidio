@@ -337,11 +337,13 @@ result = engine.anonymize(
 print(result.text)
 ```
 
-The IV is a synthetic IV: an HMAC-SHA256 of the value, keyed with the encryption key and
-truncated to 16 bytes. It is deliberately not a plain hash of the value, which anyone
-could recompute to confirm a guess; only a holder of the key can reproduce it. The output
-format does not change, so `decrypt` restores deterministically encrypted values exactly
-as it restores randomly encrypted ones.
+The IV is a synthetic IV: an HMAC-SHA256 of the value, truncated to 16 bytes, keyed with a
+subkey derived from the encryption key rather than with the encryption key itself — the key
+that drives AES does not also produce a value published in the clear, which is the same
+separation RFC 5297 makes for SIV mode. It is deliberately not a plain hash of the value,
+which anyone could recompute to confirm a guess; only a holder of the key can reproduce it.
+The output format does not change, so `decrypt` restores deterministically encrypted values
+exactly as it restores randomly encrypted ones.
 
 !!! warning "Deterministic encryption leaks equality"
     - Identical values produce identical ciphertexts **by design**. Anyone holding the

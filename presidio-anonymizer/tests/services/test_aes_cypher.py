@@ -87,9 +87,12 @@ def test_given_deterministic_then_iv_is_keyed_and_not_a_bare_hash_of_the_text():
     encrypted_text = AESCipher.encrypt(key, text, deterministic=True)
     iv = base64.urlsafe_b64decode(encrypted_text)[:16]
 
-    assert iv == hmac.new(key, encoded_text, sha256).digest()[:16]
+    iv_key = hmac.new(key, b"presidio-anonymizer/deterministic-iv", sha256).digest()
+    assert iv == hmac.new(iv_key, encoded_text, sha256).digest()[:16]
     # An unkeyed digest would let anyone confirm a guessed value from the IV.
     assert iv != sha256(encoded_text).digest()[:16]
+    # And the key driving AES does not also key the value published in the clear.
+    assert iv != hmac.new(key, encoded_text, sha256).digest()[:16]
 
 
 def test_given_invalid_key_length_then_value_error_raised():
