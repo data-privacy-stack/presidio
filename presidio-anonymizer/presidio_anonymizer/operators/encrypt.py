@@ -3,7 +3,10 @@ from typing import Dict
 from presidio_anonymizer.entities import InvalidParamError
 from presidio_anonymizer.operators import Operator, OperatorType
 from presidio_anonymizer.operators.aes_cipher import AESCipher
-from presidio_anonymizer.services.validators import validate_parameter, validate_type
+from presidio_anonymizer.services.validators import (
+    validate_parameter,
+    validate_type_strict,
+)
 
 
 class Encrypt(Operator):
@@ -43,7 +46,9 @@ class Encrypt(Operator):
                               are equal to one another.
         :raises InvalidParamException: in case on an invalid parameter.
         """
-        validate_type(params.get(self.DETERMINISTIC), self.DETERMINISTIC, bool)
+        validate_type_strict(
+            params.get(self.DETERMINISTIC), self.DETERMINISTIC, bool
+        )
         key = params.get(self.KEY)
         if isinstance(key, str):
             validate_parameter(key, self.KEY, str)

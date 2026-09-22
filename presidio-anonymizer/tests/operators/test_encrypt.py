@@ -39,6 +39,17 @@ def test_given_verifying_an_valid_length_bytes_key_no_exceptions_raised():
     Encrypt().validate(params={"key": b'1111111111111111'})
 
 
+@pytest.mark.parametrize("value", [0, "", [], "true", 1])
+def test_given_a_falsy_or_non_boolean_deterministic_then_ipe_raised(value):
+    # `validate_type` skips falsy values, so these would otherwise be read as
+    # False and the caller would silently get random IVs instead of an error.
+    with pytest.raises(
+        InvalidParamError,
+        match="Invalid parameter value for deterministic.",
+    ):
+        Encrypt().validate(params={"key": "1111111111111111", "deterministic": value})
+
+
 def test_given_verifying_an_invalid_length_key_then_ipe_raised():
     with pytest.raises(
         InvalidParamError,

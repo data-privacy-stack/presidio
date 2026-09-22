@@ -354,6 +354,11 @@ exactly as it restores randomly encrypted ones.
     - Keep `deterministic` consistent across calls for the same key. Mixing the two modes
       produces both stable and random ciphertexts for the same value, so the references
       will not line up.
+    - `encrypt` is AES-CBC without a MAC in either mode, so a ciphertext is confidential
+      but not authenticated: a party who can modify stored values can alter them
+      undetectably, and `decrypt` will return whatever comes out. That is unchanged by
+      this option, but it is worth knowing before ciphertexts become dataset keys that
+      other systems join on.
 
 ## Handling overlaps between entities
 
