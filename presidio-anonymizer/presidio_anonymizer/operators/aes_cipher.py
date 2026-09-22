@@ -1,7 +1,7 @@
 import base64
 import os
 
-from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives import hashes, hmac, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
@@ -9,19 +9,28 @@ class AESCipher:
     """Advanced Encryption Standard (aka Rijndael) en/decryption in CBC mode."""
 
     @staticmethod
-    def encrypt(key: bytes, text: str) -> str:
+    def encrypt(key: bytes, text: str, deterministic: bool = False) -> str:
         """
         Encrypts a text using AES cypher in CBC mode.
 
-        Uses padding and random IV.
+        Uses padding and, by default, a random IV.
         :param key: AES encryption key in bytes.
         :param text: The text for encryption.
+        :param deterministic: Whether to derive the IV from the key and the text
+                              instead of drawing it at random, so that the same
+                              text always encrypts to the same value. This is an
+                              opt-in trade-off: it enables referential integrity
+                              across a dataset, but it leaks equality, since
+                              identical values become identical ciphertexts.
         :returns: The encrypted text.
         """
         encoded_text = text.encode("utf-8")
         padder = padding.PKCS7(algorithms.AES.block_size).padder()
         padded_text = padder.update(encoded_text) + padder.finalize()
-        iv = os.urandom(16)
+        if deterministic:
+            iv = AESCipher._derive_iv(key, encoded_text)
+        else:
+            iv = os.urandom(16)
         cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
         encryptor = cipher.encryptor()
         encrypted_text = base64.urlsafe_b64encode(
@@ -46,6 +55,25 @@ class AESCipher:
         unpadder = padding.PKCS7(128).unpadder()
         decrypted_text = decryptor.update(ct) + decryptor.finalize()
         return (unpadder.update(decrypted_text) + unpadder.finalize()).decode("utf-8")
+
+    @staticmethod
+    def _derive_iv(key: bytes, encoded_text: bytes) -> bytes:
+        """
+        Derive a synthetic IV (SIV) from the encryption key and the text.
+
+        The IV is an HMAC keyed with the encryption key rather than a bare hash
+        of the plaintext: an unkeyed digest would be reproducible by anyone, so
+        an attacker could confirm a guessed value straight from the IV, without
+        the key. Keying it means only a key holder can reproduce the IV, and the
+        ciphertext therefore leaks equality between values and nothing else.
+        :param key: AES encryption key in bytes.
+        :param encoded_text: The UTF-8 encoded text for encryption.
+        :returns: A 16 byte IV, identical for the same key and text.
+        """
+        mac = hmac.HMAC(key, hashes.SHA256())
+        mac.update(encoded_text)
+        return mac.finalize()[:16]
+
     @staticmethod
     def is_valid_key_size(key: bytes) -> bool:
         """
