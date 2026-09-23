@@ -108,6 +108,9 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         "DATE_TIME": "DATE_TIME",
     }
     DEFAULT_HF_TASK = "token-classification"
+    # Keys that transformers.pipeline() accepts as top-level arguments and also
+    # forwards itself to from_pretrained(); they must not be inside model_kwargs.
+    TORCH_PIPELINE_HUB_KWARGS = ("revision", "token", "trust_remote_code")
 
     def __init__(
         self,
@@ -165,18 +168,24 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             - "torch" (default): PyTorch via transformers pipeline.
               Requires: torch, transformers.
             - "ort": ONNX Runtime via optimum.
-              Requires: optimum, optimum-onnx[onnxruntime].
+              Requires: optimum, optimum-onnx[onnxruntime]. optimum itself
+              depends on torch, so torch is installed either way.
               For NVIDIA GPU, install `onnxruntime-gpu` and pass
               `provider="CUDAExecutionProvider"` via model_kwargs.
         :param model_kwargs: Additional keyword arguments forwarded to the
-            underlying model loader.
-            For the "torch" backend, passed to `transformers.pipeline` as
-            `model_kwargs=`. For "ort", passed to
-            `ORTModel.from_pretrained` directly (so they scope to the model
-            loader only — important for mixed-layout repos where ONNX is
-            under `onnx/` but the tokenizer/config are at the repo root).
-            Use this for e.g. `file_name`, `subfolder`, `revision`,
-            `cache_dir`, `provider`, `provider_options`, `session_options`.
+            underlying model loader. Which keys are valid depends on the
+            backend:
+            - Both backends: `revision`, `token`, `trust_remote_code`,
+              `cache_dir`, `subfolder`, `local_files_only`.
+            - "ort" only: `file_name`, `provider`, `provider_options`,
+              `session_options`, `export`.
+            For "torch", `revision`, `token` and `trust_remote_code` are
+            passed to `transformers.pipeline` as top-level arguments and the
+            rest as `model_kwargs=`. For "ort", everything is passed to
+            `ORTModel.from_pretrained` directly, so the keys scope to the
+            model loader only. This matters for mixed-layout repos where
+            ONNX files live under `onnx/` while tokenizer and config live at
+            the repo root.
         :raises ValueError: If `backend` is not one of "torch" or "ort".
         :raises ImportError: If required libraries for the chosen backend
             are not installed.
@@ -353,6 +362,17 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             f"backend=torch, device={device}"
         )
 
+        # transformers.pipeline() spreads its own hub kwargs (revision, token,
+        # trust_remote_code) next to model_kwargs when loading config and
+        # model, so passing them inside model_kwargs raises "multiple values
+        # for keyword argument". Lift them to top-level pipeline() arguments.
+        model_kwargs = dict(self.model_kwargs)
+        hub_kwargs = {
+            key: model_kwargs.pop(key)
+            for key in self.TORCH_PIPELINE_HUB_KWARGS
+            if key in model_kwargs
+        }
+
         try:
             self.ner_pipeline = hf_pipeline(
                 self.DEFAULT_HF_TASK,
@@ -360,7 +380,8 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
                 tokenizer=self.tokenizer_name,
                 aggregation_strategy=self.aggregation_strategy,
                 device=device,
-                model_kwargs=self.model_kwargs or None,
+                model_kwargs=model_kwargs or None,
+                **hub_kwargs,
             )
             logger.info(f"Successfully loaded {self.model_name}")
         except Exception:

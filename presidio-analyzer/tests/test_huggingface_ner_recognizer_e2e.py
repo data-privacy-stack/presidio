@@ -23,7 +23,14 @@ from presidio_analyzer.predefined_recognizers import (
     HuggingFaceNerRecognizer,
 )
 
+pytestmark = pytest.mark.hub
+
 TINY_MODEL = "hf-internal-testing/tiny-random-bert"
+# Hub repos are mutable; pin the revisions the assertions were written against.
+DEID_TORCH_MODEL = "StanfordAIMI/stanford-deidentifier-base"
+DEID_TORCH_REVISION = "661b9c1c717d3165512d440abc3700c386aefab6"
+DEID_ORT_MODEL = "onnx-community/stanford-deidentifier-base-ONNX"
+DEID_ORT_REVISION = "a20d96e28778e6da0aadb27cb107653fac7b77f3"
 TINY_TEXT = "John Smith works at Contoso in Berlin since 2019."
 # Random-weight model emits LABEL_0/LABEL_1; map both so output is non-empty.
 TINY_LABEL_MAPPING = {"LABEL_0": "PERSON", "LABEL_1": "LOCATION"}
@@ -60,9 +67,7 @@ def test_hf_recognizer_e2e_ort_backend():
     The repo has no .onnx weights, so this also exercises optimum's
     export-on-the-fly path (export=True forwarded via **model_kwargs).
     """
-    pytest.importorskip(
-        "optimum.onnxruntime", reason="optimum-onnx is not installed"
-    )
+    pytest.importorskip("optimum.onnxruntime", reason="optimum-onnx is not installed")
 
     rec = HuggingFaceNerRecognizer(
         model_name=TINY_MODEL,
@@ -78,9 +83,7 @@ def test_hf_recognizer_e2e_ort_backend():
 def test_hf_recognizer_e2e_torch_and_ort_agree_on_spans():
     """Both backends run the same model; spans and scores should match."""
     pytest.importorskip("torch", reason="torch is not installed")
-    pytest.importorskip(
-        "optimum.onnxruntime", reason="optimum-onnx is not installed"
-    )
+    pytest.importorskip("optimum.onnxruntime", reason="optimum-onnx is not installed")
 
     common = dict(
         model_name=TINY_MODEL,
@@ -129,9 +132,10 @@ def test_hf_recognizer_e2e_torch_stanford_deidentifier():
     pytest.importorskip("torch", reason="torch is not installed")
 
     rec = HuggingFaceNerRecognizer(
-        model_name="StanfordAIMI/stanford-deidentifier-base",
+        model_name=DEID_TORCH_MODEL,
         backend="torch",
         device="cpu",
+        revision=DEID_TORCH_REVISION,
         label_mapping=DEID_LABEL_MAPPING,
         threshold=0.5,
     )
@@ -147,13 +151,12 @@ def test_hf_recognizer_e2e_ort_mixed_layout_repo():
     requires subfolder/file_name to be scoped to the model loader only —
     regression coverage for the pipeline-level kwarg leak.
     """
-    pytest.importorskip(
-        "optimum.onnxruntime", reason="optimum-onnx is not installed"
-    )
+    pytest.importorskip("optimum.onnxruntime", reason="optimum-onnx is not installed")
 
     rec = HuggingFaceNerRecognizer(
-        model_name="onnx-community/stanford-deidentifier-base-ONNX",
+        model_name=DEID_ORT_MODEL,
         backend="ort",
+        revision=DEID_ORT_REVISION,
         subfolder="onnx",
         # INT8 variant: same detections as model.onnx on this text, but a
         # 105MB download instead of 416MB (matters in CI, no HF cache there).

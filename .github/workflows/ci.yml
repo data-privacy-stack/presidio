@@ -132,6 +132,15 @@ jobs:
             uv-${{ runner.os }}-${{ matrix.component.path }}-py${{ matrix.python-version }}-
             uv-${{ runner.os }}-${{ matrix.component.path }}-
 
+      - name: Cache HuggingFace Hub downloads
+        if: matrix.component.name == 'Analyzer'
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
+        with:
+          path: ~/.cache/huggingface
+          # Models are pinned by revision in the tests; bump the suffix to
+          # invalidate when a test changes which model or revision it needs.
+          key: hf-hub-${{ runner.os }}-v1
+
       - name: Install system dependencies for Image Redactor
         if: matrix.component.name == 'Image Redactor'
         run: |

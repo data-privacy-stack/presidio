@@ -488,14 +488,46 @@ def test_hf_recognizer_forwards_extra_kwargs_as_model_kwargs():
             "revision": "main",
             "cache_dir": "/tmp/cache",
         }
+        # transformers.pipeline() forwards revision/token/trust_remote_code
+        # itself, so they must be top-level arguments, not inside model_kwargs.
         mock_hf_pipeline.assert_called_once_with(
             "token-classification",
             model="test-model",
             tokenizer="test-model",
             aggregation_strategy="simple",
             device=-1,
-            model_kwargs={"revision": "main", "cache_dir": "/tmp/cache"},
+            model_kwargs={"cache_dir": "/tmp/cache"},
+            revision="main",
         )
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_torch_hub_kwargs_lifted_out_of_model_kwargs():
+    """revision/token/trust_remote_code go to pipeline() directly.
+
+    Regression: passing them inside model_kwargs makes transformers raise
+    "got multiple values for keyword argument".
+    """
+    with patch(HF_PIPELINE_PATH, new=MagicMock()) as mock_hf_pipeline:
+        rec = HuggingFaceNerRecognizer(
+            model_name="test-model",
+            device=-1,
+            revision="abc123",
+            token="hf_xxx",
+            trust_remote_code=True,
+        )
+
+        _, kwargs = mock_hf_pipeline.call_args
+        assert kwargs["model_kwargs"] is None
+        assert kwargs["revision"] == "abc123"
+        assert kwargs["token"] == "hf_xxx"
+        assert kwargs["trust_remote_code"] is True
+        # The recognizer keeps the original kwargs untouched.
+        assert rec.model_kwargs == {
+            "revision": "abc123",
+            "token": "hf_xxx",
+            "trust_remote_code": True,
+        }
 
 
 @pytest.mark.usefixtures("mock_torch_installed")
@@ -795,31 +827,6 @@ def test_hf_recognizer_torch_backend_no_torch_raises():
             with pytest.raises(ImportError, match="torch is not installed"):
                 HuggingFaceNerRecognizer(model_name="test-model", backend="torch")
 
-
-@pytest.mark.usefixtures("mock_torch_installed")
-def test_hf_recognizer_ort_backend_no_torch_ok():
-    """Test that ort backend works without torch installed."""
-    mock_optimum = MagicMock()
-    mock_ort_model_cls = MagicMock()
-    with patch(HF_PIPELINE_PATH, new=MagicMock()):
-        with patch(
-            "presidio_analyzer.predefined_recognizers.ner."
-            "huggingface_ner_recognizer.torch",
-            None,
-        ):
-            with patch(
-                "presidio_analyzer.predefined_recognizers.ner."
-                "huggingface_ner_recognizer.optimum_pipeline",
-                mock_optimum,
-            ):
-                with patch(
-                    "optimum.onnxruntime.ORTModelForTokenClassification",
-                    mock_ort_model_cls,
-                ):
-                    rec = HuggingFaceNerRecognizer(
-                        model_name="test-model", backend="ort"
-                    )
-                    assert rec.backend == "ort"
 
 
 @pytest.mark.usefixtures("mock_torch_installed")

@@ -11,11 +11,18 @@ when constructing the recognizer in Python:
   Intel CPU/iGPU/NPU, and Apple Silicon, by selecting an ONNX Runtime
   *execution provider*.
 
-Any extra keyword arguments (e.g. `file_name`, `subfolder`, `provider`,
-`provider_options`, `revision`) — whether passed in Python or as extra
+Any extra keyword arguments — whether passed in Python or as extra
 fields in the YAML — are captured into `**model_kwargs` and forwarded to
 the underlying loader. You do not need to edit the recognizer to plumb
-new knobs.
+new knobs. Which keys are valid depends on the backend:
+
+| Key | `torch` | `ort` |
+|-----|---------|-------|
+| `revision`, `token`, `trust_remote_code`, `cache_dir`, `subfolder`, `local_files_only` | yes | yes |
+| `file_name`, `provider`, `provider_options`, `session_options`, `export` | no | yes |
+
+Passing an ort-only key to the torch backend raises a `TypeError` from
+transformers at load time.
 
 The examples below use YAML (the
 [recognizer registry configuration](recognizer_registry_provider.md));
