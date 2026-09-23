@@ -8,6 +8,7 @@ directory. Assertions describe the observable result of each user action.
 """
 
 import argparse
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -155,6 +156,46 @@ def run_huggingface_workflow(directory: Path) -> None:
     )
 
 
+def run_langextract_workflow(directory: Path) -> None:
+    """Edit and load a LangExtract provider file without making a service request."""
+    from presidio_analyzer.predefined_recognizers import BasicLangExtractRecognizer
+
+    configuration = yaml.safe_load(
+        BasicLangExtractRecognizer.DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")
+    )
+    provider = configuration["langextract"]["model"]["provider"]
+    provider["language_model_params"]["timeout"] = 12
+    model_path = directory / "langextract-model.yaml"
+    model_path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    registry_path = directory / "langextract-registry.yaml"
+    registry_path.write_text(
+        yaml.safe_dump(
+            {
+                "supported_languages": ["en"],
+                "recognizers": [
+                    {
+                        "name": "BasicLangExtractRecognizer",
+                        "config_path": str(model_path),
+                        "unused_setting": True,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", DeprecationWarning)
+        registry = RecognizerRegistryProvider(
+            conf_file=registry_path
+        ).create_recognizer_registry()
+    recognizer = registry.recognizers[0]
+    assert recognizer.provider_kwargs["timeout"] == 12
+    assert any("unused_setting" in str(item.message) for item in caught)
+    print(
+        "PASS: LangExtract provider-file edit and ignored-key diagnostic, no service call"
+    )
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -166,6 +207,11 @@ def main() -> None:
         action="store_true",
         help="Use a pinned cached HuggingFace model",
     )
+    parser.add_argument(
+        "--langextract",
+        action="store_true",
+        help="Check provider config without service calls",
+    )
     args = parser.parse_args()
     with TemporaryDirectory(prefix="presidio-config-workflows-") as directory:
         run_default_workflow(Path(directory))
@@ -173,6 +219,8 @@ def main() -> None:
             run_gliner_workflow(Path(directory))
         if args.huggingface:
             run_huggingface_workflow(Path(directory))
+        if args.langextract:
+            run_langextract_workflow(Path(directory))
 
 
 if __name__ == "__main__":

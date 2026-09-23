@@ -574,9 +574,9 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
         and cls.__name__ in r.getMessage()
         and "'context'" in r.getMessage()
     ]
-    if not accepts_context:
+    if not accepts_context or cls.__name__ in CONTEXT_NOT_APPLIED:
         assert instance.context == [], (
-            f"{cls.__name__}: does not accept context, so the instance must "
+            f"{cls.__name__}: does not apply context, so the instance must "
             f"keep the base-class default"
         )
         assert context_warnings, (
@@ -587,10 +587,9 @@ def test_synthetic_entry_round_trips_to_every_concrete_class(
         assert not context_warnings, (
             f"{cls.__name__}: accepts context but the loader warned anyway"
         )
-        if cls.__name__ not in CONTEXT_NOT_APPLIED:
-            assert instance.context == ["zeta"], (
-                f"{cls.__name__}: context did not reach the constructed instance"
-            )
+        assert instance.context == ["zeta"], (
+            f"{cls.__name__}: context did not reach the constructed instance"
+        )
     assert instance.score_thresholds == {"default": 0.42}
 
 

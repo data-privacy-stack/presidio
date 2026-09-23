@@ -205,3 +205,18 @@ the real model without network access, run from `presidio-analyzer`:
 ```bash
 HF_HUB_OFFLINE=1 uv run python ../docs/samples/python/recognizer_config_workflows.py --huggingface
 ```
+
+## LangExtract provider options
+
+LangExtract recognizers read model and extraction settings from their own file,
+selected by `config_path`. Configure `langextract.model.provider.kwargs`,
+`langextract.model.provider.language_model_params`, and
+`langextract.model.provider.extract_params` there, not as extra registry keys.
+Unsupported flat options on `BasicLangExtractRecognizer` are still ignored during
+the compatibility period, with a deprecation warning. Its `context` argument is
+also not applied; contextual guidance belongs in the prompt file.
+
+The workflow script's `--langextract` option exercises editing this provider file
+and loading it through registry YAML. It needs the `langextract` extra but makes
+no LLM or service request. Detection with synthetic SDK responses is covered by
+the corresponding unit tests.
