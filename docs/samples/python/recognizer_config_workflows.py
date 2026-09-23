@@ -351,6 +351,28 @@ def run_pattern_workflow(directory: Path) -> None:
     print("PASS: override predefined patterns, preserve checksum, reject invalid edit")
 
 
+def run_validation_workflow(directory: Path) -> None:
+    """Lint an edited file, fix the reported key, and revalidate without loading."""
+    from presidio_analyzer.input_validation import validate_registry_config
+
+    path = directory / "validate.yaml"
+    config = {
+        "strict": True,
+        "recognizers": [{"name": "CreditCardRecognizer", "replacement_paris": []}],
+    }
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    errors = validate_registry_config(path)
+    assert len(errors) == 1
+    assert errors[0].path == ("recognizers", 0, "replacement_paris")
+    assert "replacement_pairs" in errors[0].message
+    entry = config["recognizers"][0]
+    entry["replacement_pairs"] = entry.pop("replacement_paris")
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    assert validate_registry_config(path) == []
+    assert validate_registry_config(directory / "missing.yaml")[0].code == "file_read"
+    print("PASS: dry-run diagnostics, fix the reported key, revalidate without models")
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -374,6 +396,7 @@ def main() -> None:
         run_identity_workflow(Path(directory))
         run_factory_workflow(Path(directory))
         run_pattern_workflow(Path(directory))
+        run_validation_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
         if args.huggingface:

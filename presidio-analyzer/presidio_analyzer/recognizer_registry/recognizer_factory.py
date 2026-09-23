@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Type
 
 from presidio_analyzer import EntityRecognizer, Pattern, PatternRecognizer
+from presidio_analyzer._configuration_errors import ConfigValidationError
 from presidio_analyzer.input_validation.recognizer_configuration import (
     constructor_parameters,
     required_constructor_parameters,
@@ -104,13 +105,17 @@ class RecognizerFactory:
         if languages is None:
             languages = ["en"]
         specs = []
-        entries = [
-            {"name": entry, "type": "predefined"} if isinstance(entry, str) else entry
-            for entry in config["recognizers"]
-        ]
+        entries = list(
+            enumerate(
+                {"name": entry, "type": "predefined"}
+                if isinstance(entry, str)
+                else entry
+                for entry in config["recognizers"]
+            )
+        )
         # Keep the historical predefined-before-custom registry ordering.
-        entries.sort(key=lambda entry: entry["type"] == "custom")
-        for entry in entries:
+        entries.sort(key=lambda item: item[1]["type"] == "custom")
+        for entry_index, entry in entries:
             if not entry.get("enabled", True):
                 continue
             custom = entry["type"] == "custom"
@@ -164,9 +169,17 @@ class RecognizerFactory:
                         location = (
                             f" at position {position}" if position is not None else ""
                         )
-                        raise ValueError(
+                        raise ConfigValidationError(
                             f"{recognizer_cls.__name__}: invalid patterns[{index}] "
-                            f"regex syntax{location}; correct the pattern definition."
+                            f"regex syntax{location}; correct the pattern definition.",
+                            code="pattern_regex",
+                            path=(
+                                "recognizers",
+                                entry_index,
+                                "patterns",
+                                index,
+                                "regex",
+                            ),
                         ) from None
                 missing = [
                     key
@@ -174,9 +187,11 @@ class RecognizerFactory:
                     if key not in kwargs
                 ]
                 if missing:
-                    raise ValueError(
+                    raise ConfigValidationError(
                         f"{recognizer_cls.__name__} requires constructor settings "
-                        f"after language/entity normalization: {missing}"
+                        f"after language/entity normalization: {missing}",
+                        code="missing_setting",
+                        path=("recognizers", entry_index, missing[0]),
                     )
                 attributes = {
                     key: values[key]

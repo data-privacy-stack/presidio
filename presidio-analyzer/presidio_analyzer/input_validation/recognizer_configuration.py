@@ -9,6 +9,7 @@ from typing import Any, Dict, Type
 
 from pydantic import BaseModel, ConfigDict, create_model
 
+from presidio_analyzer._configuration_errors import ConfigValidationError
 from presidio_analyzer._model_options import validate_model_options, warn_legacy_options
 
 logger = logging.getLogger("presidio-analyzer")
@@ -119,6 +120,10 @@ def parse_recognizer_config(
     """
     model = derive_config_model(recognizer_cls, custom)
     values = dict(values)
+    if any(not isinstance(key, str) for key in values):
+        raise ConfigValidationError(
+            "Recognizer keys must be strings", code="mapping_keys"
+        )
     if not custom and "name" not in values:
         from .recognizer_identity import default_recognizer_name
 
@@ -139,7 +144,9 @@ def parse_recognizer_config(
         if suggestions:
             message += f" Did you mean: {suggestions}?"
         if strict:
-            raise ValueError(message)
+            raise ConfigValidationError(
+                message, code="unknown_key", path=(sorted(unknown)[0],)
+            )
         extras = {key: values.pop(key) for key in unknown}
         if legacy == "model_kwargs":
             validate_model_options(
@@ -172,7 +179,9 @@ def parse_recognizer_config(
             not in ("supported_entity", "supported_entities", "supported_language")
         ]
         if missing:
-            raise ValueError(
-                f"{recognizer_cls.__name__} requires constructor settings: {missing}"
+            raise ConfigValidationError(
+                f"{recognizer_cls.__name__} requires constructor settings: {missing}",
+                code="missing_setting",
+                path=(missing[0],),
             )
     return model(**values)

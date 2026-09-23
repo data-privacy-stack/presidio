@@ -77,6 +77,36 @@ patterns replace, rather than extend, the class's default list. Without explicit
 `type: predefined`, patterns/deny-lists still infer custom type, even when
 `class_name` metadata is present. This preserves existing configuration meaning.
 
+## Validate without loading models
+
+```python
+from presidio_analyzer.input_validation import validate_registry_config
+
+errors = validate_registry_config("recognizers.yaml", strict=True)
+for error in errors:
+    print(error.path, error.code, error.message)
+```
+
+The function accepts a file path or a complete registry dictionary and returns
+`list[ConfigError]`; an empty list means valid configuration. It checks the same
+schemas and normalized specs as construction, including regex syntax and duplicate
+identities, without constructing recognizers, tokenizers or external models.
+It does not check model availability, credentials, external service settings or
+whether opaque library options are accepted by a particular library version.
+
+`path` is a tuple of keys and zero-based list indices, such as
+`("recognizers", 0, "model_kwargs")`. `code` is a diagnostic category and `message`
+does not include input values or arbitrary custom-validator exception text.
+Independent invalid entries are reported together. Built-in errors include
+unknown-key/class suggestions, missing settings, option collisions and thresholds;
+untrusted custom-validator messages become a generic diagnostic.
+
+Missing files, malformed YAML and invalid roots produce diagnostics rather than
+loading the shipped defaults. `strict=None` keeps the file's policy; `strict=True`
+rejects unknown recognizer keys. Without strict mode, deprecated/ignored keys still
+emit compatibility warnings and are not returned as errors. Unexpected programming
+exceptions are not swallowed.
+
 ## Configuration file structure
 
 ```yaml

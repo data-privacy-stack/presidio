@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from difflib import get_close_matches
 from pathlib import Path
 from typing import (
     Any,
@@ -18,6 +19,7 @@ from typing import (
 import yaml
 
 from presidio_analyzer import EntityRecognizer
+from presidio_analyzer._configuration_errors import ConfigValidationError
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -25,7 +27,9 @@ logger = logging.getLogger("presidio-analyzer")
 class PredefinedRecognizerNotFoundError(Exception):
     """Exception raised when a predefined recognizer is not found."""
 
-    pass
+    def __init__(self, message: str = "", suggestions: Iterable[str] = ()):
+        super().__init__(message)
+        self.suggestions = tuple(suggestions)
 
 
 # Module path segment that identifies country-specific recognizers. Matches
@@ -208,6 +212,16 @@ class RecognizerListLoader:
 
         :param recognizer_name: The name of the recognizer.
         """
+        import presidio_analyzer
+        import presidio_analyzer.predefined_recognizers as predefined
+
+        if isinstance(recognizer_name, str):
+            for module in (presidio_analyzer, predefined):
+                candidate = getattr(module, recognizer_name, None)
+                if isinstance(candidate, type) and issubclass(
+                    candidate, EntityRecognizer
+                ):
+                    return candidate
         all_existing_recognizers = RecognizerListLoader.get_all_existing_recognizers()
         for recognizer in all_existing_recognizers:
             if recognizer_name == recognizer.__name__:
@@ -215,7 +229,16 @@ class RecognizerListLoader:
 
         raise PredefinedRecognizerNotFoundError(
             f"Recognizer of name {recognizer_name} was not found in the "
-            f"list of recognizers inheriting the EntityRecognizer class"
+            f"list of recognizers inheriting the EntityRecognizer class",
+            suggestions=(
+                get_close_matches(
+                    recognizer_name,
+                    sorted(cls.__name__ for cls in all_existing_recognizers),
+                    n=3,
+                )
+                if isinstance(recognizer_name, str)
+                else ()
+            ),
         )
 
     @staticmethod
@@ -368,9 +391,12 @@ class RecognizerListLoader:
             return
 
         if not isinstance(yaml_country, str) or not yaml_country.strip():
-            raise ValueError(
+            raise ConfigValidationError(
                 f"Recognizer {recognizer_name!r}: YAML ``country_code`` must be "
-                f"a non-empty string, got {yaml_country!r}."
+                f"a non-empty string, got {yaml_country!r}.",
+                code="country_code",
+                path=("country_code",),
+                safe_message="country_code must be a non-empty string.",
             )
 
         normalized_yaml = yaml_country.strip().lower()
@@ -384,21 +410,29 @@ class RecognizerListLoader:
         )
 
         if cls_country is None:
-            raise ValueError(
+            raise ConfigValidationError(
                 f"Recognizer {recognizer_name!r}: YAML declares "
                 f"``country_code: {normalized_yaml!r}`` but the recognizer "
                 f"class {recognizer_cls.__name__} has no ``COUNTRY_CODE`` "
                 f"attribute. Set ``COUNTRY_CODE = {normalized_yaml!r}`` on "
-                f"the class, or remove the YAML field."
+                f"the class, or remove the YAML field.",
+                code="country_code",
+                path=("country_code",),
+                safe_message="This predefined class has no COUNTRY_CODE; "
+                "remove country_code from the entry or declare it on the class.",
             )
 
         if cls_country != normalized_yaml:
-            raise ValueError(
+            raise ConfigValidationError(
                 f"Recognizer {recognizer_name!r}: YAML "
                 f"``country_code: {normalized_yaml!r}`` disagrees with "
                 f"class-level ``{recognizer_cls.__name__}.COUNTRY_CODE = "
                 f"{raw_class_code!r}``. The class attribute is the source "
-                f"of truth — update one to match the other."
+                f"of truth — update one to match the other.",
+                code="country_code",
+                path=("country_code",),
+                safe_message="country_code must match the recognizer class's "
+                f"COUNTRY_CODE ({cls_country}).",
             )
 
     @staticmethod

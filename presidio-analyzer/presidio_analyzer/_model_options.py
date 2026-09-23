@@ -5,6 +5,8 @@ import logging
 import warnings
 from typing import Any, Dict, Mapping, Optional
 
+from presidio_analyzer._configuration_errors import ConfigValidationError
+
 logger = logging.getLogger("presidio-analyzer")
 
 
@@ -37,27 +39,38 @@ def validate_model_options(
         if options is None:
             continue
         if not isinstance(options, dict):
-            raise ValueError(f"{block} must be a dictionary")
+            raise ConfigValidationError(
+                f"{block} must be a dictionary", code="option_block", path=(block,)
+            )
         if any(not isinstance(key, str) for key in options):
-            raise ValueError(f"{block} keys must be strings")
+            raise ConfigValidationError(
+                f"{block} keys must be strings", code="option_block", path=(block,)
+            )
         overlap = set(options) & ((named - set(blocks)) | set(reserved.get(block, ())))
         if overlap:
-            raise ValueError(
+            raise ConfigValidationError(
                 f"{recognizer_cls.__name__}.{block} repeats named or reserved "
                 f"arguments: {sorted(overlap)}. Configure named settings at the "
-                "recognizer level; invocation arguments cannot be overridden."
+                "recognizer level; invocation arguments cannot be overridden.",
+                code="option_collision",
+                path=(block,),
             )
     duplicate = set(legacy_kwargs or {}) & set(blocks.get("model_kwargs") or {})
     if duplicate:
-        raise ValueError(
+        raise ConfigValidationError(
             f"Options appear both at the top level and in model_kwargs: "
-            f"{sorted(duplicate)}. Keep each option in model_kwargs only."
+            f"{sorted(duplicate)}. Keep each option in model_kwargs only.",
+            code="option_collision",
+            path=("model_kwargs",),
         )
     legacy_overlap = set(legacy_kwargs or {}) & set(reserved.get("model_kwargs", ()))
     if legacy_overlap:
-        raise ValueError(
+        raise ConfigValidationError(
             f"{recognizer_cls.__name__} received reserved flat model options: "
-            f"{sorted(legacy_overlap)}. Use the corresponding named recognizer setting."
+            f"{sorted(legacy_overlap)}. Use the corresponding named "
+            "recognizer setting.",
+            code="option_collision",
+            path=("model_kwargs",),
         )
 
 

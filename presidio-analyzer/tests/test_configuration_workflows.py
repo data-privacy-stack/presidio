@@ -25,6 +25,7 @@ def test_configuration_workflow_script_completes_without_external_models():
         "PASS: derive model names, reject ambiguity, rename and reload",
         "PASS: switch provider, YAML and dict APIs with identical detections",
         "PASS: override predefined patterns, preserve checksum, reject invalid edit",
+        "PASS: dry-run diagnostics, fix the reported key, revalidate without models",
     ]
 
 

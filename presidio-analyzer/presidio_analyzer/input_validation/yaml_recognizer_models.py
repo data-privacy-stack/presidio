@@ -12,6 +12,7 @@ from pydantic import (
     model_validator,
 )
 
+from presidio_analyzer._configuration_errors import ConfigValidationError
 from presidio_analyzer._model_options import validate_model_options
 from presidio_analyzer.input_validation import validate_language_codes
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
@@ -648,7 +649,7 @@ class RecognizerRegistryConfig(BaseModel):
 
         parsed_recognizers = []
         explicit_names = []
-        for recognizer in recognizers:
+        for entry_index, recognizer in enumerate(recognizers):
             explicit_names.append(
                 isinstance(recognizer, str)
                 or (
@@ -688,6 +689,12 @@ class RecognizerRegistryConfig(BaseModel):
                     # Prioritize class_name for lookup
                     # (e.g., custom instance of HuggingFaceNerRecognizer)
                     config_model_key = recognizer_class_name or recognizer_name
+                    if config_model_key is None:
+                        raise ConfigValidationError(
+                            "Recognizer requires 'name' or 'class_name'",
+                            code="missing_setting",
+                            path=(entry_index, "class_name"),
+                        )
 
                     from .recognizer_configuration import parse_recognizer_config
 
@@ -698,8 +705,15 @@ class RecognizerRegistryConfig(BaseModel):
                             )
                         )
                     except PredefinedRecognizerNotFoundError as exc:
-                        raise ValueError(
-                            f"Predefined recognizer '{config_model_key}' not found"
+                        raise ConfigValidationError(
+                            f"Predefined recognizer '{config_model_key}' not found",
+                            code="unknown_class",
+                            path=("class_name",),
+                            safe_message=(
+                                "Unknown recognizer class; use class_name with a "
+                                "registered implementation. "
+                                f"Suggestions: {list(exc.suggestions)}."
+                            ),
                         ) from exc
                     parsed_recognizers.append(
                         parse_recognizer_config(
@@ -726,7 +740,11 @@ class RecognizerRegistryConfig(BaseModel):
                     )
                 continue
 
-            parsed_recognizers.append(recognizer)
+            raise ConfigValidationError(
+                "Recognizer entry must be a class name or mapping",
+                code="entry_type",
+                path=(entry_index,),
+            )
 
         from .recognizer_identity import validate_registry_identities
 
