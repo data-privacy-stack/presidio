@@ -40,7 +40,7 @@ def validate_model_options(
             raise ValueError(f"{block} must be a dictionary")
         if any(not isinstance(key, str) for key in options):
             raise ValueError(f"{block} keys must be strings")
-        overlap = set(options) & (named | set(reserved.get(block, ())))
+        overlap = set(options) & ((named - set(blocks)) | set(reserved.get(block, ())))
         if overlap:
             raise ValueError(
                 f"{recognizer_cls.__name__}.{block} repeats named or reserved "

@@ -220,6 +220,12 @@ class HuggingFaceRecognizerConfig(PredefinedRecognizerConfig):
     model_config = ConfigDict(extra="allow")
 
     model_name: Optional[str] = Field(None, description="HuggingFace model name")
+    model_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to transformers.pipeline"
+    )
+    predict_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to the pipeline call per chunk"
+    )
     tokenizer_name: Optional[str] = Field(
         None, description="HuggingFace tokenizer name"
     )
@@ -245,6 +251,18 @@ class HuggingFaceRecognizerConfig(PredefinedRecognizerConfig):
         if isinstance(v, dict):
             return TextChunkerConfig(**v)
         return v
+
+    @model_validator(mode="after")
+    def validate_library_option_blocks(self):
+        """Reject ambiguous options while parsing, before loading the model."""
+        recognizer_cls = RecognizerListLoader.get_existing_recognizer_cls(
+            self.class_name or self.name
+        )
+        validate_model_options(
+            recognizer_cls,
+            {"model_kwargs": self.model_kwargs, "predict_kwargs": self.predict_kwargs},
+        )
+        return self
 
     def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
         """Serialize the config without None values by default.

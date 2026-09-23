@@ -157,3 +157,51 @@ run:
 ```bash
 uv run python ../docs/samples/python/recognizer_config_workflows.py
 ```
+
+## HuggingFace library options
+
+`HuggingFaceNerRecognizer` accepts two explicit dictionaries:
+
+- `model_kwargs` supplies keyword arguments to `transformers.pipeline`, for
+  example `revision`, `token`, or `trust_remote_code`.
+- `predict_kwargs` supplies keyword arguments to each pipeline prediction call,
+  for example `ignore_labels`, `batch_size`, or `stride`.
+
+```yaml
+supported_languages: [en]
+recognizers:
+  - name: HuggingFaceNerRecognizer
+    model_name: example/ner-model
+    device: cpu
+    model_kwargs:
+      revision: your-pinned-model-revision
+      trust_remote_code: false
+      model_kwargs:
+        local_files_only: true
+    predict_kwargs:
+      ignore_labels: [O]
+      batch_size: 1
+```
+
+These blocks also work in Python. Their contents must be supported by the
+installed Transformers version. A block cannot repeat named recognizer settings
+such as `device` or `aggregation_strategy`, or invocation arguments such as
+`model`, `tokenizer`, `task`, or `inputs`. `device_map` is rejected because it
+conflicts with Presidio's named `device` setting.
+
+Transformers also has its own `model_kwargs` argument for options sent to
+`from_pretrained`. The nested dictionary above supplies that argument; block
+container names are allowed as library options and do not shadow named settings.
+
+Legacy unsupported flat options remain ignored with a deprecation warning.
+When a non-empty `predict_kwargs` block is used, library prediction errors
+propagate instead of being converted to an empty detection result.
+Existing no-block behavior is unchanged.
+
+The workflow script has an opt-in `--huggingface` scenario using a pinned,
+previously downloaded `StanfordAIMI/stanford-deidentifier-base` model. To exercise
+the real model without network access, run from `presidio-analyzer`:
+
+```bash
+HF_HUB_OFFLINE=1 uv run python ../docs/samples/python/recognizer_config_workflows.py --huggingface
+```

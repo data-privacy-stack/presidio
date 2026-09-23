@@ -106,17 +106,73 @@ def run_gliner_workflow(directory: Path) -> None:
     print("PASS: GLiNER YAML blocks, cached-model detection, exact spans and scores")
 
 
+def run_huggingface_workflow(directory: Path) -> None:
+    """Exercise pipeline loading and prediction options with a pinned real model."""
+    import torch
+
+    torch.manual_seed(0)
+    path = directory / "huggingface.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "supported_languages": ["en"],
+                "recognizers": [
+                    {
+                        "name": "HuggingFaceNerRecognizer",
+                        "model_name": "StanfordAIMI/stanford-deidentifier-base",
+                        "device": "cpu",
+                        "label_mapping": {
+                            "PATIENT": "PERSON",
+                            "HCW": "PERSON",
+                            "HOSPITAL": "ORGANIZATION",
+                            "DATE": "DATE_TIME",
+                            "PHONE": "PHONE_NUMBER",
+                            "VENDOR": "ORGANIZATION",
+                            "ID": "ID",
+                        },
+                        "model_kwargs": {
+                            "revision": "661b9c1c717d3165512d440abc3700c386aefab6",
+                            "trust_remote_code": False,
+                            "model_kwargs": {"local_files_only": True},
+                        },
+                        "predict_kwargs": {"ignore_labels": ["O"], "batch_size": 1},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    analyzer = load_analyzer(path)
+    recognizer = analyzer.registry.recognizers[0]
+    text = "Patient Evelyn Johnson was seen today."
+    baseline = recognizer.ner_pipeline(text, ignore_labels=["O"], batch_size=1)
+    results = analyzer.analyze(text, language="en")
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("PERSON", 8, 22)]
+    assert [r.score for r in results] == [float(p["score"]) for p in baseline]
+    assert analyzer.analyze("No entities in this sentence.", language="en") == []
+    print(
+        "PASS: HuggingFace YAML blocks, pinned-model detection, exact spans and scores"
+    )
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--gliner", action="store_true", help="Use a real cached GLiNER model"
     )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Use a pinned cached HuggingFace model",
+    )
     args = parser.parse_args()
     with TemporaryDirectory(prefix="presidio-config-workflows-") as directory:
         run_default_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
+        if args.huggingface:
+            run_huggingface_workflow(Path(directory))
 
 
 if __name__ == "__main__":
