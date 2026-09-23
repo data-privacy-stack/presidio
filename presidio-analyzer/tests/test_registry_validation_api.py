@@ -224,6 +224,97 @@ def test_duplicate_valid_entries_are_reported_alongside_an_invalid_entry():
         ("unknown_key", ("recognizers", 0, "typo")),
         ("duplicate_identity", ("recognizers", 2)),
     ]
+    assert errors[1].message == (
+        "Duplicate recognizer identity; choose distinct names for each language."
+    )
+
+
+@pytest.mark.parametrize("explicit_first", [False, True])
+def test_repeated_model_path_identifies_the_entry_needing_a_name(explicit_first):
+    models = [
+        {"class_name": "GLiNERRecognizer", "model_name": "example/model"},
+        {
+            "class_name": "GLiNERRecognizer",
+            "model_name": "example/model",
+            "name": "another-model",
+        },
+    ]
+    if explicit_first:
+        models.reverse()
+    config = {
+        "strict": True,
+        "recognizers": [{"name": "IpRecognizer", "typo": 1}, *models],
+    }
+    errors = validate(config)
+    implicit_index = 2 if explicit_first else 1
+    assert [(error.code, error.path) for error in errors] == [
+        ("unknown_key", ("recognizers", 0, "typo")),
+        ("repeated_model", ("recognizers", implicit_index)),
+    ]
+    assert errors[1].message == (
+        "Repeated models require explicit unique names on every instance."
+    )
+    entry = config["recognizers"][errors[1].path[1]]
+    assert "name" not in entry
+    entry["name"] = "named-model"
+    config["recognizers"][0].pop("typo")
+    assert validate(config) == []
+
+
+def test_duplicate_language_diagnostic_omits_single_entry_indices():
+    errors = validate(
+        {
+            "recognizers": [
+                "CreditCardRecognizer",
+                {
+                    "name": "IpRecognizer",
+                    "supported_languages": ["en", "en"],
+                },
+            ],
+        }
+    )
+    assert [(error.code, error.path) for error in errors] == [
+        ("duplicate_identity", ("recognizers", 1)),
+    ]
+    assert errors[0].message == (
+        "Duplicate language codes; remove repetitions from the entry or registry."
+    )
+
+
+@pytest.mark.parametrize(
+    "entries,message",
+    [
+        (
+            ["CreditCardRecognizer", "CreditCardRecognizer"],
+            "entries 0 and 1; choose distinct names.",
+        ),
+        (
+            [
+                {"class_name": "GLiNERRecognizer", "model_name": "example/model"},
+                {
+                    "class_name": "GLiNERRecognizer",
+                    "model_name": "example/model",
+                    "name": "another-model",
+                },
+            ],
+            "Repeated model for GLiNERRecognizer at entries 0 and 1 for "
+            "language en requires explicit unique names on every instance.",
+        ),
+        (
+            [{"name": "IpRecognizer", "supported_languages": ["en", "en"]}],
+            "Duplicate recognizer language en at entry 0; "
+            "remove repeated language codes from the entry or registry.",
+        ),
+    ],
+)
+def test_provider_keeps_existing_identity_exception_text(entries, message):
+    from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+
+    with pytest.raises(ValueError) as caught:
+        RecognizerRegistryProvider(
+            registry_configuration={"recognizers": entries}
+        ).create_recognizer_registry()
+    assert message in str(caught.value.__cause__)
 
 
 def test_builtin_class_resolution_uses_the_public_export_after_reload(monkeypatch):

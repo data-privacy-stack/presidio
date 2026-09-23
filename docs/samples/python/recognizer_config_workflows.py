@@ -373,6 +373,62 @@ def run_validation_workflow(directory: Path) -> None:
     assert validate_registry_config(directory / "missing.yaml")[0].code == "file_read"
     print("PASS: dry-run diagnostics, fix the reported key, revalidate without models")
 
+    config = {
+        "strict": True,
+        "recognizers": [
+            {"name": "IpRecognizer", "typo": 1},
+            "CreditCardRecognizer",
+            "CreditCardRecognizer",
+        ],
+    }
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    errors = validate_registry_config(path)
+    assert [(error.code, error.path) for error in errors] == [
+        ("unknown_key", ("recognizers", 0, "typo")),
+        ("duplicate_identity", ("recognizers", 2)),
+    ]
+    assert errors[1].message == (
+        "Duplicate recognizer identity; choose distinct names for each language."
+    )
+    typo, duplicate = errors
+    config["recognizers"][typo.path[1]].pop(typo.path[2])
+    config["recognizers"][duplicate.path[1]] = {
+        "class_name": "CreditCardRecognizer",
+        "name": "secondary_card",
+    }
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    assert validate_registry_config(path) == []
+    assert [
+        (result.entity_type, result.start, result.end, result.score)
+        for result in load_analyzer(path).analyze(
+            "Card 4111111111111111.", language="en"
+        )
+    ] == [("CREDIT_CARD", 5, 21, 1.0)]
+    config = {
+        "strict": True,
+        "recognizers": [
+            {"name": "IpRecognizer", "typo": 1},
+            {"class_name": "GLiNERRecognizer", "model_name": "example/model"},
+            {
+                "class_name": "GLiNERRecognizer",
+                "model_name": "example/model",
+                "name": "another-model",
+            },
+        ],
+    }
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    errors = validate_registry_config(path)
+    assert [(error.code, error.path) for error in errors] == [
+        ("unknown_key", ("recognizers", 0, "typo")),
+        ("repeated_model", ("recognizers", 1)),
+    ]
+    typo, unnamed = errors
+    config["recognizers"][typo.path[1]].pop(typo.path[2])
+    config["recognizers"][unnamed.path[1]]["name"] = "named-model"
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    assert validate_registry_config(path) == []
+    print("PASS: locate independent errors, fix original entries, reload and detect")
+
 
 def run_schema_export_workflow(directory: Path) -> None:
     """Export an editor schema and correct an option rejected by that schema."""

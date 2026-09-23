@@ -27,6 +27,7 @@ def test_configuration_workflow_script_completes_without_external_models():
         "PASS: switch provider, YAML and dict APIs with identical detections",
         "PASS: override predefined patterns, preserve checksum, reject invalid edit",
         "PASS: dry-run diagnostics, fix the reported key, revalidate without models",
+        "PASS: locate independent errors, fix original entries, reload and detect",
     ]
 
 

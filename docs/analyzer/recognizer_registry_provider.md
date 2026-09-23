@@ -97,6 +97,9 @@ whether opaque library options are accepted by a particular library version.
 `path` is a tuple of keys and zero-based list indices, such as
 `("recognizers", 0, "model_kwargs")`. `code` is a diagnostic category and `message`
 does not include input values or arbitrary custom-validator exception text.
+Use `path` for original-file locations; identity messages do not repeat entry
+numbers that could refer to a separately validated subset.
+Repeated-model errors point to an instance that still needs an explicit name.
 Independent invalid entries are reported together. Built-in errors include
 unknown-key/class suggestions, missing settings, option collisions and thresholds;
 untrusted custom-validator messages become a generic diagnostic.

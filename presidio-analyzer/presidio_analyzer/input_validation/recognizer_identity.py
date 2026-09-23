@@ -88,6 +88,10 @@ def validate_registry_identities(
                         "remove repeated language codes from the entry or registry.",
                         code="duplicate_identity",
                         path=(index,),
+                        safe_message=(
+                            "Duplicate language codes; remove repetitions from "
+                            "the entry or registry."
+                        ),
                     )
                 raise ConfigValidationError(
                     f"Duplicate recognizer name {entry['name']!r} for language "
@@ -96,8 +100,8 @@ def validate_registry_identities(
                     code="duplicate_identity",
                     path=(index,),
                     safe_message=(
-                        f"Duplicate recognizer identity at entries {names[name_key]} "
-                        f"and {index}; choose distinct names for each language."
+                        "Duplicate recognizer identity; choose distinct names "
+                        "for each language."
                     ),
                 )
             names[name_key] = index
@@ -111,10 +115,10 @@ def validate_registry_identities(
                         f"language {language} requires explicit unique names on "
                         "every instance.",
                         code="repeated_model",
-                        path=(index,),
+                        path=(index if not explicit_name else previous[0],),
                         safe_message=(
-                            "Repeated models require explicit unique names on every "
-                            f"instance (entries {previous[0]} and {index})."
+                            "Repeated models require explicit unique names "
+                            "on every instance."
                         ),
                     )
                 models[model_key] = (index, explicit_name)
