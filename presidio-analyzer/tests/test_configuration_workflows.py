@@ -1,5 +1,6 @@
 """Keep the executable, model-free user workflow sample covered by CI."""
 
+import os
 import subprocess
 import sys
 from importlib.util import find_spec
@@ -46,4 +47,33 @@ def test_langextract_workflow_checks_configuration_without_a_service():
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.splitlines()[-1] == (
         "PASS: LangExtract provider-file edit and ignored-key diagnostic, no service call"
+    )
+
+
+@pytest.mark.skipif(
+    find_spec("flask") is None, reason="Flask server extra not installed"
+)
+def test_rest_workflow_uses_real_analyzer_and_anonymizer_routes():
+    root = Path(__file__).resolve().parents[2]
+    script = root / "docs/samples/python/recognizer_config_workflows.py"
+    environment = {
+        **os.environ,
+        "PYTHONPATH": os.pathsep.join(
+            [
+                str(root / "presidio-analyzer"),
+                str(root / "presidio-anonymizer"),
+            ]
+        ),
+    }
+    result = subprocess.run(
+        [sys.executable, str(script), "--rest"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=environment,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.splitlines()[-1] == (
+        "PASS: reload YAML, analyze batch over HTTP, override threshold, "
+        "anonymize output"
     )

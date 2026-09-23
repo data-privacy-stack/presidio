@@ -393,6 +393,121 @@ def run_schema_export_workflow(directory: Path) -> None:
     print("PASS: export editor schema, reject typo, correct and validate configuration")
 
 
+def run_rest_workflow(directory: Path) -> None:
+    """Exercise real HTTP routes with YAML reloads and no external services."""
+    import importlib.util
+    import os
+    import sys
+    from unittest.mock import patch
+
+    root = Path(__file__).resolve().parents[3]
+
+    def make_app(component):
+        module_name = "_workflow_" + component.replace("-", "_")
+        app_path = root / component / "app.py"
+        if not app_path.is_file():
+            raise FileNotFoundError(
+                "The --rest workflow requires a complete Presidio checkout "
+                "containing the Analyzer and Anonymizer applications"
+            )
+        spec = importlib.util.spec_from_file_location(module_name, app_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("Cannot load the workflow's HTTP application")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        try:
+            spec.loader.exec_module(module)
+            return module.Server().app
+        finally:
+            sys.modules.pop(module_name, None)
+
+    path = directory / "http-analyzer.yaml"
+    entry = {"class_name": "WorkflowRecognizer", "score_thresholds": {"default": 0.7}}
+    configuration = {
+        "supported_languages": ["en"],
+        "nlp_configuration": {
+            "nlp_engine_name": "no_op",
+            "models": [{"lang_code": "en", "model_name": "no_op"}],
+        },
+        "recognizer_registry": {"recognizers": [entry]},
+    }
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    with patch.dict(
+        os.environ,
+        {
+            "ANALYZER_CONF_FILE": str(path),
+            "NLP_CONF_FILE": "",
+            "RECOGNIZER_REGISTRY_CONF_FILE": "",
+            "LOG_LEVEL": "ERROR",
+            "BATCH_SIZE": "500",
+            "N_PROCESS": "1",
+        },
+    ):
+        client = make_app("presidio-analyzer").test_client()
+        response = client.post(
+            "/analyze", json={"text": "Record REF1234.", "language": "en"}
+        )
+        assert response.status_code == 200
+        assert response.get_json() == []
+
+        response = client.post(
+            "/analyze",
+            json={"text": "Record REF1234.", "language": "en", "score_threshold": 0.6},
+        )
+        assert response.status_code == 200
+        assert [
+            (item["entity_type"], item["start"], item["end"], item["score"])
+            for item in response.get_json()
+        ] == [("WORKFLOW_REFERENCE", 7, 14, 0.65)]
+        response = client.post(
+            "/analyze",
+            json={
+                "text": ["Record REF1234.", "Record REF123X."],
+                "language": "en",
+                "score_threshold": 0.6,
+            },
+        )
+        assert response.status_code == 200
+        detections = response.get_json()
+        assert [
+            (item["entity_type"], item["start"], item["end"], item["score"])
+            for item in detections[0]
+        ] == [("WORKFLOW_REFERENCE", 7, 14, 0.65)]
+        assert detections[1] == []
+
+        entry["score_thresholds"] = {"default": 0.6}
+        path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+        client = make_app("presidio-analyzer").test_client()
+        response = client.post(
+            "/analyze",
+            json={"text": ["Record REF1234.", "Record REF123X."], "language": "en"},
+        )
+        assert response.status_code == 200
+        detections = response.get_json()
+        assert [
+            (item["entity_type"], item["start"], item["end"], item["score"])
+            for item in detections[0]
+        ] == [("WORKFLOW_REFERENCE", 7, 14, 0.65)]
+        assert detections[1] == []
+        response = client.post(
+            "/analyze",
+            json={"text": "Record REF1234.", "language": "en", "score_threshold": 0.7},
+        )
+        assert response.status_code == 200
+        assert response.get_json() == []
+        anonymizer = make_app("presidio-anonymizer").test_client()
+        response = anonymizer.post(
+            "/anonymize",
+            json={"text": "Record REF1234.", "analyzer_results": detections[0]},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["text"] == "Record <WORKFLOW_REFERENCE>."
+    print(
+        "PASS: reload YAML, analyze batch over HTTP, override threshold, "
+        "anonymize output"
+    )
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -403,6 +518,11 @@ def main() -> None:
         "--huggingface",
         action="store_true",
         help="Use a pinned cached HuggingFace model",
+    )
+    parser.add_argument(
+        "--rest",
+        action="store_true",
+        help="Use local Analyzer/Anonymizer HTTP apps (requires server dependencies)",
     )
     parser.add_argument(
         "--schema",
@@ -424,6 +544,8 @@ def main() -> None:
         run_validation_workflow(Path(directory))
         if args.schema:
             run_schema_export_workflow(Path(directory))
+        if args.rest:
+            run_rest_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
         if args.huggingface:

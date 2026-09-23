@@ -141,6 +141,22 @@ uv run python ../docs/samples/python/generate_recognizer_config_reference.py --c
 uv run python ../docs/samples/python/recognizer_config_workflows.py --schema
 ```
 
+## In-process HTTP workflow
+
+The workflow sample can also exercise the real Analyzer and Anonymizer Flask
+routes in-process, without Docker or network calls. It loads and edits analyzer
+YAML, verifies single/batch detection and request-level threshold overrides in
+both directions, then passes the returned JSON into anonymization. This checks application behavior,
+not container image/build configuration.
+
+From a complete checkout with analyzer server/dev dependencies installed:
+
+```bash
+cd presidio-analyzer
+PYTHONPATH=.:../presidio-anonymizer uv run --no-sync python \
+  ../docs/samples/python/recognizer_config_workflows.py --rest
+```
+
 ## Configuration file structure
 
 ```yaml
