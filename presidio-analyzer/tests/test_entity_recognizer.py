@@ -1,8 +1,47 @@
 # ruff: noqa: D103,E501,I001
 
+import random
+import time
+
 import pytest
 
 from presidio_analyzer import AnalysisExplanation, EntityRecognizer, RecognizerResult
+
+
+def _rr(start, end, score, entity_type="x"):
+    return RecognizerResult(
+        start=start,
+        end=end,
+        score=score,
+        entity_type=entity_type,
+        analysis_explanation=AnalysisExplanation(
+            recognizer="test",
+            original_score=0,
+            pattern_name="test",
+            pattern="test",
+            validation_result=None,
+        ),
+    )
+
+
+def _oracle_remove_duplicates(results):
+    """Inline O(n^2) replica of the pre-perf-patch remove_duplicates."""
+    deduped = sorted(
+        list(set(results)), key=lambda x: (-x.score, x.start, -(x.end - x.start))
+    )
+    filtered = []
+    for result in deduped:
+        if result.score == 0:
+            continue
+        to_keep = result not in filtered
+        if to_keep:
+            for kept in filtered:
+                if result.contained_in(kept) and result.entity_type == kept.entity_type:
+                    to_keep = False
+                    break
+        if to_keep:
+            filtered.append(result)
+    return filtered
 
 
 def test_when_to_dict_then_return_correct_dictionary():
@@ -124,10 +163,58 @@ def test_when_remove_duplicates_contained_shorter_length_results_removed():
     results = EntityRecognizer.remove_duplicates(arr)
     assert len(results) == 1
 
+
+def test_remove_duplicates_equivalence():
+    # contained same-type dropped (higher-score outer kept)
+    results = EntityRecognizer.remove_duplicates([_rr(0, 10, 0.9), _rr(2, 5, 0.5)])
+    assert [(r.start, r.end, r.score) for r in results] == [(0, 10, 0.9)]
+
+    # contained cross-type kept
+    results = EntityRecognizer.remove_duplicates(
+        [_rr(0, 10, 0.9, "x"), _rr(2, 5, 0.5, "y")]
+    )
+    assert len(results) == 2
+
+    # equal-span lower-score dropped
+    results = EntityRecognizer.remove_duplicates([_rr(0, 5, 0.9), _rr(0, 5, 0.1)])
+    assert len(results) == 1
+    assert results[0].score == 0.9
+
+    # score-0 dropped
+    results = EntityRecognizer.remove_duplicates([_rr(0, 5, 0.5), _rr(20, 25, 0)])
+    assert [(r.start, r.end) for r in results] == [(0, 5)]
+
+    # small deterministic fuzz vs inline O(n^2) oracle
+    rng = random.Random(2279)
+    for _ in range(50):
+        inputs = []
+        for _ in range(30):
+            start = rng.randint(0, 50)
+            end = start + rng.randint(1, 15)
+            score = rng.choice([0, 0.1, 0.5, 0.9, 1.0])
+            entity_type = rng.choice(["x", "y"])
+            inputs.append(_rr(start, end, score, entity_type))
+        expected = _oracle_remove_duplicates(inputs)
+        actual = EntityRecognizer.remove_duplicates(inputs)
+        assert [(r.start, r.end, r.score, r.entity_type) for r in actual] == [
+            (r.start, r.end, r.score, r.entity_type) for r in expected
+        ]
+
+
+def test_remove_duplicates_perf_smoke():
+    results = [_rr(i * 10, i * 10 + 5, 0.5) for i in range(5000)]
+    started = time.perf_counter()
+    filtered = EntityRecognizer.remove_duplicates(results)
+    elapsed = time.perf_counter() - started
+    assert len(filtered) == 5000
+    assert elapsed < 2.0
+
+
 sanitizer_test_set = [
     ["  a|b:c       ::-", [("-", ""), (" ", ""), (":", ""), ("|", "")], "abc"],
     ["def", "", "def"],
 ]
+
 
 @pytest.mark.parametrize("input_text, params, expected_output", sanitizer_test_set)
 def test_sanitize_value(input_text, params, expected_output):

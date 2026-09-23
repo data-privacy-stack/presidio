@@ -278,8 +278,15 @@ class EntityRecognizer:
         """
         Remove duplicate results.
 
-        Remove duplicates in case the two results
-        have identical start and ends and types.
+        Candidates are visited in score-priority order (highest score
+        first, then earliest start, then longest span). A candidate is
+        dropped when it is contained in (or equal-spanned to) an
+        already-kept result of the same entity type, so the
+        highest-priority span wins and lower-score equal-span duplicates
+        are dropped. Containment is only compared within the same
+        entity type: same-span or contained spans of a different entity
+        type are kept. Results with a score of 0 are skipped. Exact
+        duplicates (start, end, score, entity type) are dropped first.
         :param results: List[RecognizerResult]
         :return: List[RecognizerResult]
         """
