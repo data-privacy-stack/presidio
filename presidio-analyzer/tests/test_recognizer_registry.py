@@ -217,7 +217,7 @@ def test_when_remove_pattern_recognizer_then_item_removed():
 
 
 def test_add_recognizer_from_dict():
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["de"])
     recognizer = {
         "name": "Zip code Recognizer",
         "supported_language": "de",
@@ -240,7 +240,7 @@ def test_add_recognizer_from_dict():
 def test_add_recognizer_from_dict_attaches_thresholds_without_mutating_input(
     monkeypatch,
 ):
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["de"])
     recognizer = {
         "name": "Zip code Recognizer",
         "supported_language": "de",
@@ -284,7 +284,7 @@ def test_add_recognizers_from_yaml_attaches_thresholds(tmp_path):
     ZIP: 0.7
 """
     )
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["de"])
 
     registry.add_recognizers_from_yaml(yaml_path)
 
@@ -395,7 +395,7 @@ def test_add_recognizer_from_dict_keeps_own_thresholds_when_key_omitted(monkeypa
         "from_dict",
         staticmethod(lambda config: RecognizerWithOwnThresholds()),
     )
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["de"])
 
     registry.add_pattern_recognizer_from_dict(
         {
@@ -429,7 +429,7 @@ def test_recognizer_registry_add_from_yaml_file():
     this_path = Path(__file__).parent.absolute()
     test_yaml = Path(this_path, "conf/recognizers.yaml")
 
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["en", "de"])
     registry.add_recognizers_from_yaml(test_yaml)
 
     assert len(registry.recognizers) == 2

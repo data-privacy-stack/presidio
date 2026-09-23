@@ -16,7 +16,10 @@ import yaml
 
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer
 from presidio_analyzer.nlp_engine import NoOpNlpEngine
-from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+from presidio_analyzer.recognizer_registry import (
+    RecognizerRegistry,
+    RecognizerRegistryProvider,
+)
 
 
 class WorkflowRecognizer(PatternRecognizer):
@@ -274,6 +277,46 @@ def run_identity_workflow(directory: Path) -> None:
     print("PASS: derive model names, reject ambiguity, rename and reload")
 
 
+def run_factory_workflow(directory: Path) -> None:
+    """Switch an existing configuration between provider, file and dict APIs."""
+    path = directory / "entry-points.yaml"
+    entry = {
+        "name": "reference",
+        "supported_entities": ["WORKFLOW_REFERENCE"],
+        "deny_list": ["REF1234"],
+        "deny_list_score": 0.65,
+        "context": ["reference"],
+        "supported_languages": ["en"],
+        "score_thresholds": {"default": 0.6},
+    }
+    path.write_text(
+        yaml.safe_dump({"supported_languages": ["en"], "recognizers": [entry]}),
+        encoding="utf-8",
+    )
+    provider_registry = RecognizerRegistryProvider(
+        conf_file=path
+    ).create_recognizer_registry()
+    yaml_registry = RecognizerRegistry()
+    yaml_registry.add_recognizers_from_yaml(path)
+    dict_registry = RecognizerRegistry()
+    dict_registry.add_pattern_recognizer_from_dict(entry)
+    for registry in (provider_registry, yaml_registry, dict_registry):
+        assert registry.recognizers[0].context == ["reference"]
+        assert registry.recognizers[0].score_thresholds == {"default": 0.6}
+        analyzer = AnalyzerEngine(
+            registry=registry,
+            nlp_engine=NoOpNlpEngine(
+                models=[{"lang_code": "en", "model_name": "no_op"}]
+            ),
+        )
+        assert [
+            (r.start, r.end, r.score)
+            for r in analyzer.analyze("Record REF1234.", language="en")
+        ] == [(7, 14, 0.65)]
+        assert analyzer.analyze("Record REF123X.", language="en") == []
+    print("PASS: switch provider, YAML and dict APIs with identical detections")
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -295,6 +338,7 @@ def main() -> None:
         run_default_workflow(Path(directory))
         run_schema_workflow(Path(directory))
         run_identity_workflow(Path(directory))
+        run_factory_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
         if args.huggingface:

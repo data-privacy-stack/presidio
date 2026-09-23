@@ -17,6 +17,55 @@ results = analyzer.analyze(text="My name is Morris", language="en")
 print(results)
 ```
 
+## Shared construction
+
+`RecognizerRegistryProvider`, `RecognizerListLoader.get`,
+`RecognizerRegistry.add_recognizers_from_yaml`, and
+`RecognizerRegistry.add_pattern_recognizer_from_dict` now use the same
+`RecognizerFactory`. The legacy method names and signatures remain available.
+The YAML method supports predefined recognizers as well as custom patterns.
+
+The add methods validate the entire addition and reject duplicate identities
+against the current registry before constructing any new recognizer. A construction
+failure leaves the registry unchanged. They use the registry's languages and regex
+flags when the file omits those settings; explicit file settings take precedence.
+Entries with no language expand across the registry languages (the old add path
+created only an English recognizer). Omitted custom names default to
+`PatternRecognizer`; name multiple custom entries explicitly to avoid collisions.
+Unlike the old pattern-only add path, configured languages are now filtered.
+For example, create `RecognizerRegistry(supported_languages=["en", "de"])` before
+adding English and German entries without a top-level language declaration.
+
+For compatibility, the add methods still accept empty additions and unused
+top-level file metadata, now warning about ignored keys. `strict: true` rejects
+that metadata. In particular `supported_countries` in older example files is not
+a registry configuration filter; use the existing country-filtering APIs.
+Complete provider configurations still require a nonempty recognizer list and
+reject unknown top-level keys.
+
+Global context on a single-language entry now reaches that recognizer whether the
+language is a string or a language/context mapping. This fixes previously ignored
+context and can increase scores; the existing analysis explanation records the
+context contribution. Unsupported context on multi-entity recognizers remains
+ignored with a warning.
+
+Advanced callers can separate normalization from loading:
+
+```python
+from presidio_analyzer.recognizer_registry import RecognizerFactory
+
+specs = RecognizerFactory.create_specs(
+    {"recognizers": [{"class_name": "CreditCardRecognizer"}]}
+)
+# No recognizers, models or tokenizers have been constructed yet.
+recognizers = RecognizerFactory.build_all(specs)
+```
+
+`RecognizerSpec` contains one language, accepted constructor kwargs and present
+post-construction registry overrides. The existing
+`ConfigurationValidator.validate_recognizer_registry_configuration` still returns
+a dictionary for compatibility.
+
 ## Configuration file structure
 
 ```yaml
@@ -137,7 +186,7 @@ The singular `supported_language` selects exactly that language. An explicit emp
   In addition to the language code, this field also contains a list of context words, which increases confidence in the detection in case it is found in the surroundings of a detected entity (as seen in the credit card example above).
   - `type`: either predefined or custom. When omitted, `patterns` or `deny_list` implies custom; otherwise predefined.
   - `class_name`: selects the predefined Python implementation. When omitted, the legacy `name` field selects it.
-  - `name`: instance name used in results. Explicit names are preserved. With `class_name` and no `name`, the name is derived as `ClassName:model_name`, or just `ClassName` for a recognizer without a model. Custom recognizers still require a name.
+  - `name`: instance name used in results. Explicit names are preserved. With `class_name` and no `name`, the name is derived as `ClassName:model_name`, or just `ClassName` for a recognizer without a model. An unnamed custom recognizer defaults to `PatternRecognizer`.
   - `patterns`: a list of objects of type `Pattern` that contains a name, score and regex that define matching patterns.
   - `enabled`: enables or disables the recognizer.
   - `supported_entity`: the detected entity associated by the recognizer.

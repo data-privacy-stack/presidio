@@ -23,6 +23,7 @@ def test_configuration_workflow_script_completes_without_external_models():
     ] + [
         "PASS: unknown-key warning, strict rejection, correction and reload",
         "PASS: derive model names, reject ambiguity, rename and reload",
+        "PASS: switch provider, YAML and dict APIs with identical detections",
     ]
 
 

@@ -267,12 +267,7 @@ def _entry_language_configs(entry: Dict[str, Any]) -> List[Tuple[str, Any]]:
             f"loader indexes element 0 and would raise IndexError"
         )
     if isinstance(languages[0], str):
-        # Known loader behavior, mirrored rather than asserted against: for a
-        # bare list of language codes the loader sets context to None and
-        # discards any entry-level ``context``, even though BaseRecognizerConfig
-        # accepts that shape. No shipped entry combines the two, so nothing is
-        # lost today. See test_entry_context_is_dropped_for_bare_language_list.
-        return [(language, None) for language in languages]
+        return [(language, entry.get("context")) for language in languages]
     return [(item["language"], item.get("context")) for item in languages]
 
 
@@ -376,6 +371,7 @@ def test_shipped_entry_fields_reach_constructed_recognizer(
 # the rest); these are the exceptions that need a value with no usable
 # default.
 REQUIRED_KWARGS: Dict[str, Dict[str, Any]] = {
+    "LocalRecognizer": {"supported_entities": ["TEST"]},
     # No default endpoint; the constructor raises ValueError without one.
     "AzureOpenAILangExtractRecognizer": {
         "azure_endpoint": "https://example-resource.openai.azure.com/"
@@ -425,11 +421,6 @@ CONTEXT_NOT_APPLIED = {"BasicLangExtractRecognizer"}
 # entry at all, even with REQUIRED_KWARGS -- not a config-layer gap, but a
 # structural mismatch this suite cannot paper over:
 NOT_LOADABLE_AS_PREDEFINED_ENTRY = {
-    # Requires `supported_entities` positionally and implements neither
-    # `analyze` nor a real `load` -- a base class for subclassing
-    # (SpacyRecognizer, PatternRecognizer, ...), never meant to be named
-    # directly in configuration.
-    "LocalRecognizer",
     # Requires `supported_entity` and (`patterns` or `deny_list`)
     # positionally. The last two can only be set through a registry entry
     # with `type: custom` -- `RecognizerRegistryConfig.parse_recognizers`
@@ -478,7 +469,6 @@ def test_not_loadable_as_predefined_entry_names_only_real_classes():
 # registry entry, as proven below rather than only documented in the
 # set's own comment.
 NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS: Dict[str, Tuple[Type[Exception], str]] = {
-    "LocalRecognizer": (TypeError, "supported_entities"),
     "PatternRecognizer": (ValueError, "patterns or with deny list"),
     "ZaPhoneNumberRecognizer": (ValueError, "target_classification"),
 }
@@ -601,21 +591,8 @@ def test_context_not_applied_names_only_real_classes():
     assert CONTEXT_NOT_APPLIED <= names
 
 
-def test_entry_context_is_dropped_for_bare_language_list():
-    """Entry-level context is discarded for a bare list of language codes.
-
-    ``BaseRecognizerConfig`` accepts an entry that sets ``context`` alongside
-    ``supported_languages: [en]``, but ``_get_recognizer_languages`` returns
-    ``context: None`` for that shape and only ``_get_recognizer_context`` (the
-    no-``supported_languages`` path) reads the entry-level key, so the words
-    never reach the recognizer. Only the per-language form
-    (``{language, context}``) works.
-
-    This test pins today's behavior rather than asserting the contract: no
-    shipped entry combines the two keys, and changing the loader would alter
-    detection for anyone whose YAML relies on the current result. A later turn
-    that fixes the drop will fail here and update this test.
-    """
+def test_entry_context_reaches_recognizer_for_bare_language_list():
+    """Global context is preserved for a single bare-string language."""
     entry_context = ["zeta"]
     configuration = {
         "global_regex_flags": GLOBAL_REGEX_FLAGS,
@@ -638,15 +615,7 @@ def test_entry_context_is_dropped_for_bare_language_list():
         r for r in registry.recognizers if type(r).__name__ == "CreditCardRecognizer"
     ][0]
 
-    default_context = CreditCardRecognizer().context
-    assert instance.context == default_context, (
-        f"expected the entry-level context to be silently dropped (the "
-        f"instance keeps CreditCardRecognizer's own default, "
-        f"{default_context!r}), got {instance.context!r}. If this now equals "
-        f"{entry_context!r}, the silent drop this test documents has been "
-        f"fixed -- update this test to assert the contract instead of "
-        f"pinning the gap."
-    )
+    assert instance.context == entry_context
 
 
 def test_unknown_key_is_not_silent(caplog):
@@ -703,6 +672,7 @@ def test_unknown_key_is_not_silent(caplog):
 # so a schema default for one of them can never reach a constructor and is free
 # to differ.
 REGISTRY_ONLY_FIELDS = {
+    "name",  # Registry identity defaults are class-derived, not constructor literals.
     "enabled",
     "type",
     "class_name",

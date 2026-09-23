@@ -107,6 +107,7 @@ class ConfigurationValidator:
                 dumped_config["recognizers"].append(recognizer)
                 continue
             entry = {
+                "name": recognizer.name,
                 "type": recognizer.type,
                 "enabled": recognizer.enabled,
                 **recognizer.model_dump(exclude_unset=True),

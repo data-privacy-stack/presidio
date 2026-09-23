@@ -218,10 +218,11 @@ def test_loader_rejects_falsey_non_mapping_score_thresholds(score_thresholds):
         load_recognizers(config)
 
 
-def test_same_name_and_language_entries_keep_distinct_thresholds_and_ids():
+def test_distinct_names_keep_distinct_thresholds_and_ids():
     config = [
         {
-            "name": "CreditCardRecognizer",
+            "name": f"credit_card_{threshold}",
+            "class_name": "CreditCardRecognizer",
             "type": "predefined",
             "supported_language": "en",
             "score_thresholds": {"default": threshold},
@@ -235,7 +236,7 @@ def test_same_name_and_language_entries_keep_distinct_thresholds_and_ids():
         {"default": 0.4},
         {"default": 0.8},
     ]
-    assert recognizers[0].name == recognizers[1].name
+    assert recognizers[0].name != recognizers[1].name
     assert recognizers[0].supported_language == recognizers[1].supported_language
     assert recognizers[0].id != recognizers[1].id
 
@@ -288,24 +289,23 @@ def test_no_kwargs_signature_removes_both():
     assert "supported_entity" not in kwargs
 
 
-def test_var_kwargs_preserves_plural_but_drops_singular_for_safety():
-    """Test that plural is kept (compat) but singular is dropped (safety)."""
+def test_var_kwargs_without_a_declaring_parent_drops_both_entity_forms():
+    """A catch-all does not make unsupported registry options effective."""
     kwargs = prepare(
         recognizer_conf={"supported_entities": ["ENT"], "supported_entity": "X"},
         recognizer_cls=VarKwargsOnly,
     )
-    assert kwargs["supported_entities"] == ["ENT"]
-    assert "supported_entity" not in kwargs
-
-
-def test_uninspectable_signature_drops_entity_keys():
-    """Test that entity keys are dropped if signature inspection fails."""
-    kwargs = prepare(
-        recognizer_conf={"supported_entities": ["ENT"], "supported_entity": "X"},
-        recognizer_cls=Uninspectable,
-    )
     assert "supported_entities" not in kwargs
     assert "supported_entity" not in kwargs
+
+
+def test_uninspectable_non_callable_constructor_fails_explicitly():
+    """Invalid implementations must not produce success-shaped normalized kwargs."""
+    with pytest.raises(TypeError, match="not a callable object"):
+        prepare(
+            recognizer_conf={"supported_entities": ["ENT"], "supported_entity": "X"},
+            recognizer_cls=Uninspectable,
+        )
 
 
 def test_ineffective_entity_key_warns_for_class_defining_its_own_entities(caplog):
@@ -328,9 +328,7 @@ def test_ineffective_entity_key_warns_for_class_defining_its_own_entities(caplog
         "BasicLangExtractRecognizer" in m and "supported_entities" in m
         for m in warning_messages
     ), f"expected an ineffective-entity-key WARNING, got {warning_messages!r}"
-    # Unchanged behavior: supported_entities still reaches kwargs (the class
-    # accepts **kwargs and simply ignores it, using its config-file entities).
-    assert kwargs["supported_entities"] == ["X"]
+    assert "supported_entities" not in kwargs
 
 
 def test_context_dropped_with_warning_for_class_not_accepting_it(caplog):
@@ -793,7 +791,7 @@ def test_configuration_loader_bad_yaml_raises_value_error(tmp_path):
 def test_convert_supported_entities_to_entity_uses_first_item():
     """Test that supported_entities list is converted to single supported_entity."""
     conf = {"supported_entities": ["ENT1", "ENT2"]}
-    RecognizerListLoader._convert_supported_entities_to_entity(conf)
+    conf = prepare(recognizer_conf=conf, recognizer_cls=NoKwargsSingular)
 
     assert "supported_entities" not in conf
     assert conf["supported_entity"] == "ENT1"

@@ -404,6 +404,9 @@ class LangExtractRecognizerConfig(PredefinedRecognizerConfig):
 class CustomRecognizerConfig(BaseRecognizerConfig):
     """Configuration for custom pattern-based recognizers."""
 
+    name: str = Field(
+        default="PatternRecognizer", description="Instance name for custom patterns"
+    )
     type: str = Field(default="custom", description="Type of recognizer")
     supported_entity: str = Field(
         ..., description="Entity type this recognizer detects"
@@ -440,6 +443,20 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
 
     @model_validator(mode="before")
     @classmethod
+    def normalize_legacy_entities(cls, data: Any) -> Any:
+        """Accept the plural serialization form for a single-entity recognizer."""
+        if (
+            isinstance(data, dict)
+            and "supported_entity" not in data
+            and isinstance(data.get("supported_entities"), list)
+            and data["supported_entities"]
+        ):
+            data = dict(data)
+            data["supported_entity"] = data.pop("supported_entities")[0]
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
     def check_predefined_name_conflict(cls, data: Any) -> Any:
         """Check if custom recognizer name conflicts with predefined recognizer.
 
@@ -450,7 +467,13 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
             name = data.get("name")
             if name:
                 try:
-                    RecognizerListLoader.get_existing_recognizer_cls(name)
+                    from presidio_analyzer import PatternRecognizer
+
+                    if (
+                        RecognizerListLoader.get_existing_recognizer_cls(name)
+                        is PatternRecognizer
+                    ):
+                        return data
                     # If we reach here, the recognizer IS predefined, so raise an error
                     raise ValueError(
                         f"Recognizer '{name}' conflicts with a predefined "
@@ -490,7 +513,7 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
         if patterns and not isinstance(patterns, list):
             raise ValueError(f"Patterns should be a list: {patterns}")
 
-        for pattern in patterns:
+        for pattern in patterns or []:
             if not isinstance(pattern, dict):
                 raise ValueError(f"Pattern should be a dict: {pattern}")
             if "name" not in pattern:
@@ -521,7 +544,10 @@ class RecognizerRegistryConfig(BaseModel):
     supported_languages: Optional[List[str]] = Field(
         default=None, description="List of supported languages"
     )
-    global_regex_flags: int = Field(default=26, description="Global regex flags")
+    global_regex_flags: Optional[int] = Field(
+        default=26,
+        description="Global regex flags; None preserves constructor defaults",
+    )
     strict: bool = Field(
         default=False, description="Reject unknown recognizer configuration keys"
     )
@@ -700,7 +726,7 @@ class RecognizerRegistryConfig(BaseModel):
             (
                 {"name": entry, "type": "predefined"}
                 if isinstance(entry, str)
-                else entry.model_dump(exclude_unset=True),
+                else {"name": entry.name, **entry.model_dump(exclude_unset=True)},
                 explicit,
             )
             for entry, explicit in zip(parsed_recognizers, explicit_names)
@@ -715,7 +741,13 @@ class RecognizerRegistryConfig(BaseModel):
     @classmethod
     def __check_if_predefined(cls, recognizer_name: Optional[Any]) -> None:
         try:
-            RecognizerListLoader.get_existing_recognizer_cls(recognizer_name)
+            from presidio_analyzer import PatternRecognizer
+
+            if (
+                RecognizerListLoader.get_existing_recognizer_cls(recognizer_name)
+                is PatternRecognizer
+            ):
+                return
             raise ValueError(
                 f"Recognizer '{recognizer_name}' conflicts with a predefined "
                 f"recognizer. "

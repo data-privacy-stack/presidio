@@ -50,6 +50,26 @@ def derive_config_model(recognizer_cls: type, custom: bool = False) -> Type[Base
     return _derive_config_model(recognizer_cls, custom)
 
 
+def required_constructor_parameters(recognizer_cls: type) -> set:
+    """Return required keywords on the invoked constructor, not its parents.
+
+    A forwarding subclass may bind required parent arguments in its own body.
+
+    :param recognizer_cls: Recognizer implementation to inspect.
+    :return: Required keyword names visible to the caller.
+    """
+    return {
+        name
+        for name, parameter in inspect.signature(
+            recognizer_cls.__init__
+        ).parameters.items()
+        if name != "self"
+        and parameter.default is inspect.Parameter.empty
+        and parameter.kind
+        in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    }
+
+
 @lru_cache(maxsize=None)
 def _derive_config_model(recognizer_cls: type, custom: bool) -> Type[BaseModel]:
     from .yaml_recognizer_models import (
@@ -141,9 +161,8 @@ def parse_recognizer_config(
     if values.get("enabled", True):
         missing = [
             name
-            for name, parameter in constructor_parameters(recognizer_cls).items()
-            if parameter.default is inspect.Parameter.empty
-            and name not in values
+            for name in sorted(required_constructor_parameters(recognizer_cls))
+            if name not in values
             and name
             not in ("supported_entity", "supported_entities", "supported_language")
         ]
