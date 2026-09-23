@@ -111,6 +111,9 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
     # Keys that transformers.pipeline() accepts as top-level arguments and also
     # forwards itself to from_pretrained(); they must not be inside model_kwargs.
     TORCH_PIPELINE_HUB_KWARGS = ("revision", "token", "trust_remote_code")
+    # Keys the ort path must also hand to optimum's pipeline() so the tokenizer
+    # is fetched from the same revision / with the same credentials as the model.
+    ORT_TOKENIZER_HUB_KWARGS = ("revision", "token")
 
     def __init__(
         self,
@@ -410,6 +413,16 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
 
         logger.info(f"Loading HuggingFace model: {self.model_name}, backend=ort")
 
+        # The tokenizer is loaded by name inside the pipeline, so hub kwargs
+        # that select a revision or authenticate must reach it as well, or a
+        # pinned/private repo loads the model and then fails (or drifts) on
+        # the tokenizer fetch.
+        tokenizer_hub_kwargs = {
+            key: self.model_kwargs[key]
+            for key in self.ORT_TOKENIZER_HUB_KWARGS
+            if key in self.model_kwargs
+        }
+
         try:
             model = ORTModelForTokenClassification.from_pretrained(
                 self.model_name, **self.model_kwargs
@@ -420,6 +433,7 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
                 tokenizer=self.tokenizer_name,
                 aggregation_strategy=self.aggregation_strategy,
                 accelerator="ort",
+                **tokenizer_hub_kwargs,
             )
             logger.info(f"Successfully loaded {self.model_name} with ort backend")
         except Exception:

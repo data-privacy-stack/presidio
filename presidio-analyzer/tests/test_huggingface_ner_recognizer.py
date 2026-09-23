@@ -817,6 +817,43 @@ def test_hf_recognizer_optimum_model_kwargs_scoped_to_model_loader():
 
 
 @pytest.mark.usefixtures("mock_torch_installed")
+def test_hf_recognizer_ort_revision_and_token_reach_tokenizer():
+    """revision/token go to both the ORT model loader and optimum's pipeline.
+
+    The pipeline loads the tokenizer by name, so without these it would fetch
+    the default branch without credentials.
+    """
+    mock_optimum = MagicMock()
+    mock_ort_model_cls = MagicMock()
+    with patch(HF_PIPELINE_PATH, new=MagicMock()):
+        with patch(
+            "presidio_analyzer.predefined_recognizers.ner."
+            "huggingface_ner_recognizer.optimum_pipeline",
+            mock_optimum,
+        ):
+            with patch(
+                "optimum.onnxruntime.ORTModelForTokenClassification",
+                mock_ort_model_cls,
+            ):
+                HuggingFaceNerRecognizer(
+                    model_name="test-model",
+                    backend="ort",
+                    revision="abc123",
+                    token="hf_xxx",
+                    subfolder="onnx",
+                )
+
+    mock_ort_model_cls.from_pretrained.assert_called_once_with(
+        "test-model", revision="abc123", token="hf_xxx", subfolder="onnx"
+    )
+    _, pipeline_kwargs = mock_optimum.call_args
+    assert pipeline_kwargs["revision"] == "abc123"
+    assert pipeline_kwargs["token"] == "hf_xxx"
+    # Loader-only keys still must not leak into the pipeline call.
+    assert "subfolder" not in pipeline_kwargs
+
+
+@pytest.mark.usefixtures("mock_torch_installed")
 def test_hf_recognizer_torch_backend_no_torch_raises():
     """Test that torch backend raises ImportError when torch is missing."""
     with patch(HF_PIPELINE_PATH, new=MagicMock()):
