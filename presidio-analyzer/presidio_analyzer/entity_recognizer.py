@@ -1,3 +1,4 @@
+import bisect
 import logging
 from abc import abstractmethod
 from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional, Tuple
@@ -284,25 +285,60 @@ class EntityRecognizer:
         """
         results = list(set(results))
         results = sorted(results, key=lambda x: (-x.score, x.start, -(x.end - x.start)))
+
+        # Containment is only checked within the same entity_type, and
+        # candidates are visited in score-priority order. Per entity type,
+        # index the kept spans' starts (coordinate compression) in a
+        # Fenwick tree storing the max end seen so far. A candidate is
+        # dropped iff some higher-priority kept span starts at or before
+        # it and ends at or after it (prefix max end >= candidate end),
+        # which is exactly what the previous O(n^2) scan tested.
+        unique_starts: Dict[str, set] = {}
+        for result in results:
+            if result.score == 0:
+                continue
+            unique_starts.setdefault(result.entity_type, set()).add(result.start)
+        ordered_starts: Dict[str, List[int]] = {}
+        start_index: Dict[str, Dict[int, int]] = {}
+        trees: Dict[str, List[int]] = {}
+        for entity_type, starts in unique_starts.items():
+            ordered = sorted(starts)
+            ordered_starts[entity_type] = ordered
+            start_index[entity_type] = {s: i + 1 for i, s in enumerate(ordered)}
+            trees[entity_type] = [-1] * (len(ordered) + 1)
+
+        def _prefix_max(tree: List[int], i: int) -> int:
+            best = -1
+            while i > 0:
+                if tree[i] > best:
+                    best = tree[i]
+                i -= i & -i
+            return best
+
+        def _update_max(tree: List[int], i: int, value: int) -> None:
+            n = len(tree) - 1
+            while i <= n:
+                if value > tree[i]:
+                    tree[i] = value
+                i += i & -i
+
         filtered_results = []
 
         for result in results:
             if result.score == 0:
                 continue
 
-            to_keep = result not in filtered_results  # equals based comparison
-            if to_keep:
-                for filtered in filtered_results:
-                    # If result is contained in one of the other results
-                    if (
-                        result.contained_in(filtered)
-                        and result.entity_type == filtered.entity_type
-                    ):
-                        to_keep = False
-                        break
+            # `list(set(results))` above already drops exact duplicates
+            # (start, end, score, entity type), so the old
+            # `result not in filtered_results` linear scan was dead weight.
+            tree = trees[result.entity_type]
+            pos = bisect.bisect_right(ordered_starts[result.entity_type], result.start)
+            if _prefix_max(tree, pos) >= result.end:
+                # Contained in a higher-priority kept span: drop.
+                continue
 
-            if to_keep:
-                filtered_results.append(result)
+            filtered_results.append(result)
+            _update_max(tree, start_index[result.entity_type][result.start], result.end)
 
         return filtered_results
 
