@@ -32,6 +32,8 @@ recognizers:
 The configuration file consists of two parts:
 
   - `global_regex_flags`: regex flags to be used in regex matching (see [regex flags](https://docs.python.org/3/library/re.html#flags)).
+  - `strict`: defaults to `false`. Unknown recognizer keys warn; `true` rejects
+    them before model loading, naming the unknown key and accepted alternatives.
   - `supported_languages`: A list of supported languages that the registry will support.
   - `recognizers`: a list of recognizers to be loaded by the recognizer registry. This list consists of two different types of recognizers: 
     - Predefined: A set of already defined recognizer classes in presidio. This includes all recognizers defined in the codebase (along with user defined recognizers) that inherit from EntityRecognizer.
@@ -220,3 +222,43 @@ The workflow script's `--langextract` option exercises editing this provider fil
 and loading it through registry YAML. It needs the `langextract` extra but makes
 no LLM or service request. Detection with synthetic SDK responses is covered by
 the corresponding unit tests.
+
+## Constructor-derived configuration
+
+Recognizer-specific keys are derived from constructor signatures. Adding a new
+constructor keyword makes it available in YAML without editing a central
+configuration map. Omitted settings are not applied. A per-entry
+`global_regex_flags`, when supported by the constructor, takes precedence over
+the registry's default flags.
+
+```yaml
+strict: true
+supported_languages: [en]
+recognizers:
+  - name: CreditCardRecognizer
+    replacement_pairs:
+      - ["-", ""]
+      - [" ", ""]
+```
+
+Without `strict: true`, an unknown recognizer key emits a warning and is ignored.
+Legacy flat GLiNER options are the compatibility exception: they are moved into
+`model_kwargs` with a deprecation warning. Strict mode requires the named block.
+Unknown registry-level keys continue to be errors.
+
+New derived fields are not type-checked against constructor annotations.
+Existing HF/GLiNER field coercions and validation are retained by their
+class-local rules, so values such as `flat_ner: "false"` keep their old meaning.
+
+Recognizer authors can declare `CONFIG_MODEL` as a Pydantic model containing
+cross-field rules. Its validators are combined with the derived fields; use a
+`mode="before"` model validator to validate a relationship without maintaining
+another copy of constructor fields. Forwarding `**kwargs` exposes reachable
+ancestor parameters. A temporary compatibility catch-all that ignores extras
+must explicitly declare `CONFIG_LEGACY_KWARGS = "ignore"` instead; model-loading
+compatibility shims use `"model_kwargs"`.
+
+`derive_config_model` is available from `presidio_analyzer.input_validation`.
+The old per-recognizer config classes remain compatibility imports; new code
+should use the derived model. `CONFIG_MODEL_MAP` is deprecated and no longer
+controls construction.

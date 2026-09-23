@@ -8,6 +8,7 @@ from presidio_analyzer import (
     RecognizerResult,
 )
 from presidio_analyzer._model_options import validate_model_options, warn_legacy_options
+from presidio_analyzer._recognizer_config_rules import GLiNERConfigRules
 from presidio_analyzer.chunkers import BaseTextChunker
 from presidio_analyzer.nlp_engine import (
     NerModelConfiguration,
@@ -26,6 +27,9 @@ logger = logging.getLogger("presidio-analyzer")
 
 class GLiNERRecognizer(LocalRecognizer):
     """GLiNER model based entity recognizer."""
+
+    CONFIG_MODEL = GLiNERConfigRules
+    CONFIG_LEGACY_KWARGS = "model_kwargs"
 
     _MODEL_OPTION_RESERVED_KEYS = {
         "model_kwargs": {"model_id"},

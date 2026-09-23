@@ -1,7 +1,9 @@
 import logging
 from abc import abstractmethod
 from itertools import groupby
-from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional, Tuple, Type
+
+from pydantic import BaseModel
 
 from presidio_analyzer import RecognizerResult
 from presidio_analyzer.score_thresholds import normalize_score_thresholds
@@ -58,6 +60,10 @@ class EntityRecognizer:
     #: reached only transitively (e.g. through a shared helper function)
     #: even though it is not imported directly by this class.
     OPTIONAL_DEPENDENCY_MODULES: ClassVar[Tuple[str, ...]] = ()
+    #: Optional cross-field YAML validation, composed with constructor-derived fields.
+    CONFIG_MODEL: ClassVar[Optional[Type[BaseModel]]] = None
+    #: Compatibility-only catch-all: "ignore" or the destination "model_kwargs".
+    CONFIG_LEGACY_KWARGS: ClassVar[Optional[str]] = None
 
     def __init__(
         self,

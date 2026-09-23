@@ -1,8 +1,16 @@
 """Pydantic models for YAML recognizer configurations."""
 
-from typing import Any, Dict, List, Literal, Optional, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializeAsAny,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from presidio_analyzer._model_options import validate_model_options
 from presidio_analyzer.input_validation import validate_language_codes
@@ -59,6 +67,9 @@ class BaseRecognizerConfig(BaseModel):
             "Python class name for predefined recognizers "
             "(if different from instance name)"
         ),
+    )
+    country_code: Optional[str] = Field(
+        default=None, description="Optional ISO 3166-1 alpha-2 country metadata"
     )
     enabled: bool = Field(default=True, description="Whether the recognizer is enabled")
     type: Optional[str] = Field(
@@ -503,15 +514,12 @@ class RecognizerRegistryConfig(BaseModel):
         default=None, description="List of supported languages"
     )
     global_regex_flags: int = Field(default=26, description="Global regex flags")
-    recognizers: List[
-        Union[
-            HuggingFaceRecognizerConfig,
-            GLiNERRecognizerConfig,
-            PredefinedRecognizerConfig,
-            CustomRecognizerConfig,
-            str,
-        ]
-    ] = Field(default_factory=list, description="List of recognizer configurations")
+    strict: bool = Field(
+        default=False, description="Reject unknown recognizer configuration keys"
+    )
+    recognizers: List[Union[SerializeAsAny[BaseRecognizerConfig], str]] = Field(
+        default_factory=list, description="List of recognizer configurations"
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -567,7 +575,7 @@ class RecognizerRegistryConfig(BaseModel):
     @field_validator("recognizers", mode="before")
     @classmethod
     def parse_recognizers(
-        cls, recognizers: List[Union[Dict[str, Any], str]]
+        cls, recognizers: List[Union[Dict[str, Any], str]], info: ValidationInfo
     ) -> List[BaseRecognizerConfig]:
         """Parse recognizers from various input formats without duplication."""
         if recognizers is None:
@@ -587,6 +595,12 @@ class RecognizerRegistryConfig(BaseModel):
 
         parsed_recognizers = []
         for recognizer in recognizers:
+            if isinstance(recognizer, BaseRecognizerConfig):
+                recognizer = {
+                    "type": recognizer.type,
+                    "enabled": recognizer.enabled,
+                    **recognizer.model_dump(exclude_unset=True),
+                }
             if isinstance(recognizer, str):
                 parsed_recognizers.append(recognizer)
                 continue
@@ -624,13 +638,36 @@ class RecognizerRegistryConfig(BaseModel):
                     # (e.g., custom instance of HuggingFaceNerRecognizer)
                     config_model_key = recognizer_class_name or recognizer_name
 
-                    config_model = CONFIG_MODEL_MAP.get(
-                        config_model_key, PredefinedRecognizerConfig
-                    )
+                    from .recognizer_configuration import parse_recognizer_config
 
-                    parsed_recognizers.append(config_model(**recognizer))
+                    try:
+                        recognizer_cls = (
+                            RecognizerListLoader.get_existing_recognizer_cls(
+                                config_model_key
+                            )
+                        )
+                    except PredefinedRecognizerNotFoundError as exc:
+                        raise ValueError(
+                            f"Predefined recognizer '{config_model_key}' not found"
+                        ) from exc
+                    parsed_recognizers.append(
+                        parse_recognizer_config(
+                            recognizer_cls, recognizer, info.data.get("strict", False)
+                        )
+                    )
                 elif recognizer_type == "custom":
-                    parsed_recognizers.append(CustomRecognizerConfig(**recognizer))
+                    from presidio_analyzer import PatternRecognizer
+
+                    from .recognizer_configuration import parse_recognizer_config
+
+                    parsed_recognizers.append(
+                        parse_recognizer_config(
+                            PatternRecognizer,
+                            recognizer,
+                            info.data.get("strict", False),
+                            custom=True,
+                        )
+                    )
                 else:
                     raise ValueError(
                         f"Invalid recognizer type: {recognizer_type}. "
@@ -687,11 +724,20 @@ class RecognizerRegistryConfig(BaseModel):
         return self
 
 
-# Map specific recognizer classes to their dedicated config models
-# This allows for modular expansion without polluting the base config
-CONFIG_MODEL_MAP: Dict[str, Type[BaseModel]] = {
-    "HuggingFaceNerRecognizer": HuggingFaceRecognizerConfig,
-    "GLiNERRecognizer": GLiNERRecognizerConfig,
-    "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
-    "AzureOpenAILangExtractRecognizer": LangExtractRecognizerConfig,
-}
+def __getattr__(name):
+    """Provide the deprecated config-map import without using it for loading."""
+    if name != "CONFIG_MODEL_MAP":
+        raise AttributeError(name)
+    import warnings
+
+    warnings.warn(
+        "CONFIG_MODEL_MAP is deprecated; use derive_config_model(recognizer_cls).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return {
+        "HuggingFaceNerRecognizer": HuggingFaceRecognizerConfig,
+        "GLiNERRecognizer": GLiNERRecognizerConfig,
+        "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
+        "AzureOpenAILangExtractRecognizer": LangExtractRecognizerConfig,
+    }

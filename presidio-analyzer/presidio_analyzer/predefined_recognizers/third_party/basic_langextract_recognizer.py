@@ -24,6 +24,8 @@ DEFAULT_LANGUAGE_MODEL_PARAMS = {
 class BasicLangExtractRecognizer(LangExtractRecognizer):
     """Basic LangExtract recognizer using configurable backend."""
 
+    CONFIG_LEGACY_KWARGS = "ignore"
+
     DEFAULT_CONFIG_PATH = (
         Path(__file__).parent.parent.parent / "conf" / "langextract_config_basic.yaml"
     )

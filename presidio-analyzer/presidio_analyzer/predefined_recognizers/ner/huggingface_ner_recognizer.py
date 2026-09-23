@@ -23,6 +23,7 @@ from presidio_analyzer import (
     RecognizerResult,
 )
 from presidio_analyzer._model_options import validate_model_options, warn_legacy_options
+from presidio_analyzer._recognizer_config_rules import HuggingFaceConfigRules
 from presidio_analyzer.chunkers import (
     BaseTextChunker,
     CharacterBasedTextChunker,
@@ -108,6 +109,8 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         "DATE_TIME": "DATE_TIME",
     }
     DEFAULT_HF_TASK = "token-classification"
+    CONFIG_MODEL = HuggingFaceConfigRules
+    CONFIG_LEGACY_KWARGS = "ignore"
     _MODEL_OPTION_RESERVED_KEYS = {
         "model_kwargs": {"task", "model", "tokenizer", "device_map"},
         "predict_kwargs": {"inputs"},

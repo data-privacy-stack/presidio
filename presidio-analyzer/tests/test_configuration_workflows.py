@@ -20,7 +20,7 @@ def test_configuration_workflow_script_completes_without_external_models():
     assert result.stdout.splitlines() == [
         f"PASS: {step} threshold, reload YAML, detect and reject lookalike"
         for step in ("omit", "override", "clear", "restore")
-    ]
+    ] + ["PASS: unknown-key warning, strict rejection, correction and reload"]
 
 
 @pytest.mark.skipif(

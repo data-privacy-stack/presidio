@@ -196,6 +196,37 @@ def run_langextract_workflow(directory: Path) -> None:
     )
 
 
+def run_schema_workflow(directory: Path) -> None:
+    """Correct a misspelled YAML option after warning and strict rejection."""
+    path = directory / "strict.yaml"
+    configuration = {
+        "supported_languages": ["en"],
+        "recognizers": [{"name": "WorkflowRecognizer", "score_thresolds": {}}],
+    }
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", DeprecationWarning)
+        load_analyzer(path)
+    assert any("score_thresolds" in str(item.message) for item in caught)
+    configuration["strict"] = True
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    try:
+        load_analyzer(path)
+    except ValueError as exc:
+        assert "score_thresolds" in str(exc) + str(exc.__cause__)
+    else:
+        raise AssertionError("Strict validation accepted an unknown setting")
+    entry = configuration["recognizers"][0]
+    entry["score_thresholds"] = entry.pop("score_thresolds")
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    analyzer = load_analyzer(path)
+    assert [
+        (r.start, r.end, r.score)
+        for r in analyzer.analyze("Record REF1234.", language="en")
+    ] == [(7, 14, 0.65)]
+    print("PASS: unknown-key warning, strict rejection, correction and reload")
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -215,6 +246,7 @@ def main() -> None:
     args = parser.parse_args()
     with TemporaryDirectory(prefix="presidio-config-workflows-") as directory:
         run_default_workflow(Path(directory))
+        run_schema_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
         if args.huggingface:

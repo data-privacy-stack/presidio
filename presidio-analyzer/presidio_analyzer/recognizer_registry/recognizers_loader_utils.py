@@ -519,6 +519,11 @@ class RecognizerListLoader:
                     )
 
                     recognizer = recognizer_cls(**kwargs)
+                    if (
+                        isinstance(recognizer, PatternRecognizer)
+                        and "global_regex_flags" not in new_conf
+                    ):
+                        recognizer.global_regex_flags = global_regex_flags
                     if has_score_thresholds:
                         recognizer.score_thresholds = score_thresholds
                     recognizer_instances.append(recognizer)
@@ -536,14 +541,12 @@ class RecognizerListLoader:
                     recognizer_conf=new_conf,
                     supported_languages=supported_languages,
                 )
-                if has_score_thresholds:
-                    for recognizer in custom_recognizers:
+                for recognizer in custom_recognizers:
+                    if "global_regex_flags" not in new_conf:
+                        recognizer.global_regex_flags = global_regex_flags
+                    if has_score_thresholds:
                         recognizer.score_thresholds = score_thresholds
                 recognizer_instances.extend(custom_recognizers)
-
-        for recognizer_conf in recognizer_instances:
-            if isinstance(recognizer_conf, PatternRecognizer):
-                recognizer_conf.global_regex_flags = global_regex_flags
 
         recognizer_instances = [
             recognizer

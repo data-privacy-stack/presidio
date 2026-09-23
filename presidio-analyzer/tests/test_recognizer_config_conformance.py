@@ -25,14 +25,15 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
-import re
 from typing import Any, Dict, List, Set, Tuple, Type
 
 import presidio_analyzer.predefined_recognizers  # noqa: F401 -- see below
 import pytest
 from presidio_analyzer import EntityRecognizer, PatternRecognizer
+from presidio_analyzer.input_validation.recognizer_configuration import (
+    derive_config_model,
+)
 from presidio_analyzer.input_validation.yaml_recognizer_models import (
-    CONFIG_MODEL_MAP,
     BaseRecognizerConfig,
     CustomRecognizerConfig,
     PredefinedRecognizerConfig,
@@ -479,7 +480,7 @@ def test_not_loadable_as_predefined_entry_names_only_real_classes():
 NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS: Dict[str, Tuple[Type[Exception], str]] = {
     "LocalRecognizer": (TypeError, "supported_entities"),
     "PatternRecognizer": (ValueError, "patterns or with deny list"),
-    "ZaPhoneNumberRecognizer": (TypeError, "target_classification"),
+    "ZaPhoneNumberRecognizer": (ValueError, "target_classification"),
 }
 
 
@@ -514,10 +515,11 @@ def test_not_loadable_as_predefined_entry_actually_fails(class_name):
             }
         ],
     }
-    with pytest.raises(exc_type, match=re.escape(message_fragment)):
+    with pytest.raises(exc_type) as exc:
         RecognizerRegistryProvider(
             registry_configuration=configuration
         ).create_recognizer_registry()
+    assert message_fragment in str(exc.value) + str(exc.value.__cause__)
 
 
 @pytest.mark.parametrize("cls", ROUND_TRIP_CLASSES, ids=lambda cls: cls.__name__)
@@ -647,19 +649,11 @@ def test_entry_context_is_dropped_for_bare_language_list():
     )
 
 
-@pytest.mark.xfail(strict=True, reason="flipped in turn 06 (derived schema)")
 def test_unknown_key_is_not_silent(caplog):
     """An unknown registry key must never be silently dropped.
 
-    Today it is: ``PredefinedRecognizerConfig`` (the schema
-    ``CreditCardRecognizer`` and most predefined recognizers validate
-    against) leaves pydantic's default ``extra="ignore"``, so an
-    unrecognized key such as ``no_such_key`` disappears at parse time with
-    no error and no log line -- exactly the silent-drop failure mode this
-    whole suite exists to catch. Turn 06 (derived schema) is expected to
-    make this fail loudly instead; ``xfail(strict=True)`` means this test
-    starts *failing* the moment that happens, forcing the xfail marker to be
-    removed rather than silently masking the fix forever.
+    The derived schema reports unknown keys in warning mode; strict registries
+    reject them before recognizer construction.
     """
     configuration = {
         "global_regex_flags": GLOBAL_REGEX_FLAGS,
@@ -743,13 +737,12 @@ def _constructor_default(cls: type, param_name: str) -> Any:
 
 
 # Config model paired with the recognizer class it validates entries for.
-# CONFIG_MODEL_MAP covers the per-class models; CustomRecognizerConfig is the
-# schema for a ``type: custom`` entry, which always builds a PatternRecognizer.
+# Derive every concrete class; custom entries retain explicit pattern validation.
 MODEL_CLASS_PAIRS = [
     (CustomRecognizerConfig, PatternRecognizer),
 ] + [
-    (model, RecognizerListLoader.get_existing_recognizer_cls(class_name))
-    for class_name, model in sorted(CONFIG_MODEL_MAP.items())
+    (derive_config_model(cls), cls)
+    for cls in CONCRETE_RECOGNIZER_CLASSES
 ]
 
 
