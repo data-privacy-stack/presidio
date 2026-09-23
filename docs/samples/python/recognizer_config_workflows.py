@@ -7,6 +7,7 @@ The script writes, loads, edits, and reloads real YAML files in a temporary
 directory. Assertions describe the observable result of each user action.
 """
 
+import argparse
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -67,10 +68,55 @@ def run_default_workflow(directory: Path) -> None:
         print(f"PASS: {step} threshold, reload YAML, detect and reject lookalike")
 
 
+def run_gliner_workflow(directory: Path) -> None:
+    """Load a cached GLiNER model through YAML and exercise both option blocks."""
+    import torch
+
+    torch.manual_seed(0)
+    path = directory / "gliner.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "supported_languages": ["en"],
+                "recognizers": [
+                    {
+                        "name": "GLiNERRecognizer",
+                        "model_name": "urchade/gliner_multi_pii-v1",
+                        "entity_mapping": {"person": "PERSON"},
+                        "map_location": "cpu",
+                        "threshold": 0.5,
+                        "model_kwargs": {"local_files_only": True},
+                        "predict_kwargs": {"return_class_probs": True},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    analyzer = load_analyzer(path)
+    recognizer = analyzer.registry.recognizers[0]
+    text = "My name is John Smith."
+    baseline = recognizer.gliner.predict_entities(text, ["person"], threshold=0.5)
+    results = analyzer.analyze(text, language="en")
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("PERSON", 11, 21)]
+    assert [r.score for r in results] == [
+        prediction["score"] for prediction in baseline
+    ]
+    assert analyzer.analyze("No entities in this sentence.", language="en") == []
+    print("PASS: GLiNER YAML blocks, cached-model detection, exact spans and scores")
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--gliner", action="store_true", help="Use a real cached GLiNER model"
+    )
+    args = parser.parse_args()
     with TemporaryDirectory(prefix="presidio-config-workflows-") as directory:
         run_default_workflow(Path(directory))
+        if args.gliner:
+            run_gliner_workflow(Path(directory))
 
 
 if __name__ == "__main__":
