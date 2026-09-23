@@ -107,6 +107,40 @@ rejects unknown recognizer keys. Without strict mode, deprecated/ignored keys st
 emit compatibility warnings and are not returned as errors. Unexpected programming
 exceptions are not swallowed.
 
+## Editor schema and generated key reference
+
+The [generated accepted-key reference](recognizer_config_reference.md) follows
+the constructor-derived models and lists every bundled public recognizer.
+
+```python
+import json
+from pathlib import Path
+from presidio_analyzer.input_validation import export_registry_schema
+
+Path("registry.schema.json").write_text(
+    json.dumps(export_registry_schema(), indent=2), encoding="utf-8"
+)
+```
+
+The Draft 2020-12 schema preserves permissive unknown-key handling unless the
+configuration contains `strict: true`. Pass `strict=True` to the export function
+to require known keys regardless of the file setting. Opaque model-option blocks
+remain open dictionaries. Pass application-specific classes using
+`recognizer_classes=[MyRecognizer]` to include their derived fields.
+
+JSON Schema checks input shape, not every runtime semantic rule or Pydantic
+coercion. Use `validate_registry_config` for duplicate identities, regex syntax,
+option collisions and class-local validation. No export or reference-generation
+operation loads a model or tokenizer.
+
+Regenerate or check the reference from `presidio-analyzer`:
+
+```bash
+uv run python ../docs/samples/python/generate_recognizer_config_reference.py
+uv run python ../docs/samples/python/generate_recognizer_config_reference.py --check
+uv run python ../docs/samples/python/recognizer_config_workflows.py --schema
+```
+
 ## Configuration file structure
 
 ```yaml

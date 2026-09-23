@@ -8,6 +8,7 @@ directory. Assertions describe the observable result of each user action.
 """
 
 import argparse
+import json
 import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -373,6 +374,25 @@ def run_validation_workflow(directory: Path) -> None:
     print("PASS: dry-run diagnostics, fix the reported key, revalidate without models")
 
 
+def run_schema_export_workflow(directory: Path) -> None:
+    """Export an editor schema and correct an option rejected by that schema."""
+    from jsonschema import Draft202012Validator
+
+    from presidio_analyzer.input_validation import export_registry_schema
+
+    path = directory / "registry.schema.json"
+    path.write_text(json.dumps(export_registry_schema(strict=True)), encoding="utf-8")
+    validator = Draft202012Validator(json.loads(path.read_text(encoding="utf-8")))
+    configuration = {
+        "recognizers": [{"class_name": "CreditCardRecognizer", "replacement_paris": []}]
+    }
+    assert not validator.is_valid(configuration)
+    entry = configuration["recognizers"][0]
+    entry["replacement_pairs"] = entry.pop("replacement_paris")
+    assert validator.is_valid(configuration)
+    print("PASS: export editor schema, reject typo, correct and validate configuration")
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -383,6 +403,11 @@ def main() -> None:
         "--huggingface",
         action="store_true",
         help="Use a pinned cached HuggingFace model",
+    )
+    parser.add_argument(
+        "--schema",
+        action="store_true",
+        help="Validate an exported editor schema (requires dev dependencies)",
     )
     parser.add_argument(
         "--langextract",
@@ -397,6 +422,8 @@ def main() -> None:
         run_factory_workflow(Path(directory))
         run_pattern_workflow(Path(directory))
         run_validation_workflow(Path(directory))
+        if args.schema:
+            run_schema_export_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
         if args.huggingface:

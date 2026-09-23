@@ -33,6 +33,9 @@ from constructor signatures and forwarding MROs. Do not extend the deprecated
   compatibility rules.
 - A compatibility-only `**kwargs` must declare `CONFIG_LEGACY_KWARGS`; otherwise
   it means forwarding to the parent constructor.
+- After a constructor/config-model change, regenerate the accepted-key reference:
+  `cd presidio-analyzer && uv run python ../docs/samples/python/generate_recognizer_config_reference.py`.
+  The test suite checks that this generated reference is current.
 
 ## `extra` must be a deliberate choice
 
