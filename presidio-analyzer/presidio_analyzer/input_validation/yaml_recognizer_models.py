@@ -233,6 +233,16 @@ class PredefinedRecognizerConfig(BaseRecognizerConfig):
         return self
 
 
+class PredefinedPatternRecognizerConfig(PredefinedRecognizerConfig):
+    """Shared pattern validation for PatternRecognizer-derived implementations."""
+
+    @field_validator("patterns", check_fields=False)
+    @classmethod
+    def validate_configured_patterns(cls, patterns: Any) -> Any:
+        """Apply shared pattern structure rules to constructor-derived fields."""
+        return CustomRecognizerConfig.validate_patterns(patterns)
+
+
 class HuggingFaceRecognizerConfig(PredefinedRecognizerConfig):
     """Configuration specifically for HuggingFace NER models."""
 
@@ -510,22 +520,31 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
 
         :param patterns: List of patterns
         """
-        if patterns and not isinstance(patterns, list):
-            raise ValueError(f"Patterns should be a list: {patterns}")
+        if patterns is not None and not isinstance(patterns, list):
+            raise ValueError("Patterns should be a list")
 
-        for pattern in patterns or []:
+        for index, pattern in enumerate(patterns or []):
+            location = f"patterns[{index}]: "
             if not isinstance(pattern, dict):
-                raise ValueError(f"Pattern should be a dict: {pattern}")
+                raise ValueError(location + "Pattern should be a dict")
             if "name" not in pattern:
-                raise ValueError(f"Pattern should contain a name field: {pattern}")
+                raise ValueError(location + "Pattern should contain a name field")
             if "regex" not in pattern:
-                raise ValueError(f"Pattern should contain a regex field: {pattern}")
+                raise ValueError(location + "Pattern should contain a regex field")
             if "score" not in pattern:
-                raise ValueError(f"Pattern should contain a score field: {pattern}")
+                raise ValueError(location + "Pattern should contain a score field")
+            if not isinstance(pattern["name"], str):
+                raise ValueError(location + "Pattern name should be a string")
+            if not isinstance(pattern["regex"], str):
+                raise ValueError(location + "Pattern regex should be a string")
+            if set(pattern) - {"name", "regex", "score"}:
+                raise ValueError(
+                    location + "Pattern accepts only name, regex and score fields"
+                )
             if not isinstance(pattern["score"], (int, float)):
-                raise ValueError(f"Pattern score should be a float: {pattern}")
+                raise ValueError(location + "Pattern score should be a float")
             if not (0.0 <= pattern["score"] <= 1.0):
-                raise ValueError(f"Pattern score should be between 0 and 1: {pattern}")
+                raise ValueError(location + "Pattern score should be between 0 and 1")
         return patterns
 
     @model_validator(mode="after")
@@ -651,17 +670,6 @@ class RecognizerRegistryConfig(BaseModel):
             if isinstance(recognizer, dict):
                 recognizer = recognizer.copy()
                 recognizer_type = recognizer.get("type")
-
-                # Validate conflicting custom-only fields if explicitly predefined
-                if recognizer_type == "predefined" and (
-                    "patterns" in recognizer or "deny_list" in recognizer
-                ):
-                    raise ValueError(
-                        f"Recognizer '{recognizer.get('name')}' is marked "
-                        f"as 'predefined' but contains 'patterns' or 'deny_list' "
-                        f"which are only valid for custom recognizers. "
-                        f"Either use type: 'custom' or remove these fields."
-                    )
 
                 if not recognizer_type:
                     if "patterns" in recognizer or "deny_list" in recognizer:

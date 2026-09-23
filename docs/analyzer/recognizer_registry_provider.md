@@ -66,6 +66,17 @@ post-construction registry overrides. The existing
 `ConfigurationValidator.validate_recognizer_registry_configuration` still returns
 a dictionary for compatibility.
 
+Constructor-derived `patterns` can also customize a predefined
+`PatternRecognizer` subclass. Set `type: predefined` and select the class with
+`class_name` (or the legacy class-as-name field) to retain its checksum and
+invalidation hooks. Definitions use the same `name`, `regex`, and `score` fields
+as custom recognizers and are converted to `Pattern` objects. Structure and
+syntax are checked before any recognizer is loaded. This does not alter shipped
+patterns or scores unless the configuration explicitly overrides them. Configured
+patterns replace, rather than extend, the class's default list. Without explicit
+`type: predefined`, patterns/deny-lists still infer custom type, even when
+`class_name` metadata is present. This preserves existing configuration meaning.
+
 ## Configuration file structure
 
 ```yaml

@@ -72,12 +72,17 @@ def required_constructor_parameters(recognizer_cls: type) -> set:
 
 @lru_cache(maxsize=None)
 def _derive_config_model(recognizer_cls: type, custom: bool) -> Type[BaseModel]:
+    from presidio_analyzer import PatternRecognizer
+
     from .yaml_recognizer_models import (
         CustomRecognizerConfig,
+        PredefinedPatternRecognizerConfig,
         PredefinedRecognizerConfig,
     )
 
     base = CustomRecognizerConfig if custom else PredefinedRecognizerConfig
+    if not custom and issubclass(recognizer_cls, PatternRecognizer):
+        base = PredefinedPatternRecognizerConfig
     rules = getattr(recognizer_cls, "CONFIG_MODEL", None)
     if rules is not None and (
         not isinstance(rules, type) or not issubclass(rules, BaseModel)

@@ -372,6 +372,10 @@ def test_shipped_entry_fields_reach_constructed_recognizer(
 # default.
 REQUIRED_KWARGS: Dict[str, Dict[str, Any]] = {
     "LocalRecognizer": {"supported_entities": ["TEST"]},
+    "PatternRecognizer": {
+        "supported_entity": "TEST",
+        "patterns": [{"name": "reference", "regex": r"REF\d{4}", "score": 0.6}],
+    },
     # No default endpoint; the constructor raises ValueError without one.
     "AzureOpenAILangExtractRecognizer": {
         "azure_endpoint": "https://example-resource.openai.azure.com/"
@@ -421,13 +425,6 @@ CONTEXT_NOT_APPLIED = {"BasicLangExtractRecognizer"}
 # entry at all, even with REQUIRED_KWARGS -- not a config-layer gap, but a
 # structural mismatch this suite cannot paper over:
 NOT_LOADABLE_AS_PREDEFINED_ENTRY = {
-    # Requires `supported_entity` and (`patterns` or `deny_list`)
-    # positionally. The last two can only be set through a registry entry
-    # with `type: custom` -- `RecognizerRegistryConfig.parse_recognizers`
-    # rejects `patterns`/`deny_list` on a `type: predefined` entry outright
-    # ("... is marked as 'predefined' but contains 'patterns' or
-    # 'deny_list' ..."), so no predefined entry can ever supply them.
-    "PatternRecognizer",
     # Requires `target_classification` positionally, with no default and no
     # schema field to set it from (base `PredefinedRecognizerConfig` has
     # none, and no CONFIG_MODEL_MAP entry adds one) -- a base class for
@@ -469,7 +466,6 @@ def test_not_loadable_as_predefined_entry_names_only_real_classes():
 # registry entry, as proven below rather than only documented in the
 # set's own comment.
 NOT_LOADABLE_AS_PREDEFINED_ENTRY_ERRORS: Dict[str, Tuple[Type[Exception], str]] = {
-    "PatternRecognizer": (ValueError, "patterns or with deny list"),
     "ZaPhoneNumberRecognizer": (ValueError, "target_classification"),
 }
 

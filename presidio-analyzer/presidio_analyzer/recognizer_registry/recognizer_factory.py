@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Type
 
-from presidio_analyzer import EntityRecognizer, PatternRecognizer
+from presidio_analyzer import EntityRecognizer, Pattern, PatternRecognizer
 from presidio_analyzer.input_validation.recognizer_configuration import (
     constructor_parameters,
     required_constructor_parameters,
@@ -151,6 +151,23 @@ class RecognizerFactory:
                 }
                 values.update(language_config)
                 kwargs = RecognizerFactory.prepare_kwargs(values, recognizer_cls)
+                patterns = (
+                    kwargs.get("patterns", [])
+                    if issubclass(recognizer_cls, PatternRecognizer)
+                    else []
+                )
+                for index, pattern in enumerate(patterns):
+                    try:
+                        Pattern.from_dict(pattern)
+                    except ValueError as exc:
+                        position = getattr(exc.__context__, "pos", None)
+                        location = (
+                            f" at position {position}" if position is not None else ""
+                        )
+                        raise ValueError(
+                            f"{recognizer_cls.__name__}: invalid patterns[{index}] "
+                            f"regex syntax{location}; correct the pattern definition."
+                        ) from None
                 missing = [
                     key
                     for key in sorted(required_constructor_parameters(recognizer_cls))
@@ -195,6 +212,12 @@ class RecognizerFactory:
         :return: Constructed recognizer.
         """
         kwargs = dict(spec.constructor_kwargs)
+        if (
+            "patterns" in kwargs
+            and issubclass(spec.recognizer_cls, PatternRecognizer)
+            and spec.recognizer_cls is not PatternRecognizer
+        ):
+            kwargs["patterns"] = [Pattern.from_dict(p) for p in kwargs["patterns"]]
         if isinstance(kwargs.get("text_chunker"), dict):
             from presidio_analyzer.chunkers import TextChunkerProvider
 

@@ -317,6 +317,40 @@ def run_factory_workflow(directory: Path) -> None:
     print("PASS: switch provider, YAML and dict APIs with identical detections")
 
 
+def run_pattern_workflow(directory: Path) -> None:
+    """Override a shipped recognizer's pattern while retaining its checksum."""
+    path = directory / "patterns.yaml"
+    configuration = {
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "class_name": "CreditCardRecognizer",
+                "type": "predefined",
+                "patterns": [
+                    {"name": "visa-format", "regex": r"\b4\d{15}\b", "score": 0.5}
+                ],
+            }
+        ],
+    }
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    analyzer = load_analyzer(path)
+    assert [
+        (r.start, r.end, r.score)
+        for r in analyzer.analyze("Card 4111111111111111.", language="en")
+    ] == [(5, 21, 1.0)]
+    assert analyzer.analyze("Card 4111111111111112.", language="en") == []
+    assert analyzer.analyze("Card 5555555555554444.", language="en") == []
+    configuration["recognizers"][0]["patterns"][0]["regex"] = "["
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    try:
+        load_analyzer(path)
+    except ValueError as exc:
+        assert "regex syntax" in str(exc)
+    else:
+        raise AssertionError("Invalid configured pattern was accepted")
+    print("PASS: override predefined patterns, preserve checksum, reject invalid edit")
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -339,6 +373,7 @@ def main() -> None:
         run_schema_workflow(Path(directory))
         run_identity_workflow(Path(directory))
         run_factory_workflow(Path(directory))
+        run_pattern_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
         if args.huggingface:
