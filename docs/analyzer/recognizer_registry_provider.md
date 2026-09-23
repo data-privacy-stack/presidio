@@ -101,12 +101,43 @@ The recognizer list comprises of both the predefined and custom recognizers, for
     device: "cpu"
 ```
 
+### Instance identity
+
+Active recognizers must have distinct `(name, language)` pairs. Validation rejects
+duplicates before loading any models. Disabled entries and languages excluded by
+the registry do not participate in this check.
+
+Constructors exposing `model_name` support automatic model-specific names.
+Recognizers using other identifiers (such as LangExtract's `model_id`) require
+explicit names for multiple instances. If the same recognizer class and model
+are configured more than once for a language, every entry must have an explicit,
+unique name, even when one generated name would not collide with an explicit
+name. An omitted model identifier uses the constructor's default for this check.
+Empty names are rejected rather than silently replaced by a constructor default.
+
+```yaml
+supported_languages: [en]
+recognizers:
+  - class_name: GLiNERRecognizer
+    model_name: urchade/gliner_multi_pii-v1
+    name: sensitive
+    threshold: 0.3
+  - class_name: GLiNERRecognizer
+    model_name: urchade/gliner_multi_pii-v1
+    name: conservative
+    threshold: 0.7
+```
+
+The singular `supported_language` selects exactly that language. An explicit empty
+`supported_languages: []` creates no instances.
+
 ### The recognizer parameters
 
   - `supported_languages`: A list of supported languages that the analyzer will support. In case this field is missing, a recognizer will be created for each supported language provided to the `AnalyzerEngine`. 
   In addition to the language code, this field also contains a list of context words, which increases confidence in the detection in case it is found in the surroundings of a detected entity (as seen in the credit card example above).
-  - `type`: this could be either predefined or custom. As this is optional, if not stated otherwise, the default type is custom.
-  - `name`: Different per the type of the recognizer. For predefined recognizers, this is the class name as defined in presidio, while for custom recognizers, it will be set as the name of the recognizer.
+  - `type`: either predefined or custom. When omitted, `patterns` or `deny_list` implies custom; otherwise predefined.
+  - `class_name`: selects the predefined Python implementation. When omitted, the legacy `name` field selects it.
+  - `name`: instance name used in results. Explicit names are preserved. With `class_name` and no `name`, the name is derived as `ClassName:model_name`, or just `ClassName` for a recognizer without a model. Custom recognizers still require a name.
   - `patterns`: a list of objects of type `Pattern` that contains a name, score and regex that define matching patterns.
   - `enabled`: enables or disables the recognizer.
   - `supported_entity`: the detected entity associated by the recognizer.

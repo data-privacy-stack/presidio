@@ -36,6 +36,14 @@ class WorkflowRecognizer(PatternRecognizer):
         self.score_thresholds = {"WORKFLOW_REFERENCE": 0.7}
 
 
+class WorkflowModelRecognizer(WorkflowRecognizer):
+    """Model-free double for exercising model-aware YAML identities."""
+
+    def __init__(self, model_name="example/default", **kwargs):
+        self.model_name = model_name
+        super().__init__(**kwargs)
+
+
 def load_analyzer(path: Path) -> AnalyzerEngine:
     """Load the edited configuration without using an external NLP model."""
     registry = RecognizerRegistryProvider(conf_file=path).create_recognizer_registry()
@@ -227,6 +235,45 @@ def run_schema_workflow(directory: Path) -> None:
     print("PASS: unknown-key warning, strict rejection, correction and reload")
 
 
+def run_identity_workflow(directory: Path) -> None:
+    """Add models, diagnose ambiguous names, rename, and reload real YAML."""
+    path = directory / "identities.yaml"
+    entries = [
+        {
+            "class_name": "WorkflowModelRecognizer",
+            "model_name": f"example/{model}",
+            "score_thresholds": {},
+        }
+        for model in ("one", "two")
+    ]
+    configuration = {"supported_languages": ["en"], "recognizers": entries}
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    analyzer = load_analyzer(path)
+    assert [r.name for r in analyzer.registry.recognizers] == [
+        "WorkflowModelRecognizer:example/one",
+        "WorkflowModelRecognizer:example/two",
+    ]
+    entries[1]["model_name"] = "example/one"
+    entries[1]["name"] = "second"
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    try:
+        load_analyzer(path)
+    except ValueError as exc:
+        assert "explicit unique names" in str(exc) + str(exc.__cause__)
+    else:
+        raise AssertionError("Repeated model accepted an implicit name")
+    entries[0]["name"] = "first"
+    path.write_text(yaml.safe_dump(configuration), encoding="utf-8")
+    analyzer = load_analyzer(path)
+    assert [r.name for r in analyzer.registry.recognizers] == ["first", "second"]
+    assert [
+        (r.start, r.end, r.score)
+        for r in analyzer.analyze("Record REF1234.", language="en")
+    ] == [(7, 14, 0.65)]
+    assert analyzer.analyze("Record REF123X.", language="en") == []
+    print("PASS: derive model names, reject ambiguity, rename and reload")
+
+
 def main() -> None:
     """Run each workflow in an isolated temporary directory."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -247,6 +294,7 @@ def main() -> None:
     with TemporaryDirectory(prefix="presidio-config-workflows-") as directory:
         run_default_workflow(Path(directory))
         run_schema_workflow(Path(directory))
+        run_identity_workflow(Path(directory))
         if args.gliner:
             run_gliner_workflow(Path(directory))
         if args.huggingface:

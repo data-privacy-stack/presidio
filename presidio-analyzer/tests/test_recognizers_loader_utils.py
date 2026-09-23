@@ -454,10 +454,10 @@ def test_bare_string_naming_an_unknown_class_raises():
     Before the entry was normalized it was silently discarded, so a typo in a
     bare-string entry produced an empty registry and no diagnostic.
     """
-    with pytest.raises(PredefinedRecognizerNotFoundError) as exc_info:
+    with pytest.raises(ValueError) as exc_info:
         _build_registry(["credit_card"])
 
-    assert "credit_card" in str(exc_info.value)
+    assert "credit_card" in str(exc_info.value.__cause__)
 
 
 def test_bare_string_entry_builds_when_supported_languages_is_omitted():

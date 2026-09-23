@@ -123,6 +123,15 @@ class RecognizerListLoader:
         :param recognizer_conf: The aforementioned recognizer.
         :return: The list of recognizers in the supported languages.
         """
+        if isinstance(recognizer_conf, dict) and recognizer_conf.get(
+            "supported_language"
+        ):
+            return [
+                {
+                    "supported_language": recognizer_conf["supported_language"],
+                    "context": recognizer_conf.get("context"),
+                }
+            ]
         if (
             isinstance(recognizer_conf, str)
             or "supported_languages" not in recognizer_conf
@@ -138,6 +147,8 @@ class RecognizerListLoader:
                 for language in supported_languages
             ]
 
+        if not recognizer_conf["supported_languages"]:
+            return []
         if isinstance(recognizer_conf["supported_languages"][0], str):
             return [
                 {"supported_language": language, "context": None}

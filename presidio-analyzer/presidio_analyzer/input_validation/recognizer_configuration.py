@@ -94,6 +94,10 @@ def parse_recognizer_config(
     """
     model = derive_config_model(recognizer_cls, custom)
     values = dict(values)
+    if not custom and "name" not in values:
+        from .recognizer_identity import default_recognizer_name
+
+        values["name"] = default_recognizer_name(recognizer_cls, values)
     accepted = set(model.model_fields)
     unknown = set(values) - accepted
     legacy = getattr(recognizer_cls, "CONFIG_LEGACY_KWARGS", None)

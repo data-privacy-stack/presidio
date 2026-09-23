@@ -98,6 +98,14 @@ class BaseRecognizerConfig(BaseModel):
         description="Default and entity-specific score thresholds",
     )
 
+    @field_validator("name")
+    @classmethod
+    def validate_instance_name(cls, value: str) -> str:
+        """Reject empty names which constructors otherwise silently replace."""
+        if not value.strip():
+            raise ValueError("name must be a non-empty string")
+        return value
+
     @field_validator("supported_language")
     @classmethod
     def validate_single_language(cls, v: Optional[str]) -> Optional[str]:
@@ -594,7 +602,16 @@ class RecognizerRegistryConfig(BaseModel):
             )
 
         parsed_recognizers = []
+        explicit_names = []
         for recognizer in recognizers:
+            explicit_names.append(
+                isinstance(recognizer, str)
+                or (
+                    "name" in recognizer.model_fields_set
+                    if isinstance(recognizer, BaseRecognizerConfig)
+                    else isinstance(recognizer, dict) and "name" in recognizer
+                )
+            )
             if isinstance(recognizer, BaseRecognizerConfig):
                 recognizer = {
                     "type": recognizer.type,
@@ -677,6 +694,22 @@ class RecognizerRegistryConfig(BaseModel):
 
             parsed_recognizers.append(recognizer)
 
+        from .recognizer_identity import validate_registry_identities
+
+        identity_entries = [
+            (
+                {"name": entry, "type": "predefined"}
+                if isinstance(entry, str)
+                else entry.model_dump(exclude_unset=True),
+                explicit,
+            )
+            for entry, explicit in zip(parsed_recognizers, explicit_names)
+            if isinstance(entry, (str, BaseRecognizerConfig))
+        ]
+        languages = info.data.get("supported_languages")
+        validate_registry_identities(
+            identity_entries, ["en"] if languages is None else languages
+        )
         return parsed_recognizers
 
     @classmethod

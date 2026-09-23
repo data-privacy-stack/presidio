@@ -565,7 +565,7 @@ def test_recognizer_registry_config_missing_recognizers():
 def test_recognizer_registry_config_string_recognizers():
     """Test registry with string recognizers."""
     config = RecognizerRegistryConfig(
-        recognizers=["credit_card", "email", "phone_number"]
+        recognizers=["CreditCardRecognizer", "EmailRecognizer", "PhoneRecognizer"]
     )
     assert len(config.recognizers) == 3
     assert all(isinstance(r, str) for r in config.recognizers)
@@ -583,7 +583,7 @@ def test_recognizer_registry_config_mixed_recognizers():
     with pytest.raises(ValidationError) as exc_info:
         RecognizerRegistryConfig(
             recognizers=[
-                "credit_card",  # string predefined
+                "CreditCardRecognizer",  # string predefined
                 {"name": "UrlRecognizer", "type": "predefined"},  # predefined
                 custom_config  # custom without languages should trigger error
             ]
@@ -595,7 +595,7 @@ def test_recognizer_registry_config_only_predefined_no_languages():
     """Predefined recognizers without languages should be allowed (use defaults)."""
     config = RecognizerRegistryConfig(
         recognizers=[
-            "credit_card",
+            "CreditCardRecognizer",
             {"name": "UrlRecognizer", "type": "predefined"},
         ]
     )
@@ -647,7 +647,7 @@ def test_complete_registry_scenario():
     registry_config = {
         "supported_languages": ["en", "es"],
         "recognizers": [
-            "credit_card",  # String recognizer (kept as string)
+            "CreditCardRecognizer",  # String recognizer (kept as string)
             {
                 "name": "EmailRecognizer",
                 "type": "predefined",
