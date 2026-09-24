@@ -138,3 +138,22 @@ The recognizer list comprises of both the predefined and custom recognizers, for
       supported_languages: ["ko"]
       enabled: false
     ```
+
+## Omitted settings and explicit overrides
+
+Omitting a recognizer setting preserves the recognizer constructor's default.
+For example, if a recognizer defines its own `score_thresholds`, leaving that key
+out of YAML keeps those thresholds. Supplying a mapping overrides them; supplying
+`score_thresholds: {}` or `score_thresholds: null` explicitly clears them.
+Registry-level defaults, such as `global_regex_flags`, still apply.
+The explicit-null reset is specific to `score_thresholds`; null constructor
+options continue to use their existing default behavior.
+
+The [configuration workflow script](../samples/python/recognizer_config_workflows.py)
+demonstrates creating, editing, and reloading a YAML file, then checking detection
+with synthetic data. It needs no downloaded NLP model. From `presidio-analyzer`,
+run:
+
+```bash
+uv run python ../docs/samples/python/recognizer_config_workflows.py
+```

@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from presidio_analyzer._model_options import validate_model_options
 from presidio_analyzer.input_validation import validate_language_codes
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     PredefinedRecognizerNotFoundError,
@@ -268,6 +269,12 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
     model_config = ConfigDict(extra="allow")
 
     model_name: Optional[str] = Field(None, description="GLiNER model name")
+    model_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to GLiNER.from_pretrained"
+    )
+    predict_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to predict_entities per chunk"
+    )
     flat_ner: Optional[bool] = Field(None, description="Use flat NER")
     multi_label: Optional[bool] = Field(
         None, description="Use multi-label classification"
@@ -298,6 +305,19 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
                 "'entity_mapping' and 'supported_entities'; these fields are "
                 "mutually exclusive."
             )
+        return self
+
+    @model_validator(mode="after")
+    def validate_library_option_blocks(self):
+        """Reject ambiguous options while parsing, before loading the model."""
+        recognizer_cls = RecognizerListLoader.get_existing_recognizer_cls(
+            self.class_name or self.name
+        )
+        validate_model_options(
+            recognizer_cls,
+            {"model_kwargs": self.model_kwargs, "predict_kwargs": self.predict_kwargs},
+            legacy_kwargs=self.model_extra,
+        )
         return self
 
     def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
