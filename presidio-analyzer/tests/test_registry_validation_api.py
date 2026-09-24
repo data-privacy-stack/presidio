@@ -118,11 +118,16 @@ def test_unknown_custom_validator_error_is_not_treated_as_value_safe():
     errors = validate(
         {
             "recognizers": [
-                {"class_name": "SecretConfigurationRecognizer", "token": "TOP-SECRET"}
+                {
+                    "class_name": SecretConfigurationRecognizer.__name__,
+                    "token": "TOP-SECRET",
+                }
             ]
         }
     )
-    assert errors
+    assert [(error.code, error.path) for error in errors] == [
+        ("value_error", ("recognizers", 0))
+    ]
     assert "TOP-SECRET" not in repr(errors)
 
 
