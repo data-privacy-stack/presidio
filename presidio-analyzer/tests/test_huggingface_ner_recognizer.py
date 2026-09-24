@@ -477,9 +477,11 @@ def test_hf_recognizer_init_logs_warning_for_extra_kwargs(caplog):
     """Test that valid but unsupported kwargs trigger a warning."""
     caplog.set_level(logging.WARNING, logger="presidio-analyzer")
     # Passed 'unsupported_arg' which is not in __init__
-    HuggingFaceNerRecognizer(model_name="test-model", unsupported_arg="some_value")
+    with pytest.warns(DeprecationWarning, match="unsupported_arg"):
+        HuggingFaceNerRecognizer(model_name="test-model", unsupported_arg="some_value")
 
-    assert "Ignoring unsupported kwargs" in caplog.text
+    assert "unsupported options are ignored" in caplog.text
+    assert "some_value" not in caplog.text
 
 
 @pytest.mark.usefixtures("mock_torch_installed")
