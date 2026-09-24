@@ -1,12 +1,14 @@
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from presidio_analyzer import (
     AnalysisExplanation,
     LocalRecognizer,
     RecognizerResult,
 )
+from presidio_analyzer._model_options import validate_model_options, warn_legacy_options
+from presidio_analyzer._recognizer_config_rules import GLiNERConfigRules
 from presidio_analyzer.chunkers import BaseTextChunker
 from presidio_analyzer.nlp_engine import (
     NerModelConfiguration,
@@ -26,6 +28,14 @@ logger = logging.getLogger("presidio-analyzer")
 class GLiNERRecognizer(LocalRecognizer):
     """GLiNER model based entity recognizer."""
 
+    CONFIG_MODEL = GLiNERConfigRules
+    CONFIG_LEGACY_KWARGS = "model_kwargs"
+
+    _MODEL_OPTION_RESERVED_KEYS = {
+        "model_kwargs": {"model_id"},
+        "predict_kwargs": {"text", "labels"},
+    }
+
     def __init__(
         self,
         supported_entities: Optional[List[str]] = None,
@@ -44,7 +54,9 @@ class GLiNERRecognizer(LocalRecognizer):
         chunk_overlap: int = 50,
         load_onnx_model: bool = False,
         onnx_model_file: str = "model.onnx",
-        **model_kwargs,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        predict_kwargs: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ):
         """GLiNER model based entity recognizer.
 
@@ -79,12 +91,18 @@ class GLiNERRecognizer(LocalRecognizer):
             Only used when load_onnx_model is True. This is passed directly to
             GLiNER.from_pretrained(). GLiNER looks for this file in the model
             directory (downloaded or cached model path). Default is "model.onnx".
-        :param model_kwargs: Additional keyword arguments to pass to
-            GLiNER.from_pretrained(). This allows passing future parameters
-            to the GLiNER model without explicit support in this recognizer.
-
-
+        :param model_kwargs: Options forwarded to ``GLiNER.from_pretrained``.
+        :param predict_kwargs: Options forwarded to ``predict_entities`` per chunk.
+        :param kwargs: Deprecated flat model options. Use ``model_kwargs`` instead.
+        :raises ValueError: A block repeats a named or reserved argument, or an
+            option occurs both at the top level and in ``model_kwargs``.
         """
+        validate_model_options(
+            type(self),
+            {"model_kwargs": model_kwargs, "predict_kwargs": predict_kwargs},
+            legacy_kwargs=kwargs,
+        )
+        warn_legacy_options(type(self).__name__, kwargs, "model_kwargs")
 
         if entity_mapping:
             if supported_entities:
@@ -120,7 +138,8 @@ class GLiNERRecognizer(LocalRecognizer):
         self.threshold = threshold
         self.load_onnx_model = load_onnx_model
         self.onnx_model_file = onnx_model_file
-        self.model_kwargs = model_kwargs
+        self.model_kwargs = {**kwargs, **(model_kwargs or {})}
+        self.predict_kwargs = dict(predict_kwargs or {})
 
         # Initialize text chunker (instance or default)
         if text_chunker is not None:
@@ -193,6 +212,7 @@ class GLiNERRecognizer(LocalRecognizer):
                 flat_ner=self.flat_ner,
                 threshold=self.threshold,
                 multi_label=self.multi_label,
+                **self.predict_kwargs,
             )
 
             # Convert dicts to RecognizerResult objects
