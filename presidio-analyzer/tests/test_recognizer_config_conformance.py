@@ -37,7 +37,6 @@ from presidio_analyzer.input_validation.yaml_recognizer_models import (
     CustomRecognizerConfig,
     PredefinedRecognizerConfig,
 )
-from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerListLoader,
