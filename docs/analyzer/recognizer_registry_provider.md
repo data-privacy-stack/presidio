@@ -138,3 +138,70 @@ The recognizer list comprises of both the predefined and custom recognizers, for
       supported_languages: ["ko"]
       enabled: false
     ```
+
+## Omitted settings and explicit overrides
+
+Omitting a recognizer setting preserves the recognizer constructor's default.
+For example, if a recognizer defines its own `score_thresholds`, leaving that key
+out of YAML keeps those thresholds. Supplying a mapping overrides them; supplying
+`score_thresholds: {}` or `score_thresholds: null` explicitly clears them.
+Registry-level defaults, such as `global_regex_flags`, still apply.
+The explicit-null reset is specific to `score_thresholds`; null constructor
+options continue to use their existing default behavior.
+
+The [configuration workflow script](../samples/python/recognizer_config_workflows.py)
+demonstrates creating, editing, and reloading a YAML file, then checking detection
+with synthetic data. It needs no downloaded NLP model. From `presidio-analyzer`,
+run:
+
+```bash
+uv run python ../docs/samples/python/recognizer_config_workflows.py
+```
+
+## HuggingFace library options
+
+`HuggingFaceNerRecognizer` accepts two explicit dictionaries:
+
+- `model_kwargs` supplies keyword arguments to `transformers.pipeline`, for
+  example `revision`, `token`, or `trust_remote_code`.
+- `predict_kwargs` supplies keyword arguments to each pipeline prediction call,
+  for example `ignore_labels`, `batch_size`, or `stride`.
+
+```yaml
+supported_languages: [en]
+recognizers:
+  - name: HuggingFaceNerRecognizer
+    model_name: example/ner-model
+    device: cpu
+    model_kwargs:
+      revision: your-pinned-model-revision
+      trust_remote_code: false
+      model_kwargs:
+        local_files_only: true
+    predict_kwargs:
+      ignore_labels: [O]
+      batch_size: 1
+```
+
+These blocks also work in Python. Their contents must be supported by the
+installed Transformers version. A block cannot repeat named recognizer settings
+such as `device` or `aggregation_strategy`, or invocation arguments such as
+`model`, `tokenizer`, `task`, or `inputs`. `device_map` is rejected because it
+conflicts with Presidio's named `device` setting.
+
+Transformers also has its own `model_kwargs` argument for options sent to
+`from_pretrained`. The nested dictionary above supplies that argument; block
+container names are allowed as library options and do not shadow named settings.
+
+Legacy unsupported flat options remain ignored with a deprecation warning.
+When a non-empty `predict_kwargs` block is used, library prediction errors
+propagate instead of being converted to an empty detection result.
+Existing no-block behavior is unchanged.
+
+The workflow script has an opt-in `--huggingface` scenario using a pinned,
+previously downloaded `StanfordAIMI/stanford-deidentifier-base` model. To exercise
+the real model without network access, run from `presidio-analyzer`:
+
+```bash
+HF_HUB_OFFLINE=1 uv run python ../docs/samples/python/recognizer_config_workflows.py --huggingface
+```
