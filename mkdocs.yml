@@ -44,6 +44,7 @@ nav:
                   - Tutorial: analyzer/adding_recognizers.md
                   - Best practices: analyzer/developing_recognizers.md
                   - Recognizer registry from file: analyzer/recognizer_registry_provider.md
+                  - Recognizer configuration keys: analyzer/recognizer_config_reference.md
               - Filtering recognizers by country: analyzer/filtering_by_country.md
               - Multi-language support: analyzer/languages.md
               - Customizing the NLP model:

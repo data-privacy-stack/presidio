@@ -30,6 +30,11 @@ from presidio_analyzer.nlp_engine import NlpArtifacts
 class AzureHealthDeidRecognizer(RemoteRecognizer):
     """Wrapper for PHI detection using Azure Health Data Services de-identification."""
 
+    # azure.identity is not imported directly above -- it is required
+    # transitively by get_azure_credential() (presidio_analyzer.llm_utils.
+    # azure_auth_helper), used below when no client is passed explicitly.
+    OPTIONAL_DEPENDENCY_MODULES = ("azure.health.deidentification", "azure.identity")
+
     def __init__(
         self,
         supported_entities: Optional[List[str]] = None,
