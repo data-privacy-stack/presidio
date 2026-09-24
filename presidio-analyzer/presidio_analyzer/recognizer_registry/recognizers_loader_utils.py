@@ -337,10 +337,8 @@ class RecognizerListLoader:
         """
         kwargs = {**recognizer_conf, **language_conf}
 
-        # Strip None values so that recognizer constructors use their own
-        # defaults.  Config models override model_dump(exclude_none=True)
-        # but that override is not invoked during parent model serialization,
-        # so None values can leak through.
+        # Explicit null constructor options retain their legacy default behavior.
+        # Registry metadata, including threshold resets, is applied separately.
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
         try:
