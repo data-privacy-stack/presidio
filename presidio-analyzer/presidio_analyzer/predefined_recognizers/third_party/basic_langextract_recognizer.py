@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from presidio_analyzer._model_options import warn_legacy_options
 from presidio_analyzer.llm_utils import lx_factory
 from presidio_analyzer.predefined_recognizers.third_party.\
     langextract_recognizer import LangExtractRecognizer
@@ -23,6 +24,8 @@ DEFAULT_LANGUAGE_MODEL_PARAMS = {
 class BasicLangExtractRecognizer(LangExtractRecognizer):
     """Basic LangExtract recognizer using configurable backend."""
 
+    CONFIG_LEGACY_KWARGS = "ignore"
+
     DEFAULT_CONFIG_PATH = (
         Path(__file__).parent.parent.parent / "conf" / "langextract_config_basic.yaml"
     )
@@ -42,7 +45,22 @@ class BasicLangExtractRecognizer(LangExtractRecognizer):
             (optional, default: "en").
         :param context: List of context words
             (optional, currently not used by LLM recognizers).
+        :param name: Recognizer instance name.
+        :param kwargs: Deprecated unsupported options, ignored for compatibility.
+            Configure provider and extraction options in ``config_path`` instead.
         """
+        legacy_options = {
+            key: value
+            for key, value in kwargs.items()
+            if key not in ("supported_entity", "supported_entities")
+        }
+        warn_legacy_options(type(self).__name__, legacy_options, None)
+        if context:
+            logger.warning(
+                "%s does not apply 'context'; put contextual guidance "
+                "in the prompt file.",
+                type(self).__name__,
+            )
         actual_config_path = (
             config_path if config_path else str(self.DEFAULT_CONFIG_PATH)
         )
