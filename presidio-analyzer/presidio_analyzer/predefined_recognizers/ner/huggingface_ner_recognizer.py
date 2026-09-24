@@ -22,6 +22,8 @@ from presidio_analyzer import (
     LocalRecognizer,
     RecognizerResult,
 )
+from presidio_analyzer._model_options import validate_model_options, warn_legacy_options
+from presidio_analyzer._recognizer_config_rules import HuggingFaceConfigRules
 from presidio_analyzer.chunkers import (
     BaseTextChunker,
     CharacterBasedTextChunker,
@@ -79,6 +81,10 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         >>> analyzer.registry.add_recognizer(recognizer)
     """
 
+    # transformers and torch are separate extras -- installing one does not
+    # install the other, and __init__ below requires both.
+    OPTIONAL_DEPENDENCY_MODULES = ("transformers", "torch")
+
     # Default label mapping from common NER models to Presidio entities
     DEFAULT_LABEL_MAPPING = {
         # Standard NER labels (CoNLL format)
@@ -103,6 +109,12 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         "DATE_TIME": "DATE_TIME",
     }
     DEFAULT_HF_TASK = "token-classification"
+    CONFIG_MODEL = HuggingFaceConfigRules
+    CONFIG_LEGACY_KWARGS = "ignore"
+    _MODEL_OPTION_RESERVED_KEYS = {
+        "model_kwargs": {"task", "model", "tokenizer", "device_map"},
+        "predict_kwargs": {"inputs"},
+    }
 
     def __init__(
         self,
@@ -121,6 +133,8 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         tokenizer_name: Optional[str] = None,
         text_chunker: Optional[BaseTextChunker] = None,
         label_prefixes: Optional[List[str]] = None,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        predict_kwargs: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
         """Initialize the HuggingFace NER Recognizer.
@@ -154,8 +168,20 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             loader converts the ``text_chunker`` dict to a chunker instance
             automatically.
         :param label_prefixes: List of label prefixes to strip (e.g., B-, I-).
+        :param model_kwargs: Options forwarded to ``transformers.pipeline``,
+            such as ``revision``, ``token``, or ``trust_remote_code``.
+        :param predict_kwargs: Options forwarded to the pipeline call per chunk.
+            Errors from calls using this block propagate to the caller.
+        :param kwargs: Deprecated unsupported flat options, ignored for compatibility.
         :raises ImportError: If transformers or torch libraries are not installed.
+        :raises ValueError: An option block is malformed or repeats a named or
+            reserved invocation argument.
         """
+        validate_model_options(
+            type(self),
+            {"model_kwargs": model_kwargs, "predict_kwargs": predict_kwargs},
+        )
+        warn_legacy_options(type(self).__name__, kwargs, None)
         # Early check for required dependencies
         if hf_pipeline is None:
             raise ImportError(
@@ -183,13 +209,8 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         self.device = self._parse_device(device)
         self.label_prefixes = label_prefixes or ["B-", "I-", "U-", "L-"]
         self.ner_pipeline = None
-
-        if kwargs:
-            logger.warning(
-                "Ignoring unsupported kwargs in %s: %s",
-                name,
-                sorted(kwargs.keys()),
-            )
+        self.model_kwargs = dict(model_kwargs or {})
+        self.predict_kwargs = dict(predict_kwargs or {})
 
         # Derive supported entities from label mapping
         if supported_entities:
@@ -285,6 +306,9 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
 
         logger.info(f"Loading HuggingFace model: {self.model_name}, device={device}")
 
+        pipeline_options = dict(self.model_kwargs)
+        if isinstance(pipeline_options.get("model_kwargs"), dict):
+            pipeline_options["model_kwargs"] = dict(pipeline_options["model_kwargs"])
         try:
             self.ner_pipeline = hf_pipeline(
                 self.DEFAULT_HF_TASK,
@@ -292,6 +316,7 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
                 tokenizer=self.tokenizer_name,
                 aggregation_strategy=self.aggregation_strategy,
                 device=device,
+                **pipeline_options,
             )
             logger.info(f"Successfully loaded {self.model_name}")
         except Exception:
@@ -333,8 +358,10 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         chunk_results = []
         # Run inference on the chunk
         try:
-            preds = self.ner_pipeline(chunk_text)
+            preds = self.ner_pipeline(chunk_text, **self.predict_kwargs)
         except Exception as e:
+            if self.predict_kwargs:
+                raise
             logger.warning(f"NER prediction failed for chunk: {e}", exc_info=True)
             return []
 

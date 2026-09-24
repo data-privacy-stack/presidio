@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import inspect
 import logging
-from collections.abc import ItemsView
+from difflib import get_close_matches
 from pathlib import Path
 from typing import (
     Any,
@@ -19,8 +18,8 @@ from typing import (
 
 import yaml
 
-from presidio_analyzer import EntityRecognizer, PatternRecognizer
-from presidio_analyzer.score_thresholds import normalize_score_thresholds
+from presidio_analyzer._configuration_errors import ConfigValidationError
+from presidio_analyzer.entity_recognizer import EntityRecognizer
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -28,7 +27,9 @@ logger = logging.getLogger("presidio-analyzer")
 class PredefinedRecognizerNotFoundError(Exception):
     """Exception raised when a predefined recognizer is not found."""
 
-    pass
+    def __init__(self, message: str = "", suggestions: Iterable[str] = ()):
+        super().__init__(message)
+        self.suggestions = tuple(suggestions)
 
 
 # Module path segment that identifies country-specific recognizers. Matches
@@ -43,14 +44,6 @@ class RecognizerListLoader:
 
     SUPPORTED_ENTITY: ClassVar[str] = "supported_entity"
     SUPPORTED_ENTITIES: ClassVar[str] = "supported_entities"
-
-    @staticmethod
-    def _get_recognizer_items(
-        recognizer_conf: Union[Dict[str, Any], str],
-    ) -> Union[dict[Any, Any], ItemsView[str, Any]]:
-        if isinstance(recognizer_conf, str):
-            return {}
-        return recognizer_conf.items()
 
     @staticmethod
     def is_recognizer_enabled(recognizer_conf: Union[Dict[str, Any], str]) -> bool:
@@ -70,8 +63,8 @@ class RecognizerListLoader:
 
     @staticmethod
     def _split_recognizers(
-        recognizers_conf: Union[Dict[str, Any], str],
-    ) -> Tuple[List[Union[str, Dict[str, Any]]], List[Union[str, Dict[str, Any]]]]:
+        recognizers_conf: Iterable[Union[Dict[str, Any], str]],
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Split the recognizer list to predefined and custom.
 
@@ -79,19 +72,32 @@ class RecognizerListLoader:
         type: 'custom' can be mentioned as well.
         This function supports the previous format as well.
 
+        A bare string entry (``- CreditCardRecognizer``) is the shorthand the
+        configuration schema accepts for a predefined recognizer that needs no
+        further settings. It is expanded to its dict equivalent here, because
+        every step after this one indexes the entry as a mapping: left as a
+        string it matches neither list and the recognizer is never built.
+
         :param recognizers_conf: The recognizers' configuration
         """
 
+        normalized = [
+            {"name": recognizer_conf, "type": "predefined"}
+            if isinstance(recognizer_conf, str)
+            else recognizer_conf
+            for recognizer_conf in recognizers_conf
+        ]
+
         predefined = [
             recognizer_conf
-            for recognizer_conf in recognizers_conf
+            for recognizer_conf in normalized
             if isinstance(recognizer_conf, dict)
             and ("type" in recognizer_conf and recognizer_conf["type"] == "predefined")
         ]
         custom = [
             recognizer_conf
-            for recognizer_conf in recognizers_conf
-            if not isinstance(recognizer_conf, str)
+            for recognizer_conf in normalized
+            if isinstance(recognizer_conf, dict)
             and ("type" not in recognizer_conf or recognizer_conf["type"] == "custom")
         ]
         return predefined, custom
@@ -110,6 +116,15 @@ class RecognizerListLoader:
         :param recognizer_conf: The aforementioned recognizer.
         :return: The list of recognizers in the supported languages.
         """
+        if isinstance(recognizer_conf, dict) and recognizer_conf.get(
+            "supported_language"
+        ):
+            return [
+                {
+                    "supported_language": recognizer_conf["supported_language"],
+                    "context": recognizer_conf.get("context"),
+                }
+            ]
         if (
             isinstance(recognizer_conf, str)
             or "supported_languages" not in recognizer_conf
@@ -125,16 +140,21 @@ class RecognizerListLoader:
                 for language in supported_languages
             ]
 
+        if not recognizer_conf["supported_languages"]:
+            return []
         if isinstance(recognizer_conf["supported_languages"][0], str):
             return [
-                {"supported_language": language, "context": None}
+                {
+                    "supported_language": language,
+                    "context": recognizer_conf.get("context"),
+                }
                 for language in recognizer_conf["supported_languages"]
             ]
 
         return [
             {
                 "supported_language": language["language"],
-                "context": language.get("context", None),
+                "context": language.get("context", recognizer_conf.get("context")),
             }
             for language in recognizer_conf["supported_languages"]
         ]
@@ -159,72 +179,6 @@ class RecognizerListLoader:
         if class_name:
             return class_name
         return recognizer_conf["name"]
-
-    @staticmethod
-    def _convert_supported_entities_to_entity(conf: Dict[str, Any]) -> None:
-        if RecognizerListLoader.SUPPORTED_ENTITIES in conf:
-            supported_entities = conf.pop(RecognizerListLoader.SUPPORTED_ENTITIES)
-            if RecognizerListLoader.SUPPORTED_ENTITY not in conf and supported_entities:
-                conf[RecognizerListLoader.SUPPORTED_ENTITY] = supported_entities[0]
-
-    @staticmethod
-    def _is_language_supported_globally(
-        recognizer: EntityRecognizer,
-        supported_languages: Iterable[str],
-    ) -> bool:
-        if recognizer.supported_language not in supported_languages:
-            logger.warning(
-                f"Recognizer not added to registry because "
-                f"language is not supported by registry - "
-                f"{recognizer.name} supported "
-                f"languages: {recognizer.supported_language}"
-                f", registry supported languages: "
-                f"{', '.join(supported_languages)}"
-            )
-            return False
-        return True
-
-    @staticmethod
-    def _create_custom_recognizers(
-        recognizer_conf: Dict,
-        supported_languages: Iterable[str],
-    ) -> List[PatternRecognizer]:
-        """Create a custom recognizer for each language, based on the provided conf."""
-        # legacy recognizer (has supported_language set to a value, not None)
-        if recognizer_conf.get("supported_language"):
-            # Remove supported_languages field (plural) if present,
-            # as we're using supported_language (singular)
-            conf_copy = {
-                k: v for k, v in recognizer_conf.items() if k != "supported_languages"
-            }
-
-            # Transform supported_entities -> supported_entity
-            # (PatternRecognizer expects singular)
-            RecognizerListLoader._convert_supported_entities_to_entity(conf_copy)
-
-            return [PatternRecognizer.from_dict(conf_copy)]
-
-        recognizers = []
-
-        for supported_language in RecognizerListLoader._get_recognizer_languages(
-            recognizer_conf=recognizer_conf, supported_languages=supported_languages
-        ):
-            copied_recognizer = {
-                k: v
-                for k, v in recognizer_conf.items()
-                if k not in ["enabled", "type", "supported_languages"]
-            }
-
-            # Transform supported_entities -> supported_entity
-            # (PatternRecognizer expects singular)
-            RecognizerListLoader._convert_supported_entities_to_entity(
-                copied_recognizer
-            )
-
-            kwargs = {**copied_recognizer, **supported_language}
-            recognizers.append(PatternRecognizer.from_dict(kwargs))
-
-        return recognizers
 
     @staticmethod
     def get_all_existing_recognizers(
@@ -258,6 +212,16 @@ class RecognizerListLoader:
 
         :param recognizer_name: The name of the recognizer.
         """
+        import presidio_analyzer
+        import presidio_analyzer.predefined_recognizers as predefined
+
+        if isinstance(recognizer_name, str):
+            for module in (presidio_analyzer, predefined):
+                candidate = getattr(module, recognizer_name, None)
+                if isinstance(candidate, type) and issubclass(
+                    candidate, EntityRecognizer
+                ):
+                    return candidate
         all_existing_recognizers = RecognizerListLoader.get_all_existing_recognizers()
         for recognizer in all_existing_recognizers:
             if recognizer_name == recognizer.__name__:
@@ -265,8 +229,26 @@ class RecognizerListLoader:
 
         raise PredefinedRecognizerNotFoundError(
             f"Recognizer of name {recognizer_name} was not found in the "
-            f"list of recognizers inheriting the EntityRecognizer class"
+            f"list of recognizers inheriting the EntityRecognizer class",
+            suggestions=(
+                get_close_matches(
+                    recognizer_name,
+                    sorted(cls.__name__ for cls in all_existing_recognizers),
+                    n=3,
+                )
+                if isinstance(recognizer_name, str)
+                else ()
+            ),
         )
+
+    @staticmethod
+    def _reachable_init_param_names(recognizer_cls: Type[EntityRecognizer]) -> Set[str]:
+        """Return constructor-derived parameter names for compatibility callers."""
+        from presidio_analyzer.input_validation.recognizer_configuration import (
+            constructor_parameters,
+        )
+
+        return set(constructor_parameters(recognizer_cls))
 
     @staticmethod
     def _prepare_recognizer_kwargs(
@@ -274,86 +256,12 @@ class RecognizerListLoader:
         language_conf: Dict[str, Any],
         recognizer_cls: Type[EntityRecognizer],
     ) -> Dict[str, Any]:
-        """
-        Prepare kwargs for recognizer instantiation.
+        """Delegate legacy helper callers to the shared constructor normalization."""
+        from .recognizer_factory import RecognizerFactory
 
-        This function adapts supported_entity/supported_entities based on the
-        recognizer class __init__ signature to avoid passing unexpected kwargs.
-
-        - If recognizer accepts only supported_entity (singular), convert
-          supported_entities -> supported_entity (first element).
-        - If recognizer accepts only supported_entities (plural), remove
-          supported_entity.
-        - If recognizer accepts both, keep keys as provided (after None cleanup).
-        - Filtering policy:
-            - supported_entity: kept only if explicitly accepted.
-            - supported_entities: kept if explicitly accepted or if the recognizer
-              accepts **kwargs.
-        """
-        kwargs = {**recognizer_conf, **language_conf}
-
-        # Strip None values so that recognizer constructors use their own
-        # defaults.  Config models override model_dump(exclude_none=True)
-        # but that override is not invoked during parent model serialization,
-        # so None values can leak through.
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
-
-        try:
-            params = inspect.signature(recognizer_cls.__init__).parameters
-        except (TypeError, ValueError):
-            # Drop entity-related kwargs to avoid passing unexpected arguments when the
-            # signature cannot be inspected.
-            kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITY, None)
-            kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES, None)
-            return kwargs
-
-        # If the recognizer accepts **kwargs, passing extra fields won't raise
-        # TypeError. Whether the recognizer uses them is up to the implementation.
-        has_var_kw = any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+        return RecognizerFactory.prepare_kwargs(
+            {**recognizer_conf, **language_conf}, recognizer_cls
         )
-
-        accepts_supported_entity = RecognizerListLoader.SUPPORTED_ENTITY in params
-        accepts_supported_entities = RecognizerListLoader.SUPPORTED_ENTITIES in params
-
-        # 1. Normalize: Convert plural -> singular if needed
-        # (Only when singular is accepted and plural is NOT accepted)
-        if accepts_supported_entity and not accepts_supported_entities:
-            if RecognizerListLoader.SUPPORTED_ENTITIES in kwargs:
-                supported_entities = kwargs.get(RecognizerListLoader.SUPPORTED_ENTITIES)
-
-                # Use the first entity if available
-                if isinstance(supported_entities, list) and supported_entities:
-                    kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES)
-                    kwargs.setdefault(
-                        RecognizerListLoader.SUPPORTED_ENTITY, supported_entities[0]
-                    )
-
-        # 2. Convert text_chunker dict to BaseTextChunker instance
-        if "text_chunker" in kwargs and isinstance(kwargs["text_chunker"], dict):
-            from presidio_analyzer.chunkers import TextChunkerProvider
-
-            # Strip None values that may leak from Pydantic model_dump
-            chunker_config = {
-                k: v for k, v in kwargs["text_chunker"].items() if v is not None
-            }
-            kwargs["text_chunker"] = TextChunkerProvider(
-                chunker_config
-            ).create_chunker()
-
-        # 3. Filter: Remove keys that are NOT in the signature
-
-        # For supported_entities (plural):
-        # If not explicitly accepted, remove unless **kwargs is present (compat).
-        if not accepts_supported_entities and not has_var_kw:
-            kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITIES, None)
-
-        # Drop unsupported 'supported_entity' even for **kwargs
-        # to prevent leaking into strict parent __init__.
-        if not accepts_supported_entity:
-            kwargs.pop(RecognizerListLoader.SUPPORTED_ENTITY, None)
-
-        return kwargs
 
     @staticmethod
     def get(
@@ -381,107 +289,25 @@ class RecognizerListLoader:
             Locale-agnostic recognizers (``COUNTRY_CODE`` unset / ``None``)
             are always kept. Pass ``None`` (the default) to skip the filter.
         """
-        recognizer_instances = []
-        predefined, custom = RecognizerListLoader._split_recognizers(recognizers)
+        from .recognizer_factory import RecognizerFactory
 
-        # For predefined recognizers, ``country_code`` is YAML metadata
-        # only: the class-level ``COUNTRY_CODE`` ClassVar is the canonical
-        # declaration, and predefined ``__init__`` signatures don't accept
-        # the kwarg. We strip it before instantiation and cross-check it
-        # against the class attribute via ``_validate_yaml_country_code``.
-        # Custom recognizers are different: ``country_code`` flows through
-        # ``PatternRecognizer.__init__`` to ``EntityRecognizer.__init__``,
-        # so leaving it in the kwargs is what lets a YAML ``type: custom``
-        # entry tag a recognizer without subclassing.
-        predefined_to_exclude = {
-            "enabled",
-            "type",
-            "supported_languages",
-            "class_name",
-            "country_code",
-            "score_thresholds",
-        }
-        custom_to_exclude = {"enabled", "type", "class_name", "score_thresholds"}
-        for recognizer_conf in predefined:
-            score_thresholds = normalize_score_thresholds(
-                recognizer_conf.get("score_thresholds")
-            )
-            for language_conf in RecognizerListLoader._get_recognizer_languages(
-                recognizer_conf=recognizer_conf, supported_languages=supported_languages
-            ):
-                if RecognizerListLoader.is_recognizer_enabled(recognizer_conf):
-                    recognizer_name = RecognizerListLoader.get_recognizer_name(
-                        recognizer_conf=recognizer_conf
-                    )
-                    recognizer_cls = RecognizerListLoader.get_existing_recognizer_cls(
-                        recognizer_name=recognizer_name
-                    )
-
-                    RecognizerListLoader._validate_yaml_country_code(
-                        recognizer_conf=recognizer_conf,
-                        recognizer_cls=recognizer_cls,
-                        recognizer_name=recognizer_name,
-                    )
-
-                    new_conf = RecognizerListLoader._filter_recognizer_fields(
-                        recognizer_conf, to_exclude=predefined_to_exclude
-                    )
-
-                    kwargs = RecognizerListLoader._prepare_recognizer_kwargs(
-                        new_conf, language_conf, recognizer_cls
-                    )
-
-                    recognizer = recognizer_cls(**kwargs)
-                    recognizer.score_thresholds = score_thresholds
-                    recognizer_instances.append(recognizer)
-
-        for recognizer_conf in custom:
-            if RecognizerListLoader.is_recognizer_enabled(recognizer_conf):
-                score_thresholds = normalize_score_thresholds(
-                    recognizer_conf.get("score_thresholds")
-                )
-                new_conf = RecognizerListLoader._filter_recognizer_fields(
-                    recognizer_conf, to_exclude=custom_to_exclude
-                )
-                custom_recognizers = RecognizerListLoader._create_custom_recognizers(
-                    recognizer_conf=new_conf,
-                    supported_languages=supported_languages,
-                )
-                for recognizer in custom_recognizers:
-                    recognizer.score_thresholds = score_thresholds
-                recognizer_instances.extend(custom_recognizers)
-
-        for recognizer_conf in recognizer_instances:
-            if isinstance(recognizer_conf, PatternRecognizer):
-                recognizer_conf.global_regex_flags = global_regex_flags
-
-        recognizer_instances = [
-            recognizer
-            for recognizer in recognizer_instances
-            if RecognizerListLoader._is_language_supported_globally(
-                recognizer=recognizer, supported_languages=supported_languages
-            )
-        ]
-
+        recognizers = list(recognizers)
+        if not recognizers:
+            return []
+        specs = RecognizerFactory.create_specs(
+            {
+                "recognizers": recognizers,
+                "supported_languages": list(supported_languages),
+                "global_regex_flags": global_regex_flags,
+            }
+        )
+        recognizer_instances = RecognizerFactory.build_all(specs)
         if supported_countries is not None:
             recognizer_instances = RecognizerListLoader.filter_by_countries(
                 recognizer_instances, supported_countries
             )
 
         return recognizer_instances
-
-    @staticmethod
-    def _filter_recognizer_fields(
-        recognizer_conf: Dict[str, Any], to_exclude: Set[str]
-    ) -> Dict[str, Any]:
-        copied_recognizer_conf = {
-            k: v
-            for k, v in RecognizerListLoader._get_recognizer_items(
-                recognizer_conf=recognizer_conf
-            )
-            if k not in to_exclude
-        }
-        return copied_recognizer_conf
 
     @staticmethod
     def _normalize_countries(countries: Iterable[str]) -> Set[str]:
@@ -565,9 +391,12 @@ class RecognizerListLoader:
             return
 
         if not isinstance(yaml_country, str) or not yaml_country.strip():
-            raise ValueError(
+            raise ConfigValidationError(
                 f"Recognizer {recognizer_name!r}: YAML ``country_code`` must be "
-                f"a non-empty string, got {yaml_country!r}."
+                f"a non-empty string, got {yaml_country!r}.",
+                code="country_code",
+                path=("country_code",),
+                safe_message="country_code must be a non-empty string.",
             )
 
         normalized_yaml = yaml_country.strip().lower()
@@ -581,21 +410,29 @@ class RecognizerListLoader:
         )
 
         if cls_country is None:
-            raise ValueError(
+            raise ConfigValidationError(
                 f"Recognizer {recognizer_name!r}: YAML declares "
                 f"``country_code: {normalized_yaml!r}`` but the recognizer "
                 f"class {recognizer_cls.__name__} has no ``COUNTRY_CODE`` "
                 f"attribute. Set ``COUNTRY_CODE = {normalized_yaml!r}`` on "
-                f"the class, or remove the YAML field."
+                f"the class, or remove the YAML field.",
+                code="country_code",
+                path=("country_code",),
+                safe_message="This predefined class has no COUNTRY_CODE; "
+                "remove country_code from the entry or declare it on the class.",
             )
 
         if cls_country != normalized_yaml:
-            raise ValueError(
+            raise ConfigValidationError(
                 f"Recognizer {recognizer_name!r}: YAML "
                 f"``country_code: {normalized_yaml!r}`` disagrees with "
                 f"class-level ``{recognizer_cls.__name__}.COUNTRY_CODE = "
                 f"{raw_class_code!r}``. The class attribute is the source "
-                f"of truth — update one to match the other."
+                f"of truth — update one to match the other.",
+                code="country_code",
+                path=("country_code",),
+                safe_message="country_code must match the recognizer class's "
+                f"COUNTRY_CODE ({cls_country}).",
             )
 
     @staticmethod
