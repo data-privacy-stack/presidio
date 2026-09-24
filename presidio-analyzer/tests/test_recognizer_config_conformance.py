@@ -27,7 +27,6 @@ import importlib.util
 import inspect
 from typing import Any, Dict, List, Set, Tuple, Type
 
-import presidio_analyzer.predefined_recognizers  # noqa: F401 -- see below
 import pytest
 from presidio_analyzer import EntityRecognizer, PatternRecognizer
 from presidio_analyzer.input_validation.recognizer_configuration import (
@@ -52,10 +51,6 @@ from tests.test_recognizers_loader_utils import (
     NOT_LOADABLE_FROM_SHIPPED_ENTRY,
     PACKAGE_ROOT,
 )
-
-# The import above registers every concrete predefined-recognizer subclass on
-# ``EntityRecognizer`` before ``get_all_existing_recognizers()`` is called
-# below -- it is otherwise unused in this module.
 
 # ---------------------------------------------------------------------------
 # Shared fixtures / helpers
