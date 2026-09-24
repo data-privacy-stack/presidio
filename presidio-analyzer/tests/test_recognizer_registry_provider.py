@@ -2,6 +2,7 @@
 
 import pytest
 import re
+import sys
 from pathlib import Path
 from typing import List
 from inspect import signature
@@ -393,15 +394,27 @@ def test_recognizer_registry_provider_yaml_hf_ort_backend():
     test_yaml = Path(this_path, "conf/test_hf_recognizer_ort_backend.yaml")
 
     mock_ort_model_cls = MagicMock()
-    mock_optimum_pipeline = MagicMock()
+    mock_pipeline_instance = MagicMock(
+        return_value=[
+            {"entity_group": "PATIENT", "score": 0.95, "start": 8, "end": 16},
+            {"entity_group": "PHONE", "score": 0.90, "start": 24, "end": 36},
+        ]
+    )
+    mock_optimum_pipeline = MagicMock(return_value=mock_pipeline_instance)
     hf_module = "presidio_analyzer.predefined_recognizers.ner.huggingface_ner_recognizer"
     with (
         patch(f"{hf_module}.hf_pipeline", MagicMock()),
         patch(f"{hf_module}.optimum_pipeline", mock_optimum_pipeline),
-        patch(
-            "optimum.onnxruntime.ORTModelForTokenClassification",
-            mock_ort_model_cls,
-            create=True,
+        # Inject a fake optimum.onnxruntime so the test does not need the
+        # optional package installed.
+        patch.dict(
+            sys.modules,
+            {
+                "optimum": MagicMock(),
+                "optimum.onnxruntime": MagicMock(
+                    ORTModelForTokenClassification=mock_ort_model_cls
+                ),
+            },
         ),
     ):
         provider = RecognizerRegistryProvider(conf_file=test_yaml)
@@ -427,6 +440,15 @@ def test_recognizer_registry_provider_yaml_hf_ort_backend():
     _, pipeline_kwargs = mock_optimum_pipeline.call_args
     assert "subfolder" not in pipeline_kwargs
     assert "file_name" not in pipeline_kwargs
+
+    # The YAML-loaded recognizer maps model labels to Presidio entities and
+    # returns them from analyze().
+    text = "Patient John Doe, call 555-123-4567 today"
+    results = recognizer.analyze(text, ["PERSON", "PHONE_NUMBER"])
+    assert [(r.entity_type, r.start, r.end) for r in results] == [
+        ("PERSON", 8, 16),
+        ("PHONE_NUMBER", 24, 36),
+    ]
 
 
 def test_recognizer_registry_provider_yaml_hf_invalid_backend_fails_at_parse():

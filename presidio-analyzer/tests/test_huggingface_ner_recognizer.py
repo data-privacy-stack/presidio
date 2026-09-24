@@ -22,6 +22,21 @@ HF_PIPELINE_PATH = (
 TEST_MODEL_NAME = "dslim/bert-base-NER"
 
 
+def patch_ort_model(mock_ort_model_cls):
+    """Make ``from optimum.onnxruntime import ORTModelForTokenClassification``
+    resolve to ``mock_ort_model_cls`` without requiring optimum to be installed.
+    """
+    return patch.dict(
+        sys.modules,
+        {
+            "optimum": MagicMock(),
+            "optimum.onnxruntime": MagicMock(
+                ORTModelForTokenClassification=mock_ort_model_cls
+            ),
+        },
+    )
+
+
 @pytest.fixture
 def mock_torch_installed():
     """Fixture to mock torch as installed and configured."""
@@ -684,10 +699,7 @@ def test_hf_recognizer_ort_backend_warns_when_device_set(caplog):
             "huggingface_ner_recognizer.optimum_pipeline",
             mock_optimum,
         ):
-            with patch(
-                "optimum.onnxruntime.ORTModelForTokenClassification",
-                mock_ort_model_cls,
-            ):
+            with patch_ort_model(mock_ort_model_cls):
                 HuggingFaceNerRecognizer(
                     model_name="test-model", backend="ort", device="cuda"
                 )
@@ -707,10 +719,7 @@ def test_hf_recognizer_ort_backend_ignores_invalid_device(caplog):
             "huggingface_ner_recognizer.optimum_pipeline",
             mock_optimum,
         ):
-            with patch(
-                "optimum.onnxruntime.ORTModelForTokenClassification",
-                mock_ort_model_cls,
-            ):
+            with patch_ort_model(mock_ort_model_cls):
                 # "not-a-device" would raise ValueError via _parse_device on
                 # the torch backend; ort skips parsing and forces CPU.
                 rec = HuggingFaceNerRecognizer(
@@ -735,10 +744,7 @@ def test_hf_recognizer_ort_backend_cpu_device_no_warning(caplog):
             "huggingface_ner_recognizer.optimum_pipeline",
             mock_optimum,
         ):
-            with patch(
-                "optimum.onnxruntime.ORTModelForTokenClassification",
-                mock_ort_model_cls,
-            ):
+            with patch_ort_model(mock_ort_model_cls):
                 rec = HuggingFaceNerRecognizer(
                     model_name="test-model", backend="ort", device="cpu"
                 )
@@ -761,10 +767,7 @@ def test_hf_recognizer_ort_backend_loads_optimum_pipeline():
             "huggingface_ner_recognizer.optimum_pipeline",
             mock_optimum,
         ):
-            with patch(
-                "optimum.onnxruntime.ORTModelForTokenClassification",
-                mock_ort_model_cls,
-            ):
+            with patch_ort_model(mock_ort_model_cls):
                 HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
 
     mock_ort_model_cls.from_pretrained.assert_called_once_with("test-model")
@@ -774,6 +777,7 @@ def test_hf_recognizer_ort_backend_loads_optimum_pipeline():
         tokenizer="test-model",
         aggregation_strategy="simple",
         accelerator="ort",
+        model_kwargs=None,
     )
 
 
@@ -796,10 +800,7 @@ def test_hf_recognizer_optimum_model_kwargs_scoped_to_model_loader():
             "huggingface_ner_recognizer.optimum_pipeline",
             mock_optimum,
         ):
-            with patch(
-                "optimum.onnxruntime.ORTModelForTokenClassification",
-                mock_ort_model_cls,
-            ):
+            with patch_ort_model(mock_ort_model_cls):
                 HuggingFaceNerRecognizer(
                     model_name="test-model",
                     backend="ort",
@@ -813,7 +814,7 @@ def test_hf_recognizer_optimum_model_kwargs_scoped_to_model_loader():
     _, pipeline_kwargs = mock_optimum.call_args
     assert "subfolder" not in pipeline_kwargs
     assert "file_name" not in pipeline_kwargs
-    assert "model_kwargs" not in pipeline_kwargs
+    assert pipeline_kwargs["model_kwargs"] is None
 
 
 @pytest.mark.usefixtures("mock_torch_installed")
@@ -831,26 +832,39 @@ def test_hf_recognizer_ort_revision_and_token_reach_tokenizer():
             "huggingface_ner_recognizer.optimum_pipeline",
             mock_optimum,
         ):
-            with patch(
-                "optimum.onnxruntime.ORTModelForTokenClassification",
-                mock_ort_model_cls,
-            ):
+            with patch_ort_model(mock_ort_model_cls):
                 HuggingFaceNerRecognizer(
                     model_name="test-model",
                     backend="ort",
                     revision="abc123",
                     token="hf_xxx",
+                    trust_remote_code=True,
+                    cache_dir="/tmp/hf",
+                    local_files_only=True,
                     subfolder="onnx",
                 )
 
     mock_ort_model_cls.from_pretrained.assert_called_once_with(
-        "test-model", revision="abc123", token="hf_xxx", subfolder="onnx"
+        "test-model",
+        revision="abc123",
+        token="hf_xxx",
+        trust_remote_code=True,
+        cache_dir="/tmp/hf",
+        local_files_only=True,
+        subfolder="onnx",
     )
     _, pipeline_kwargs = mock_optimum.call_args
     assert pipeline_kwargs["revision"] == "abc123"
     assert pipeline_kwargs["token"] == "hf_xxx"
+    assert pipeline_kwargs["trust_remote_code"] is True
+    # cache_dir / local_files_only reach the tokenizer via model_kwargs.
+    assert pipeline_kwargs["model_kwargs"] == {
+        "cache_dir": "/tmp/hf",
+        "local_files_only": True,
+    }
     # Loader-only keys still must not leak into the pipeline call.
     assert "subfolder" not in pipeline_kwargs
+    assert "subfolder" not in pipeline_kwargs["model_kwargs"]
 
 
 @pytest.mark.usefixtures("mock_torch_installed")
@@ -894,10 +908,7 @@ def test_hf_recognizer_ort_backend_load_failure_logs_and_raises(caplog):
             "huggingface_ner_recognizer.optimum_pipeline",
             MagicMock(),
         ):
-            with patch(
-                "optimum.onnxruntime.ORTModelForTokenClassification",
-                mock_ort_model_cls,
-            ):
+            with patch_ort_model(mock_ort_model_cls):
                 with pytest.raises(RuntimeError, match="no such model"):
                     HuggingFaceNerRecognizer(model_name="test-model", backend="ort")
 

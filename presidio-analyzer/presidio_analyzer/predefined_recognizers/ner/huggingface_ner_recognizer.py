@@ -112,8 +112,12 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
     # forwards itself to from_pretrained(); they must not be inside model_kwargs.
     TORCH_PIPELINE_HUB_KWARGS = ("revision", "token", "trust_remote_code")
     # Keys the ort path must also hand to optimum's pipeline() so the tokenizer
-    # is fetched from the same revision / with the same credentials as the model.
-    ORT_TOKENIZER_HUB_KWARGS = ("revision", "token")
+    # is fetched from the same revision / with the same credentials as the
+    # model. These are top-level pipeline() arguments ...
+    ORT_TOKENIZER_HUB_KWARGS = ("revision", "token", "trust_remote_code")
+    # ... and these go through the pipeline's model_kwargs, which transformers
+    # copies into the tokenizer load (the model is already an instance here).
+    ORT_TOKENIZER_LOAD_KWARGS = ("cache_dir", "local_files_only")
 
     def __init__(
         self,
@@ -414,12 +418,17 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         logger.info(f"Loading HuggingFace model: {self.model_name}, backend=ort")
 
         # The tokenizer is loaded by name inside the pipeline, so hub kwargs
-        # that select a revision or authenticate must reach it as well, or a
-        # pinned/private repo loads the model and then fails (or drifts) on
-        # the tokenizer fetch.
+        # that select a revision, authenticate, or force offline/cached loading
+        # must reach it as well, or a pinned/private/offline repo loads the
+        # model and then fails (or drifts) on the tokenizer fetch.
         tokenizer_hub_kwargs = {
             key: self.model_kwargs[key]
             for key in self.ORT_TOKENIZER_HUB_KWARGS
+            if key in self.model_kwargs
+        }
+        tokenizer_load_kwargs = {
+            key: self.model_kwargs[key]
+            for key in self.ORT_TOKENIZER_LOAD_KWARGS
             if key in self.model_kwargs
         }
 
@@ -433,6 +442,7 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
                 tokenizer=self.tokenizer_name,
                 aggregation_strategy=self.aggregation_strategy,
                 accelerator="ort",
+                model_kwargs=tokenizer_load_kwargs or None,
                 **tokenizer_hub_kwargs,
             )
             logger.info(f"Successfully loaded {self.model_name} with ort backend")
