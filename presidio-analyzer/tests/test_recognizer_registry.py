@@ -17,6 +17,9 @@ from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerListLoader,
 )
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer, UsSsnRecognizer
+from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
+    RecognizerListLoader,
+)
 
 
 def create_mock_pattern_recognizer(lang, entity, name):
@@ -214,7 +217,7 @@ def test_when_remove_pattern_recognizer_then_item_removed():
 
 
 def test_add_recognizer_from_dict():
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["de"])
     recognizer = {
         "name": "Zip code Recognizer",
         "supported_language": "de",
@@ -237,7 +240,7 @@ def test_add_recognizer_from_dict():
 def test_add_recognizer_from_dict_attaches_thresholds_without_mutating_input(
     monkeypatch,
 ):
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["de"])
     recognizer = {
         "name": "Zip code Recognizer",
         "supported_language": "de",
@@ -281,7 +284,7 @@ def test_add_recognizers_from_yaml_attaches_thresholds(tmp_path):
     ZIP: 0.7
 """
     )
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["de"])
 
     registry.add_recognizers_from_yaml(yaml_path)
 
@@ -289,6 +292,121 @@ def test_add_recognizers_from_yaml_attaches_thresholds(tmp_path):
         "default": 0.4,
         "ZIP": 0.7,
     }
+
+
+class RecognizerWithOwnThresholds(PatternRecognizer):
+    """Recognizer declaring its own thresholds, for omission tests."""
+
+    DEFAULT_THRESHOLDS = {"THRESHOLD_TEST": 0.6}
+
+    def __init__(self, supported_language: str = "en", **kwargs):
+        super().__init__(
+            supported_entity="THRESHOLD_TEST",
+            patterns=[Pattern("test", r"\bTHR\d{4}\b", 0.3)],
+            supported_language=supported_language,
+            **kwargs,
+        )
+        self.score_thresholds = dict(self.DEFAULT_THRESHOLDS)
+
+
+@pytest.fixture
+def threshold_recognizer_registered(monkeypatch):
+    """Make the test recognizer resolvable by name from configuration."""
+    original = RecognizerListLoader.get_existing_recognizer_cls
+
+    def resolve(recognizer_name):
+        if recognizer_name == "RecognizerWithOwnThresholds":
+            return RecognizerWithOwnThresholds
+        return original(recognizer_name)
+
+    monkeypatch.setattr(
+        RecognizerListLoader, "get_existing_recognizer_cls", staticmethod(resolve)
+    )
+
+
+def _load_predefined(conf):
+    return RecognizerListLoader.get(
+        recognizers=[conf],
+        global_regex_flags=re.DOTALL | re.MULTILINE | re.IGNORECASE,
+        supported_languages=["en"],
+    )
+
+
+def test_predefined_recognizer_keeps_own_thresholds_when_yaml_omits_them(
+    threshold_recognizer_registered,
+):
+    """Omitting the key must not discard the recognizer's own thresholds."""
+    loaded = _load_predefined(
+        {
+            "name": "RecognizerWithOwnThresholds",
+            "supported_languages": ["en"],
+            "type": "predefined",
+            "enabled": True,
+        }
+    )
+
+    assert len(loaded) == 1
+    assert loaded[0].score_thresholds == {"THRESHOLD_TEST": 0.6}
+
+
+def test_predefined_recognizer_thresholds_overridden_when_yaml_sets_them(
+    threshold_recognizer_registered,
+):
+    """An explicit value in configuration still wins over the class default."""
+    loaded = _load_predefined(
+        {
+            "name": "RecognizerWithOwnThresholds",
+            "supported_languages": ["en"],
+            "type": "predefined",
+            "enabled": True,
+            "score_thresholds": {"THRESHOLD_TEST": 0.9},
+        }
+    )
+
+    assert loaded[0].score_thresholds == {"THRESHOLD_TEST": 0.9}
+
+
+def test_predefined_recognizer_thresholds_cleared_when_yaml_sets_empty_mapping(
+    threshold_recognizer_registered,
+):
+    """An explicit empty mapping is a deliberate reset, not an omission."""
+    loaded = _load_predefined(
+        {
+            "name": "RecognizerWithOwnThresholds",
+            "supported_languages": ["en"],
+            "type": "predefined",
+            "enabled": True,
+            "score_thresholds": {},
+        }
+    )
+
+    assert loaded[0].score_thresholds == {}
+
+
+def test_add_recognizer_from_dict_keeps_own_thresholds_when_key_omitted(monkeypatch):
+    """The dict path follows the same omission rule.
+
+    ``PatternRecognizer.from_dict`` returns the base class today, whose
+    thresholds are always empty, so the constructed recognizer is replaced
+    with one carrying its own default to make the behavior observable.
+    """
+    monkeypatch.setattr(
+        PatternRecognizer,
+        "from_dict",
+        staticmethod(lambda config: RecognizerWithOwnThresholds()),
+    )
+    registry = RecognizerRegistry(supported_languages=["de"])
+
+    registry.add_pattern_recognizer_from_dict(
+        {
+            "name": "Zip code Recognizer",
+            "supported_language": "de",
+            "patterns": [{"name": "zip", "regex": r"\d{5}", "score": 0.5}],
+            "supported_entity": "ZIP",
+        }
+    )
+
+    assert registry.recognizers[0].score_thresholds == {"THRESHOLD_TEST": 0.6}
 
 
 @pytest.mark.parametrize("score_thresholds", [False, 0, "", []])
@@ -311,7 +429,7 @@ def test_recognizer_registry_add_from_yaml_file():
     this_path = Path(__file__).parent.absolute()
     test_yaml = Path(this_path, "conf/recognizers.yaml")
 
-    registry = RecognizerRegistry()
+    registry = RecognizerRegistry(supported_languages=["en", "de"])
     registry.add_recognizers_from_yaml(test_yaml)
 
     assert len(registry.recognizers) == 2
