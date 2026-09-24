@@ -75,6 +75,45 @@ results = analyzer_engine.analyze(
 print(results)
 ```
 
+## Model loading and prediction options
+
+Use `model_kwargs` for options passed to `GLiNER.from_pretrained`, and
+`predict_kwargs` for options passed to `predict_entities` on each text chunk:
+
+```yaml
+supported_languages: [en]
+recognizers:
+  - name: GLiNERRecognizer
+    model_name: urchade/gliner_multi_pii-v1
+    entity_mapping:
+      person: PERSON
+    map_location: cpu
+    threshold: 0.5
+    model_kwargs:
+      local_files_only: true
+    predict_kwargs:
+      return_class_probs: true
+```
+
+The same dictionaries can be passed to the Python constructor. Presidio validates
+the block shape and conflicts, not library-specific option values. A block cannot
+repeat named recognizer parameters such as `threshold` or invocation arguments
+such as `text` and `labels`. An option cannot appear both at the top level and
+inside `model_kwargs`.
+
+Legacy flat model options still reach the library during the compatibility
+period, but emit a deprecation warning. Move them into `model_kwargs`. Omitting
+both blocks preserves existing behavior.
+
+To exercise a real cached model through YAML, run from `presidio-analyzer`:
+
+```bash
+uv run python ../docs/samples/python/recognizer_config_workflows.py --gliner
+```
+
+This opt-in scenario needs the `gliner` extra and a previously downloaded
+`urchade/gliner_multi_pii-v1` model. The default script remains model-free.
+
 ## Text Chunking
 
 By default, GLiNERRecognizer splits long texts into character-based chunks (250 chars, 50 overlap). You can customize this via `text_chunker`:
@@ -132,4 +171,3 @@ gliner_recognizer = GLiNERRecognizer(
 - Can provide better performance on certain CPU architectures
 
 **Note:** Make sure `onnxruntime` is installed when using this feature. It's included in the `gliner` extra dependencies.
-

@@ -305,7 +305,7 @@ def test_configuration_validator_uses_recognizer_specific_dump_rules():
     assert "flat_ner" not in gliner_recognizer
     assert "entity_mapping" not in gliner_recognizer
     assert predefined_recognizer["name"] == "CreditCardRecognizer"
-    assert predefined_recognizer["supported_language"] is None
+    assert "supported_language" not in predefined_recognizer
 
 
 def test_langextract_config_preserves_config_path():

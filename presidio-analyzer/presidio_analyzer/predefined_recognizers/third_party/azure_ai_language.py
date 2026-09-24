@@ -18,6 +18,8 @@ logger = logging.getLogger("presidio-analyzer")
 class AzureAILanguageRecognizer(RemoteRecognizer):
     """Wrapper for PII detection using Azure AI Language."""
 
+    OPTIONAL_DEPENDENCY_MODULES = ("azure.ai.textanalytics", "azure.core.credentials")
+
     def __init__(
         self,
         supported_entities: Optional[List[str]] = None,
