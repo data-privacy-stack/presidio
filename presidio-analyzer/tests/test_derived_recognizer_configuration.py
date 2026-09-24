@@ -122,14 +122,16 @@ def test_class_local_config_model_applies_cross_field_validation():
 
     registry = RecognizerRegistryProvider(
         registry_configuration=config(
-            {"name": "LocalRulesRecognizer", "left": True}, True
+            {"name": LocalRulesRecognizer.__name__, "left": True}, True
         )
     ).create_recognizer_registry()
+    assert type(registry.recognizers[0]) is LocalRulesRecognizer
     assert registry.recognizers[0].left is True
     with pytest.raises(ValueError) as exc:
         RecognizerRegistryProvider(
             registry_configuration=config(
-                {"name": "LocalRulesRecognizer", "left": True, "right": True}, True
+                {"name": LocalRulesRecognizer.__name__, "left": True, "right": True},
+                True,
             )
         )
     assert "left and right" in str(exc.value) + str(exc.value.__cause__)
@@ -268,7 +270,9 @@ def test_missing_required_constructor_option_fails_without_loading():
 
     with pytest.raises(ValueError) as exc:
         RecognizerRegistryProvider(
-            registry_configuration=config({"name": "RequiredOptionRecognizer"}, True)
+            registry_configuration=config(
+                {"name": RequiredOptionRecognizer.__name__}, True
+            )
         )
     assert "required_option" in str(exc.value) + str(exc.value.__cause__)
 
