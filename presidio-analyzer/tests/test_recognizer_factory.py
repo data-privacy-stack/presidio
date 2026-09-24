@@ -138,9 +138,10 @@ def test_forwarding_subclass_can_bind_required_parent_arguments():
 
     recognizer = RecognizerFactory.build_all(
         RecognizerFactory.create_specs(
-            {"recognizers": [{"class_name": "BoundArgumentRecognizer"}]}
+            {"recognizers": [{"class_name": BoundArgumentRecognizer.__name__}]}
         )
     )[0]
+    assert type(recognizer) is BoundArgumentRecognizer
     assert recognizer.supported_entities == ["BOUND"]
 
 

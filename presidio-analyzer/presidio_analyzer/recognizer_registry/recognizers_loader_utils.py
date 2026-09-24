@@ -18,8 +18,8 @@ from typing import (
 
 import yaml
 
-from presidio_analyzer import EntityRecognizer
 from presidio_analyzer._configuration_errors import ConfigValidationError
+from presidio_analyzer.entity_recognizer import EntityRecognizer
 
 logger = logging.getLogger("presidio-analyzer")
 
