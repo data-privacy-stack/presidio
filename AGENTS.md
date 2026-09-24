@@ -75,13 +75,12 @@ The rulebook for the pydantic models in `presidio_analyzer/input_validation/`
 is `.github/instructions/yaml-config.instructions.md` — **read it before
 touching the layer**. The short version:
 
-- Constructor parameters and schema fields must never drift apart: a
-  YAML-settable kwarg without a matching pydantic field is silently dropped
-  today. Model-specific kwargs need a dedicated config model registered in
-  `CONFIG_MODEL_MAP`.
-- Choose `extra` deliberately (`forbid` fails fast, `allow` passes through);
-  pass-through models dump with `exclude_none=True` so YAML omissions keep
-  constructor defaults.
+- Constructor keywords are derived into YAML fields; do not add central
+  `CONFIG_MODEL_MAP` entries. Use a class-local `CONFIG_MODEL` for cross-field
+  rules. New derived fields are Any-typed; retain existing compatibility coercions.
+- Unknown recognizer keys warn by default and fail under registry `strict: true`.
+  Apply only explicitly supplied constructor fields, preserving omissions.
+  Explicit threshold resets are separate from null constructor options.
 - Validate at parse time with actionable messages, and never break existing
   YAML — legacy singular fields, bare-string entries, and inferred `type` all
   stay supported.

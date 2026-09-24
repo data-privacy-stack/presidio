@@ -23,7 +23,6 @@ from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     RecognizerConfigurationLoader,
     RecognizerListLoader,
 )
-from presidio_analyzer.score_thresholds import normalize_score_thresholds
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -351,13 +350,39 @@ class RecognizerRegistry:
         >>> registry.add_pattern_recognizer_from_dict(recognizer)
         """  # noqa: E501
 
-        recognizer_config = recognizer_dict.copy()
-        score_thresholds = normalize_score_thresholds(
-            recognizer_config.pop("score_thresholds", None)
+        self._add_from_configuration({"recognizers": [recognizer_dict]})
+
+    def _add_from_configuration(self, configuration: Dict) -> None:
+        from presidio_analyzer.input_validation.yaml_recognizer_models import (
+            RecognizerRegistryConfig,
         )
-        recognizer = PatternRecognizer.from_dict(recognizer_config)
-        recognizer.score_thresholds = score_thresholds
-        self.add_recognizer(recognizer)
+
+        from .recognizer_factory import RecognizerFactory
+
+        if not isinstance(configuration, dict):
+            raise TypeError("Recognizer registry configuration must be a dictionary")
+        unused = set(configuration) - set(RecognizerRegistryConfig.model_fields)
+        if unused and not configuration.get("strict", False):
+            logger.warning(
+                "Ignoring legacy top-level registry metadata keys %s; these "
+                "settings do not configure recognizers. Use strict: true to reject.",
+                sorted(unused),
+            )
+            configuration = {
+                key: value for key, value in configuration.items() if key not in unused
+            }
+        if configuration.get("recognizers") == []:
+            return
+        specs = RecognizerFactory.create_specs(
+            {
+                "supported_languages": self.supported_languages,
+                "global_regex_flags": self.global_regex_flags,
+                **configuration,
+            }
+        )
+        recognizers = RecognizerFactory.build_all(specs, existing=self.recognizers)
+        for recognizer in recognizers:
+            self.add_recognizer(recognizer)
 
     def add_recognizers_from_yaml(self, yml_path: Union[str, Path]) -> None:
         r"""
@@ -368,26 +393,18 @@ class RecognizerRegistry:
 
         :example:
         >>> yaml_file = "recognizers.yaml"
-        >>> registry = RecognizerRegistry()
+        >>> registry = RecognizerRegistry(supported_languages=["en", "de"])
         >>> registry.add_recognizers_from_yaml(yaml_file)
 
         """
 
         try:
-            with open(yml_path) as stream:
-                yaml_recognizers = yaml.safe_load(stream)
-
-            for yaml_recognizer in yaml_recognizers["recognizers"]:
-                self.add_pattern_recognizer_from_dict(yaml_recognizer)
-        except OSError as io_error:
-            print(f"Error reading file {yml_path}")
-            raise io_error
-        except yaml.YAMLError as yaml_error:
-            print(f"Failed to parse file {yml_path}")
-            raise yaml_error
-        except TypeError as yaml_error:
-            print(f"Failed to parse file {yml_path}")
-            raise yaml_error
+            with open(yml_path, encoding="utf-8") as stream:
+                configuration = yaml.safe_load(stream)
+        except (OSError, yaml.YAMLError):
+            logger.error("Failed to read or parse recognizer configuration file")
+            raise
+        self._add_from_configuration(configuration)
 
     def __instantiate_recognizer(
         self, recognizer_class: Type[EntityRecognizer], supported_language: str
