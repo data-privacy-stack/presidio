@@ -22,40 +22,38 @@ configures. When reviewing, lead with:
 
 Every constructor parameter that should be settable from YAML needs a matching
 pydantic field. In every contribution, check that constructor parameters and
-schema fields have not drifted apart — a mismatch means a value a user writes
-in YAML never reaches the object, or reaches it unvalidated. As of today the
-consequence is silent: `PredefinedRecognizerConfig` ignores unknown YAML keys,
-so a constructor kwarg without a schema field is dropped without any error and
-the recognizer falls back to its defaults (the failure
-`LangExtractRecognizerConfig` exists to prevent; see its docstring). Even if
-that `extra` behavior changes, the no-mismatch rule stands.
+schema fields have not drifted apart. `derive_config_model` now derives fields
+from constructor signatures and forwarding MROs. Do not extend the deprecated
+`CONFIG_MODEL_MAP`; it is only an import-compatibility shim.
 
-- A recognizer whose constructor takes model-specific kwargs needs a dedicated
-  config model registered in `CONFIG_MODEL_MAP` (keyed by `class_name` or
-  `name`), following `HuggingFaceRecognizerConfig` / `GLiNERRecognizerConfig` /
-  `LangExtractRecognizerConfig`.
-- When a PR adds a constructor parameter to a recognizer that already has a
-  config model, require the matching field in that model — otherwise YAML users
-  cannot set it and get no error telling them so.
+- A class-local `CONFIG_MODEL` adds cross-field validation without maintaining a
+  second list of constructor fields.
+- New derived fields remain Any-typed to avoid introducing annotation-based
+  validation. Existing HF/GLiNER coercions are deliberately retained by their
+  compatibility rules.
+- A compatibility-only `**kwargs` must declare `CONFIG_LEGACY_KWARGS`; otherwise
+  it means forwarding to the parent constructor.
+- After a constructor/config-model change, regenerate the accepted-key reference:
+  `cd presidio-analyzer && uv run python ../docs/samples/python/generate_recognizer_config_reference.py`.
+  The test suite checks that this generated reference is current.
 
 ## `extra` must be a deliberate choice
 
 - `extra="forbid"` for closed configs (`TextChunkerConfig`,
   `RecognizerRegistryConfig`): typos fail fast at parse time with a clear
   message.
-- `extra="allow"` for pass-through configs whose kwargs flow to a constructor
-  (HuggingFace, GLiNER, LangExtract).
+- Derived entry models use `extra="forbid"` after unknown-key policy runs:
+  warn/ignore by default, reject under registry `strict: true`. GLiNER's legacy
+  flat-option shim warns and merges into `model_kwargs` outside strict mode.
 - Flag a new model that leaves pydantic's default (`extra="ignore"`) without
   justification — silent ignoring is almost never the intended behavior.
 
 ## `exclude_none` discipline on kwargs models
 
-Models whose dump is passed to a constructor override `model_dump` with
-`exclude_none=True`, so a field omitted in YAML preserves the constructor
-default instead of overriding it with an explicit `None`. Any new pass-through
-config model must do the same; flag one that doesn't — it silently clobbers
-constructor defaults, which is this layer's sneakiest backward-compatibility
-trap.
+Construction uses `exclude_unset=True`: omitted fields preserve constructor
+defaults. Keep legacy null-option behavior for compatibility. An explicit
+`score_thresholds: null` is a deliberate reset and must not disappear in a
+model-specific `exclude_none` dump. Registry defaults still apply.
 
 ## Fail early, with actionable messages
 

@@ -1,9 +1,19 @@
 """Pydantic models for YAML recognizer configurations."""
 
-from typing import Any, Dict, List, Literal, Optional, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializeAsAny,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
+from presidio_analyzer._configuration_errors import ConfigValidationError
+from presidio_analyzer._model_options import validate_model_options
 from presidio_analyzer.input_validation import validate_language_codes
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import (
     PredefinedRecognizerNotFoundError,
@@ -59,6 +69,9 @@ class BaseRecognizerConfig(BaseModel):
             "(if different from instance name)"
         ),
     )
+    country_code: Optional[str] = Field(
+        default=None, description="Optional ISO 3166-1 alpha-2 country metadata"
+    )
     enabled: bool = Field(default=True, description="Whether the recognizer is enabled")
     type: Optional[str] = Field(
         default="predefined", description="Type of recognizer (predefined/custom)"
@@ -85,6 +98,14 @@ class BaseRecognizerConfig(BaseModel):
         default=None,
         description="Default and entity-specific score thresholds",
     )
+
+    @field_validator("name")
+    @classmethod
+    def validate_instance_name(cls, value: str) -> str:
+        """Reject empty names which constructors otherwise silently replace."""
+        if not value.strip():
+            raise ValueError("name must be a non-empty string")
+        return value
 
     @field_validator("supported_language")
     @classmethod
@@ -213,12 +234,28 @@ class PredefinedRecognizerConfig(BaseRecognizerConfig):
         return self
 
 
+class PredefinedPatternRecognizerConfig(PredefinedRecognizerConfig):
+    """Shared pattern validation for PatternRecognizer-derived implementations."""
+
+    @field_validator("patterns", check_fields=False)
+    @classmethod
+    def validate_configured_patterns(cls, patterns: Any) -> Any:
+        """Apply shared pattern structure rules to constructor-derived fields."""
+        return CustomRecognizerConfig.validate_patterns(patterns)
+
+
 class HuggingFaceRecognizerConfig(PredefinedRecognizerConfig):
     """Configuration specifically for HuggingFace NER models."""
 
     model_config = ConfigDict(extra="allow")
 
     model_name: Optional[str] = Field(None, description="HuggingFace model name")
+    model_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to transformers.pipeline"
+    )
+    predict_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to the pipeline call per chunk"
+    )
     tokenizer_name: Optional[str] = Field(
         None, description="HuggingFace tokenizer name"
     )
@@ -245,6 +282,18 @@ class HuggingFaceRecognizerConfig(PredefinedRecognizerConfig):
             return TextChunkerConfig(**v)
         return v
 
+    @model_validator(mode="after")
+    def validate_library_option_blocks(self):
+        """Reject ambiguous options while parsing, before loading the model."""
+        recognizer_cls = RecognizerListLoader.get_existing_recognizer_cls(
+            self.class_name or self.name
+        )
+        validate_model_options(
+            recognizer_cls,
+            {"model_kwargs": self.model_kwargs, "predict_kwargs": self.predict_kwargs},
+        )
+        return self
+
     def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
         """Serialize the config without None values by default.
 
@@ -268,6 +317,12 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
     model_config = ConfigDict(extra="allow")
 
     model_name: Optional[str] = Field(None, description="GLiNER model name")
+    model_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to GLiNER.from_pretrained"
+    )
+    predict_kwargs: Optional[Dict[str, Any]] = Field(
+        None, description="Options passed to predict_entities per chunk"
+    )
     flat_ner: Optional[bool] = Field(None, description="Use flat NER")
     multi_label: Optional[bool] = Field(
         None, description="Use multi-label classification"
@@ -298,6 +353,19 @@ class GLiNERRecognizerConfig(PredefinedRecognizerConfig):
                 "'entity_mapping' and 'supported_entities'; these fields are "
                 "mutually exclusive."
             )
+        return self
+
+    @model_validator(mode="after")
+    def validate_library_option_blocks(self):
+        """Reject ambiguous options while parsing, before loading the model."""
+        recognizer_cls = RecognizerListLoader.get_existing_recognizer_cls(
+            self.class_name or self.name
+        )
+        validate_model_options(
+            recognizer_cls,
+            {"model_kwargs": self.model_kwargs, "predict_kwargs": self.predict_kwargs},
+            legacy_kwargs=self.model_extra,
+        )
         return self
 
     def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
@@ -347,6 +415,9 @@ class LangExtractRecognizerConfig(PredefinedRecognizerConfig):
 class CustomRecognizerConfig(BaseRecognizerConfig):
     """Configuration for custom pattern-based recognizers."""
 
+    name: str = Field(
+        default="PatternRecognizer", description="Instance name for custom patterns"
+    )
     type: str = Field(default="custom", description="Type of recognizer")
     supported_entity: str = Field(
         ..., description="Entity type this recognizer detects"
@@ -383,6 +454,20 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
 
     @model_validator(mode="before")
     @classmethod
+    def normalize_legacy_entities(cls, data: Any) -> Any:
+        """Accept the plural serialization form for a single-entity recognizer."""
+        if (
+            isinstance(data, dict)
+            and "supported_entity" not in data
+            and isinstance(data.get("supported_entities"), list)
+            and data["supported_entities"]
+        ):
+            data = dict(data)
+            data["supported_entity"] = data.pop("supported_entities")[0]
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
     def check_predefined_name_conflict(cls, data: Any) -> Any:
         """Check if custom recognizer name conflicts with predefined recognizer.
 
@@ -393,7 +478,13 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
             name = data.get("name")
             if name:
                 try:
-                    RecognizerListLoader.get_existing_recognizer_cls(name)
+                    from presidio_analyzer import PatternRecognizer
+
+                    if (
+                        RecognizerListLoader.get_existing_recognizer_cls(name)
+                        is PatternRecognizer
+                    ):
+                        return data
                     # If we reach here, the recognizer IS predefined, so raise an error
                     raise ValueError(
                         f"Recognizer '{name}' conflicts with a predefined "
@@ -430,22 +521,31 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
 
         :param patterns: List of patterns
         """
-        if patterns and not isinstance(patterns, list):
-            raise ValueError(f"Patterns should be a list: {patterns}")
+        if patterns is not None and not isinstance(patterns, list):
+            raise ValueError("Patterns should be a list")
 
-        for pattern in patterns:
+        for index, pattern in enumerate(patterns or []):
+            location = f"patterns[{index}]: "
             if not isinstance(pattern, dict):
-                raise ValueError(f"Pattern should be a dict: {pattern}")
+                raise ValueError(location + "Pattern should be a dict")
             if "name" not in pattern:
-                raise ValueError(f"Pattern should contain a name field: {pattern}")
+                raise ValueError(location + "Pattern should contain a name field")
             if "regex" not in pattern:
-                raise ValueError(f"Pattern should contain a regex field: {pattern}")
+                raise ValueError(location + "Pattern should contain a regex field")
             if "score" not in pattern:
-                raise ValueError(f"Pattern should contain a score field: {pattern}")
+                raise ValueError(location + "Pattern should contain a score field")
+            if not isinstance(pattern["name"], str):
+                raise ValueError(location + "Pattern name should be a string")
+            if not isinstance(pattern["regex"], str):
+                raise ValueError(location + "Pattern regex should be a string")
+            if set(pattern) - {"name", "regex", "score"}:
+                raise ValueError(
+                    location + "Pattern accepts only name, regex and score fields"
+                )
             if not isinstance(pattern["score"], (int, float)):
-                raise ValueError(f"Pattern score should be a float: {pattern}")
+                raise ValueError(location + "Pattern score should be a float")
             if not (0.0 <= pattern["score"] <= 1.0):
-                raise ValueError(f"Pattern score should be between 0 and 1: {pattern}")
+                raise ValueError(location + "Pattern score should be between 0 and 1")
         return patterns
 
     @model_validator(mode="after")
@@ -464,16 +564,16 @@ class RecognizerRegistryConfig(BaseModel):
     supported_languages: Optional[List[str]] = Field(
         default=None, description="List of supported languages"
     )
-    global_regex_flags: int = Field(default=26, description="Global regex flags")
-    recognizers: List[
-        Union[
-            HuggingFaceRecognizerConfig,
-            GLiNERRecognizerConfig,
-            PredefinedRecognizerConfig,
-            CustomRecognizerConfig,
-            str,
-        ]
-    ] = Field(default_factory=list, description="List of recognizer configurations")
+    global_regex_flags: Optional[int] = Field(
+        default=26,
+        description="Global regex flags; None preserves constructor defaults",
+    )
+    strict: bool = Field(
+        default=False, description="Reject unknown recognizer configuration keys"
+    )
+    recognizers: List[Union[SerializeAsAny[BaseRecognizerConfig], str]] = Field(
+        default_factory=list, description="List of recognizer configurations"
+    )
 
     model_config = ConfigDict(extra="forbid")
 
@@ -529,7 +629,7 @@ class RecognizerRegistryConfig(BaseModel):
     @field_validator("recognizers", mode="before")
     @classmethod
     def parse_recognizers(
-        cls, recognizers: List[Union[Dict[str, Any], str]]
+        cls, recognizers: List[Union[Dict[str, Any], str]], info: ValidationInfo
     ) -> List[BaseRecognizerConfig]:
         """Parse recognizers from various input formats without duplication."""
         if recognizers is None:
@@ -548,7 +648,22 @@ class RecognizerRegistryConfig(BaseModel):
             )
 
         parsed_recognizers = []
-        for recognizer in recognizers:
+        explicit_names = []
+        for entry_index, recognizer in enumerate(recognizers):
+            explicit_names.append(
+                isinstance(recognizer, str)
+                or (
+                    "name" in recognizer.model_fields_set
+                    if isinstance(recognizer, BaseRecognizerConfig)
+                    else isinstance(recognizer, dict) and "name" in recognizer
+                )
+            )
+            if isinstance(recognizer, BaseRecognizerConfig):
+                recognizer = {
+                    "type": recognizer.type,
+                    "enabled": recognizer.enabled,
+                    **recognizer.model_dump(exclude_unset=True),
+                }
             if isinstance(recognizer, str):
                 parsed_recognizers.append(recognizer)
                 continue
@@ -556,17 +671,6 @@ class RecognizerRegistryConfig(BaseModel):
             if isinstance(recognizer, dict):
                 recognizer = recognizer.copy()
                 recognizer_type = recognizer.get("type")
-
-                # Validate conflicting custom-only fields if explicitly predefined
-                if recognizer_type == "predefined" and (
-                    "patterns" in recognizer or "deny_list" in recognizer
-                ):
-                    raise ValueError(
-                        f"Recognizer '{recognizer.get('name')}' is marked "
-                        f"as 'predefined' but contains 'patterns' or 'deny_list' "
-                        f"which are only valid for custom recognizers. "
-                        f"Either use type: 'custom' or remove these fields."
-                    )
 
                 if not recognizer_type:
                     if "patterns" in recognizer or "deny_list" in recognizer:
@@ -585,14 +689,50 @@ class RecognizerRegistryConfig(BaseModel):
                     # Prioritize class_name for lookup
                     # (e.g., custom instance of HuggingFaceNerRecognizer)
                     config_model_key = recognizer_class_name or recognizer_name
+                    if config_model_key is None:
+                        raise ConfigValidationError(
+                            "Recognizer requires 'name' or 'class_name'",
+                            code="missing_setting",
+                            path=(entry_index, "class_name"),
+                        )
 
-                    config_model = CONFIG_MODEL_MAP.get(
-                        config_model_key, PredefinedRecognizerConfig
+                    from .recognizer_configuration import parse_recognizer_config
+
+                    try:
+                        recognizer_cls = (
+                            RecognizerListLoader.get_existing_recognizer_cls(
+                                config_model_key
+                            )
+                        )
+                    except PredefinedRecognizerNotFoundError as exc:
+                        raise ConfigValidationError(
+                            f"Predefined recognizer '{config_model_key}' not found",
+                            code="unknown_class",
+                            path=("class_name",),
+                            safe_message=(
+                                "Unknown recognizer class; use class_name with a "
+                                "registered implementation. "
+                                f"Suggestions: {list(exc.suggestions)}."
+                            ),
+                        ) from exc
+                    parsed_recognizers.append(
+                        parse_recognizer_config(
+                            recognizer_cls, recognizer, info.data.get("strict", False)
+                        )
                     )
-
-                    parsed_recognizers.append(config_model(**recognizer))
                 elif recognizer_type == "custom":
-                    parsed_recognizers.append(CustomRecognizerConfig(**recognizer))
+                    from presidio_analyzer import PatternRecognizer
+
+                    from .recognizer_configuration import parse_recognizer_config
+
+                    parsed_recognizers.append(
+                        parse_recognizer_config(
+                            PatternRecognizer,
+                            recognizer,
+                            info.data.get("strict", False),
+                            custom=True,
+                        )
+                    )
                 else:
                     raise ValueError(
                         f"Invalid recognizer type: {recognizer_type}. "
@@ -600,14 +740,40 @@ class RecognizerRegistryConfig(BaseModel):
                     )
                 continue
 
-            parsed_recognizers.append(recognizer)
+            raise ConfigValidationError(
+                "Recognizer entry must be a class name or mapping",
+                code="entry_type",
+                path=(entry_index,),
+            )
 
+        from .recognizer_identity import validate_registry_identities
+
+        identity_entries = [
+            (
+                {"name": entry, "type": "predefined"}
+                if isinstance(entry, str)
+                else {"name": entry.name, **entry.model_dump(exclude_unset=True)},
+                explicit,
+            )
+            for entry, explicit in zip(parsed_recognizers, explicit_names)
+            if isinstance(entry, (str, BaseRecognizerConfig))
+        ]
+        languages = info.data.get("supported_languages")
+        validate_registry_identities(
+            identity_entries, ["en"] if languages is None else languages
+        )
         return parsed_recognizers
 
     @classmethod
     def __check_if_predefined(cls, recognizer_name: Optional[Any]) -> None:
         try:
-            RecognizerListLoader.get_existing_recognizer_cls(recognizer_name)
+            from presidio_analyzer import PatternRecognizer
+
+            if (
+                RecognizerListLoader.get_existing_recognizer_cls(recognizer_name)
+                is PatternRecognizer
+            ):
+                return
             raise ValueError(
                 f"Recognizer '{recognizer_name}' conflicts with a predefined "
                 f"recognizer. "
@@ -649,11 +815,20 @@ class RecognizerRegistryConfig(BaseModel):
         return self
 
 
-# Map specific recognizer classes to their dedicated config models
-# This allows for modular expansion without polluting the base config
-CONFIG_MODEL_MAP: Dict[str, Type[BaseModel]] = {
-    "HuggingFaceNerRecognizer": HuggingFaceRecognizerConfig,
-    "GLiNERRecognizer": GLiNERRecognizerConfig,
-    "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
-    "AzureOpenAILangExtractRecognizer": LangExtractRecognizerConfig,
-}
+def __getattr__(name):
+    """Provide the deprecated config-map import without using it for loading."""
+    if name != "CONFIG_MODEL_MAP":
+        raise AttributeError(name)
+    import warnings
+
+    warnings.warn(
+        "CONFIG_MODEL_MAP is deprecated; use derive_config_model(recognizer_cls).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return {
+        "HuggingFaceNerRecognizer": HuggingFaceRecognizerConfig,
+        "GLiNERRecognizer": GLiNERRecognizerConfig,
+        "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
+        "AzureOpenAILangExtractRecognizer": LangExtractRecognizerConfig,
+    }

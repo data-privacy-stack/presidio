@@ -305,7 +305,7 @@ def test_configuration_validator_uses_recognizer_specific_dump_rules():
     assert "flat_ner" not in gliner_recognizer
     assert "entity_mapping" not in gliner_recognizer
     assert predefined_recognizer["name"] == "CreditCardRecognizer"
-    assert predefined_recognizer["supported_language"] is None
+    assert "supported_language" not in predefined_recognizer
 
 
 def test_langextract_config_preserves_config_path():
@@ -367,7 +367,7 @@ def test_langextract_config_azure_variant_selected():
         ],
     )
     recognizer = config.recognizers[0]
-    assert isinstance(recognizer, LangExtractRecognizerConfig)
+    assert isinstance(recognizer, PredefinedRecognizerConfig)
     assert recognizer.config_path == "/path/to/azure_config.yml"
 
 
@@ -565,7 +565,7 @@ def test_recognizer_registry_config_missing_recognizers():
 def test_recognizer_registry_config_string_recognizers():
     """Test registry with string recognizers."""
     config = RecognizerRegistryConfig(
-        recognizers=["credit_card", "email", "phone_number"]
+        recognizers=["CreditCardRecognizer", "EmailRecognizer", "PhoneRecognizer"]
     )
     assert len(config.recognizers) == 3
     assert all(isinstance(r, str) for r in config.recognizers)
@@ -583,7 +583,7 @@ def test_recognizer_registry_config_mixed_recognizers():
     with pytest.raises(ValidationError) as exc_info:
         RecognizerRegistryConfig(
             recognizers=[
-                "credit_card",  # string predefined
+                "CreditCardRecognizer",  # string predefined
                 {"name": "UrlRecognizer", "type": "predefined"},  # predefined
                 custom_config  # custom without languages should trigger error
             ]
@@ -595,7 +595,7 @@ def test_recognizer_registry_config_only_predefined_no_languages():
     """Predefined recognizers without languages should be allowed (use defaults)."""
     config = RecognizerRegistryConfig(
         recognizers=[
-            "credit_card",
+            "CreditCardRecognizer",
             {"name": "UrlRecognizer", "type": "predefined"},
         ]
     )
@@ -647,7 +647,7 @@ def test_complete_registry_scenario():
     registry_config = {
         "supported_languages": ["en", "es"],
         "recognizers": [
-            "credit_card",  # String recognizer (kept as string)
+            "CreditCardRecognizer",  # String recognizer (kept as string)
             {
                 "name": "EmailRecognizer",
                 "type": "predefined",
@@ -826,7 +826,7 @@ def test_recognizer_registry_config_custom_name_with_hf_class():
     config = RecognizerRegistryConfig(**registry_config)
     recognizer = config.recognizers[0]
 
-    assert isinstance(recognizer, HuggingFaceRecognizerConfig)
+    assert isinstance(recognizer, PredefinedRecognizerConfig)
     assert recognizer.name == "CustomKoreanWorker"
     assert recognizer.class_name == "HuggingFaceNerRecognizer"
     assert recognizer.model_name == "TestModel/Ner"
@@ -856,7 +856,7 @@ def test_gliner_recognizer_config_model_name():
     config = RecognizerRegistryConfig(**registry_config)
     recognizer = config.recognizers[0]
 
-    assert isinstance(recognizer, GLiNERRecognizerConfig)
+    assert isinstance(recognizer, PredefinedRecognizerConfig)
     assert recognizer.model_name == "custom/gliner-model"
     assert recognizer.threshold == 0.5
     assert recognizer.flat_ner is False

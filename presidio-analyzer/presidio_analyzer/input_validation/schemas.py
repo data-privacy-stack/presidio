@@ -97,16 +97,24 @@ class ConfigurationValidator:
     def _dump_recognizer_registry_configuration(
         validated_config: RecognizerRegistryConfig,
     ) -> Dict[str, Any]:
-        """Dump registry config while preserving recognizer-specific dump rules."""
+        """Keep registry defaults without materializing omitted recognizer settings."""
         dumped_config = validated_config.model_dump(
             exclude_unset=False, exclude={"recognizers"}
         )
-        dumped_config["recognizers"] = [
-            recognizer
-            if isinstance(recognizer, str)
-            else recognizer.model_dump()
-            for recognizer in validated_config.recognizers
-        ]
+        dumped_config["recognizers"] = []
+        for recognizer in validated_config.recognizers:
+            if isinstance(recognizer, str):
+                dumped_config["recognizers"].append(recognizer)
+                continue
+            entry = {
+                "name": recognizer.name,
+                "type": recognizer.type,
+                "enabled": recognizer.enabled,
+                **recognizer.model_dump(exclude_unset=True),
+            }
+            if "score_thresholds" in recognizer.model_fields_set:
+                entry["score_thresholds"] = recognizer.score_thresholds
+            dumped_config["recognizers"].append(entry)
         return dumped_config
 
     @staticmethod

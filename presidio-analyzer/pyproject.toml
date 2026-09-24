@@ -83,6 +83,8 @@ dev = [
     "python-dotenv",
     "pre-commit",
     "diff-cover",
+    "jsonschema>=4.0,<5",
+    "cryptography>=50.0.0,<51.0.0",
 ]
 
 [tool.coverage.run]
