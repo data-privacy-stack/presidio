@@ -118,7 +118,7 @@ def test_non_pattern_recognizer_constructor_field_remains_opaque():
             registry_configuration={
                 "recognizers": [
                     {
-                        "class_name": "OpaquePatternsRecognizer",
+                        "class_name": OpaquePatternsRecognizer.__name__,
                         "type": "predefined",
                         "patterns": {"not": "a regex configuration"},
                     }
@@ -128,4 +128,5 @@ def test_non_pattern_recognizer_constructor_field_remains_opaque():
         .create_recognizer_registry()
         .recognizers[0]
     )
+    assert type(recognizer) is OpaquePatternsRecognizer
     assert recognizer.patterns == {"not": "a regex configuration"}
