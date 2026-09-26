@@ -138,3 +138,96 @@ The recognizer list comprises of both the predefined and custom recognizers, for
       supported_languages: ["ko"]
       enabled: false
     ```
+
+## Enabling country-specific recognizers on the default English image
+
+The published `presidio-analyzer` image (`ghcr.io/data-privacy-stack/presidio-analyzer`)
+loads only the English NLP model and uses
+[`default_recognizers.yaml`](https://github.com/data-privacy-stack/presidio/blob/main/presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml)
+with top-level `supported_languages: [en]`.
+
+Several country-specific pattern recognizers are registered for their **native language only**,
+for example `ItFiscalCodeRecognizer` (`IT_FISCAL_CODE`, `it`), `EsNifRecognizer` (`ES_NIF`, `es`)
+and `PlPeselRecognizer` (`PL_PESEL`, `pl`). These recognizers are pattern- and checksum-based and do
+not need an Italian, Spanish or Polish NLP model, but they will not run for `language: en`
+because the registry only attaches them to their native language code. US, UK, AU and similar
+recognizers are already registered with `en` and need no override.
+
+The defaults are kept native-language-only on purpose: loading every country recognizer for `en`
+would increase false positives for deployments that never see those identifiers. Enable the
+countries you need with an explicit registry override instead.
+
+!!! warning "Unsupported entities produce a warning, not an error"
+
+    Requesting an entity that no recognizer serves for the request language, together with
+    entities that are served (for example `entities: ["IT_FISCAL_CODE", "IBAN_CODE"]` on the
+    default `en` image), returns the results for the served entities only. The analyzer logs a
+    warning (`Entity IT_FISCAL_CODE doesn't have the corresponding recognizer in language : en.
+    Ignoring unsupported entities is deprecated and will raise an error in a future version.`)
+    but the HTTP response is still `200`. Only when *none* of the requested entities can be served
+    does `/analyze` fail with `No matching recognizers were found to serve the request.`
+    Use `GET /supportedentities?language=en` (or `AnalyzerEngine.get_supported_entities`) to
+    confirm that an entity is served before relying on it. See
+    [issue #2256](https://github.com/data-privacy-stack/presidio/issues/2256).
+
+### Override with `RECOGNIZER_REGISTRY_CONF_FILE`
+
+The analyzer server (`presidio-analyzer/app.py`) reads its configuration paths from the
+environment variables `ANALYZER_CONF_FILE`, `NLP_CONF_FILE` and `RECOGNIZER_REGISTRY_CONF_FILE`.
+`RECOGNIZER_REGISTRY_CONF_FILE` **replaces** the whole registry configuration; it does not merge a
+single recognizer into the defaults. Start from a full copy of `default_recognizers.yaml` and change
+only the entries you need.
+
+1. Copy `presidio-analyzer/presidio_analyzer/conf/default_recognizers.yaml` and set
+   `supported_languages` to `en` for each recognizer you want on the English image:
+
+    ```yaml
+    supported_languages:
+      - en
+    global_regex_flags: 26
+
+    recognizers:
+      # ... other recognizers unchanged ...
+
+      - name: ItFiscalCodeRecognizer
+        supported_languages:
+        - en
+        type: predefined
+        country_code: it
+    ```
+
+    Keep `country_code: it` so [filtering by country](filtering_by_country.md) still works.
+    Listing `it` next to `en` on the recognizer is harmless but has no effect on the default
+    image: requests with `language: it` are still rejected, because the registry and the NLP
+    engine only support `en`. To serve Italian requests as well, configure the analyzer and NLP
+    engine for `it` (see [languages](languages.md)); adding `it` to the registry's top-level
+    `supported_languages` alone makes the analyzer fail at startup with a
+    "supported languages have to be consistent" error.
+
+2. Mount the file into the container and point the server at it:
+
+    ```sh
+    docker run -d -p 5002:3000 \
+      -v "$(pwd)/recognizers.yaml:/app/recognizers.yaml:ro" \
+      -e RECOGNIZER_REGISTRY_CONF_FILE=/app/recognizers.yaml \
+      ghcr.io/data-privacy-stack/presidio-analyzer:latest
+    ```
+
+3. Verify that the entity is now served for `en`:
+
+    ```sh
+    curl -s "http://localhost:5002/supportedentities?language=en"
+
+    curl -s http://localhost:5002/analyze \
+      -H "Content-Type: application/json" \
+      -d '{"text":"codice fiscale RSSMRA85M01H501Q","language":"en","entities":["IT_FISCAL_CODE"]}'
+    ```
+
+    `IT_FISCAL_CODE` appears in the supported entities list and the fiscal code is returned with
+    score `1.0` (omocodic codes such as `RSSMRA85M01H50MI` are detected as well). A code with an
+    invalid check character is still reported, but at the pattern score of `0.3`, so integrations
+    that apply a score threshold should expect the two cases to differ.
+
+When embedding `AnalyzerEngine` directly, load the same file with `RecognizerRegistryProvider` as
+shown at the top of this page, or pass it as `recognizer_registry_conf_file` to
+[`AnalyzerEngineProvider`](analyzer_engine_provider.md).

@@ -117,6 +117,13 @@ docker run -d -p 5002:3000 ghcr.io/data-privacy-stack/presidio-analyzer:latest
 docker run -d -p 5001:3000 ghcr.io/data-privacy-stack/presidio-anonymizer:latest
 ```
 
+The analyzer container reads optional configuration paths from the environment variables
+`ANALYZER_CONF_FILE`, `NLP_CONF_FILE` and `RECOGNIZER_REGISTRY_CONF_FILE`. For example,
+`RECOGNIZER_REGISTRY_CONF_FILE` can point to a mounted copy of the recognizer registry YAML to
+enable country-specific recognizers (such as the Italian `IT_FISCAL_CODE`) on the default English
+image without rebuilding it. See
+[Enabling country-specific recognizers on the default English image](analyzer/recognizer_registry_provider.md#enabling-country-specific-recognizers-on-the-default-english-image).
+
 ### For PII redaction in images
 
 For PII detection in images, the `presidio-image-redactor` is required.

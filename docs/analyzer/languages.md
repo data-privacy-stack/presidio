@@ -12,6 +12,14 @@ lemmatization, Named Entity Recognition and other NLP tasks.
 !!! note "Note"
     While different detection mechanisms such as regular expressions are language agnostic, the context words used to increase the PII detection confidence aren't. Consider updating the list of context words for each recognizer to leverage context words in additional languages.
 
+!!! tip "Country-specific pattern recognizers on the default `en` image"
+
+    Some country-specific pattern recognizers (for example `ItFiscalCodeRecognizer`, `IT_FISCAL_CODE`)
+    are registered only for their native language. They do not need a non-English NLP model, but they
+    are not served for `language: en` unless their `supported_languages` is changed through a registry
+    override. See
+    [Enabling country-specific recognizers on the default English image](recognizer_registry_provider.md#enabling-country-specific-recognizers-on-the-default-english-image).
+
 ## Table of contents
 
 - [Configuring the NLP Engine](#configuring-the-nlp-engine)
