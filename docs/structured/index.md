@@ -110,6 +110,21 @@ A more detailed sample can be found here:
 
 - <https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_structured.ipynb>
 
+#### Anonymization operators
+
+`operators` maps an entity type to an `OperatorConfig`, exactly as in
+`presidio-anonymizer`. An entity that is not named in the mapping falls back to the
+`DEFAULT` entry, and when no `DEFAULT` is given the engine uses `replace`, which
+substitutes the value with its entity type (`<PERSON>`, `<LOCATION>`, ...):
+
+```python
+# No operators: every detected value is replaced with its entity type
+anonymized_df = pandas_engine.anonymize(sample_df, tabular_analysis)
+```
+
+Operator parameters are validated before any value is processed, so a misconfigured
+operator raises `InvalidParamError` instead of failing part-way through the data.
+
 #### Selection Strategy for Entity Detection in Tabular Data
 
 - **Most Common (default):**  Identifies the most frequently occurring PII entity in a data column or field.

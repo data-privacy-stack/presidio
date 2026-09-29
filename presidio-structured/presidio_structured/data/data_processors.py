@@ -66,6 +66,8 @@ class DataProcessorBase(ABC):
         :param config: Configuration object containing mapping of entity types to keys.
         :param operators: Dictionary containing operator configuration objects.
         :return: Dictionary mapping keys to operator callables.
+        :raises InvalidParamError: if an operator is configured with invalid
+            parameters.
         """
         key_to_operator_mapping = {}
 
@@ -79,9 +81,17 @@ class DataProcessorBase(ABC):
             operator = operators_factory.create_operator_class(
                 operator_config.operator_name, OperatorType.Anonymize
             )
-            operator_callable = self._create_operator_callable(
-                operator, operator_config.params
-            )
+            # Copied so the caller's OperatorConfig is left untouched, then given
+            # the entity type the operators expect. This mirrors what
+            # ``EngineBase._operate`` does for text, and is what lets the default
+            # ``replace`` operator emit ``<PERSON>`` rather than ``<None>``.
+            params = operator_config.params.copy()
+            params["entity_type"] = entity
+            # Fail with an actionable InvalidParamError while the mapping is being
+            # built, rather than with an arbitrary exception from deep inside the
+            # operator once the data is already being processed.
+            operator.validate(params=params)
+            operator_callable = self._create_operator_callable(operator, params)
             key_to_operator_mapping[key] = operator_callable
 
         return key_to_operator_mapping
