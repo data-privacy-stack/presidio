@@ -82,7 +82,6 @@ celerybeat-schedule
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -120,7 +119,6 @@ poetry.lock
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-.vscode
 
 debug.test
 debug
@@ -143,3 +141,9 @@ mkdocs/
 # Visual Studio
 /.vs
 /TestResults
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
+config.bat
+node_modules
