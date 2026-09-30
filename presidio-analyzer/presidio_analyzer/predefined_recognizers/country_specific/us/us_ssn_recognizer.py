@@ -77,8 +77,9 @@ class UsSsnRecognizer(PatternRecognizer):
             # groups cannot be all zeros
             return True
 
-        if only_digits[:3] in ("000", "666"):
-            # area number (first group) is never issued by the SSA
+        if only_digits[:3] in ("000", "666") or only_digits[0] == "9":
+            # area number (first group) is never issued by the SSA:
+            # 000, 666, and the 900 series are never assigned
             return True
 
         if only_digits in ("123456789", "987654320", "078051120"):
