@@ -1,5 +1,7 @@
 # ruff: noqa: D103,D205,E501,F541,F841,W293
 
+import importlib.util
+import os
 import re
 from pathlib import Path
 from typing import List
@@ -16,6 +18,27 @@ from presidio_analyzer.predefined_recognizers import (
     SpacyRecognizer,
     StanzaRecognizer,
 )
+
+def _has_module(name: str) -> bool:
+    # find_spec imports the parent packages of a dotted name, so a missing
+    # intermediate raises ModuleNotFoundError instead of returning None --
+    # "azure.health.deidentification" does exactly that without the ahds extra.
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+# Gate the optional-dependency tests below on the module each one actually
+# imports. `pytest.importorskip` cannot be used for this: evaluated inside a
+# decorator it runs at module import, so a missing extra takes the whole file
+# out of collection instead of skipping the two tests that need it.
+#
+# The bare `azure` name is also too coarse. `azure.*` are namespace packages and
+# the `ahds` extra populates them too, so `import azure` can succeed while
+# `azure.ai.textanalytics` is absent.
+_HAS_TEXT_ANALYTICS = _has_module("azure.ai.textanalytics")
+_HAS_HEALTH_DEID = _has_module("azure.health.deidentification")
 
 
 def get_full_paths(analyzer_yaml, nlp_engine_yaml=None, recognizer_registry_yaml=None):
@@ -241,9 +264,15 @@ def test_analyzer_engine_provider_with_files_per_provider():
 
 
 @pytest.mark.skipif(
-    pytest.importorskip("azure"), reason="Optional dependency not installed"
-)  # noqa: E501
-def test_analyzer_engine_provider_with_azure_ai_language():
+    not _HAS_TEXT_ANALYTICS, reason="azure-ai-language extra not installed"
+)
+def test_analyzer_engine_provider_with_azure_ai_language(monkeypatch):
+    # The constructor builds a client when none is injected, falling back to
+    # these variables. Nothing here reaches the network: the SDK client is
+    # constructed locally and `analyze` is overridden below.
+    monkeypatch.setenv("AZURE_AI_KEY", "test-key")
+    monkeypatch.setenv("AZURE_AI_ENDPOINT", "https://example.invalid/")
+
     analyzer_yaml, _, _ = get_full_paths(
         "conf/test_azure_ai_language_reco.yaml",
     )
@@ -261,17 +290,27 @@ def test_analyzer_engine_provider_with_azure_ai_language():
 
     analyzer_engine = provider.create_engine()
 
-    azure_ai_recognizers = [
-        rec
+    names = {
+        rec.name
         for rec in analyzer_engine.registry.recognizers
-        if rec.name == "Azure AI Language PII"
-    ]
+        if isinstance(rec, MockAzureAiLanguageRecognizer)
+    }
 
-    assert len(azure_ai_recognizers) == 1
+    # The plain entry takes its name from the YAML key; the `class_name` entry
+    # takes the name configured next to it. Both require the constructor to
+    # accept `name`, which is what regressed after #1800.
+    assert names == {"MockAzureAiLanguageRecognizer", "Azure AI Language PII"}
 
     assert len(analyzer_engine.analyze("This is a test", language="en")) > 0
 
-@pytest.mark.skipif(pytest.importorskip("azure"), reason="Optional dependency not installed") # noqa: E501
+
+# AzureHealthDeidRecognizer.__init__ builds a client when none is passed, and
+# that path reads AHDS_ENDPOINT and raises ValueError without it. The YAML entry
+# supplies no client, so the endpoint is as much a precondition as the package.
+@pytest.mark.skipif(
+    not _HAS_HEALTH_DEID or not os.getenv("AHDS_ENDPOINT"),
+    reason="ahds extra not installed or AHDS_ENDPOINT not set",
+)
 def test_analyzer_engine_provider_with_ahds():
     analyzer_yaml, _, _ = get_full_paths(
         "conf/test_ahds_reco.yaml",
