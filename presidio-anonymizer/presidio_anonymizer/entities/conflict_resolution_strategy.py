@@ -12,7 +12,6 @@ class ConflictResolutionStrategy(Enum):
     between similar or contained entities.
     REMOVE_INTERSECTIONS: Effectively resolves both intersection conflicts
     among entities and default strategy conflicts.
-    NONE: No conflict resolution will be performed.
     """
 
     MERGE_SIMILAR_OR_CONTAINED = "merge_similar_or_contained"
