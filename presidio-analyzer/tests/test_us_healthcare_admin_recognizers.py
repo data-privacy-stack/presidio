@@ -650,6 +650,8 @@ def test_us_healthcare_admin_recognizer_metadata(recognizer, entity, expected_co
         ("Claim number PCN000001 for 450.00.", "PCN000001"),
         ("Claim ID PCN000001 was paid.", "PCN000001"),
         ("Healthcare claim number: ABC123456 was denied.", "ABC123456"),
+        # A date-shaped prefix is fine when the value continues past the date.
+        ("Claim number 2026-01-15-XYZ123 was paid.", "2026-01-15-XYZ123"),
         ("Claim number " + "A1" * 19, "A1" * 19),  # 38 chars, the X12 CLM01 maximum
         # fmt: on
     ],
@@ -673,6 +675,47 @@ def test_claim_number_too_long_alphanumeric_does_not_match(
 ):
     """Test an alphanumeric value past the 38-character limit does not match."""
     text = "Claim number " + "A1" * 19 + "B"
+    assert (
+        analyze_with_recognizer(
+            text, "US_CLAIM_NUMBER", UsClaimNumberRecognizer(), score_threshold=0
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "text, expected_value",
+    [
+        # fmt: off
+        ("Claim number Pcn000001 for 450.00.", "Pcn000001"),
+        ("Claim number pcn000001 was paid.", "pcn000001"),
+        # fmt: on
+    ],
+)
+def test_claim_number_detects_mixed_case_values(
+    text, expected_value, analyze_with_recognizer
+):
+    """Test labelled claim numbers are detected in any letter case."""
+    results = analyze_with_recognizer(
+        text, "US_CLAIM_NUMBER", UsClaimNumberRecognizer()
+    )
+    start = text.index(expected_value)
+    assert len(results) == 1
+    assert_result(
+        results[0], "US_CLAIM_NUMBER", start, start + len(expected_value), 0.7
+    )
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Claim number 2026-01-15.",
+        "Claim number 01-15-2026.",
+        "Claim number 15-01-2026.",
+    ],
+)
+def test_claim_number_does_not_match_dates(text, analyze_with_recognizer):
+    """Test calendar dates after a claim label are not claim numbers."""
     assert (
         analyze_with_recognizer(
             text, "US_CLAIM_NUMBER", UsClaimNumberRecognizer(), score_threshold=0

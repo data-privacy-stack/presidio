@@ -70,7 +70,9 @@ class UsClaimNumberRecognizer(PatternRecognizer):
     The primary pattern anchors such an identifier on its claim label (a
     digit is required so plain words cannot match), while a weak prefixed
     pattern supports structured data containing ``CLM`` values and an X12
-    pattern matches the CLM segment of 837 claim files.
+    pattern matches the CLM segment of 837 claim files. Labelled values
+    match in any letter case, but a bare calendar date after the label
+    (for example ``2026-01-15``) is not a claim number and is excluded.
 
     Reference: https://www.cms.gov/medical-bill-rights/help/guides/explanation-of-benefits
     """
@@ -82,7 +84,9 @@ class UsClaimNumberRecognizer(PatternRecognizer):
             "Claim number (labelled)",
             r"(?<=\b(?:claim|medical\s+claim|healthcare\s+claim)"
             r"(?:\s*(?:#|no\.?|number|id)\s*:?\s*|\s*:\s*|\s+))"
-            r"(?:CLM-?)?(?=[A-Z0-9-]*\d)[A-Z0-9-]{6,38}\b",
+            r"(?:CLM-?)?"
+            r"(?!(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}-\d{1,2}-\d{2,4})(?![\w-]))"
+            r"(?=[A-Za-z0-9-]*\d)[A-Za-z0-9-]{6,38}\b",
             0.35,
         ),
         Pattern(
