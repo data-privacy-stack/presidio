@@ -468,7 +468,7 @@ class RecognizerRegistryConfig(BaseModel):
         default=None,
         description=(
             "List of ISO 3166-1 alpha-2 country codes used to filter "
-            "country-specific recognizers, e.g. ['us', 'uk']. "
+            "country-specific recognizers, e.g. ['us', 'uk'] (case-insensitive). "
             "Locale-agnostic recognizers are always kept."
         ),
     )
@@ -507,7 +507,13 @@ class RecognizerRegistryConfig(BaseModel):
     def validate_country_codes(
         cls, countries: Optional[List[str]]
     ) -> Optional[List[str]]:
-        """Validate country codes format."""
+        """Validate and normalize country codes.
+
+        Codes are case-insensitive ISO 3166-1 alpha-2 values; they are
+        stored lower-cased (mirroring ``CustomRecognizerConfig.country_code``)
+        so the validated configuration is canonical regardless of the casing
+        used in the YAML file.
+        """
 
         # Allow None or empty list; an empty list keeps only
         # locale-agnostic recognizers (see RecognizerListLoader.get).
@@ -517,13 +523,15 @@ class RecognizerRegistryConfig(BaseModel):
         if len(countries) == 0:
             return []
 
+        normalized = []
         for code in countries:
             if not isinstance(code, str) or not code.strip():
                 raise ValueError(
                     "Each entry in 'supported_countries' must be a non-empty "
                     f"string, e.g. ['us', 'uk']. Got: {code!r}."
                 )
-        return countries
+            normalized.append(code.strip().lower())
+        return normalized
 
     @model_validator(mode="after")
     def validate_languages_for_custom_recognizers(self):

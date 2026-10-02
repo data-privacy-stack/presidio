@@ -548,3 +548,70 @@ def test_supported_countries_rejects_blank_entry():
                 "recognizers": [],
             }
         )
+
+
+def _registry_names_for_countries(countries):
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "supported_countries": countries,
+            "recognizers": [
+                {"name": "UsSsnRecognizer"},
+                {"name": "UkNinoRecognizer"},
+                {"name": "CreditCardRecognizer"},
+            ],
+        }
+    )
+    registry = provider.create_recognizer_registry()
+    return {type(recognizer).__name__ for recognizer in registry.recognizers}
+
+
+def test_supported_countries_uppercase_selects_same_recognizers():
+    """Casing must not change which recognizers are selected.
+
+    ['US'] selects exactly the same recognizers as ['us']: country codes
+    are normalized to lowercase at validation time.
+    """
+    assert _registry_names_for_countries(["US"]) == _registry_names_for_countries(
+        ["us"]
+    )
+    names = _registry_names_for_countries(["US"])
+    assert "UsSsnRecognizer" in names
+    assert "UkNinoRecognizer" not in names
+    assert "CreditCardRecognizer" in names
+
+
+def test_supported_countries_mixed_case_selects_both_countries():
+    """Mixed-case entries like ['Us', 'uK'] keep both countries."""
+    names = _registry_names_for_countries(["Us", "uK"])
+    assert "UsSsnRecognizer" in names
+    assert "UkNinoRecognizer" in names
+    assert "CreditCardRecognizer" in names
+
+
+def test_supported_countries_normalized_in_validated_config():
+    """The validated configuration stores codes lower-cased."""
+    from presidio_analyzer.input_validation import ConfigurationValidator
+
+    dumped = ConfigurationValidator.validate_recognizer_registry_configuration(
+        {
+            "supported_languages": ["en"],
+            "supported_countries": ["US", " Uk "],
+            "recognizers": [{"name": "UsSsnRecognizer"}],
+        }
+    )
+    assert dumped["supported_countries"] == ["us", "uk"]
+
+
+def test_supported_countries_rejects_non_string_entry():
+    """Non-string country codes fail fast with an actionable message."""
+    with pytest.raises(
+        ValueError, match="Invalid recognizer registry configuration"
+    ):
+        RecognizerRegistryProvider(
+            registry_configuration={
+                "supported_languages": ["en"],
+                "supported_countries": [840],
+                "recognizers": [],
+            }
+        )
