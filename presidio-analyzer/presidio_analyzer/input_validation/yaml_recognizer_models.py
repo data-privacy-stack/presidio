@@ -518,10 +518,7 @@ class RecognizerRegistryConfig(BaseModel):
         if countries is None:
             return None
 
-        try:
-            normalized = RecognizerListLoader._normalize_countries(countries)
-        except TypeError as e:
-            raise ValueError(str(e)) from e
+        normalized = RecognizerListLoader._normalize_countries(countries)
         return sorted(normalized)
 
     @model_validator(mode="after")

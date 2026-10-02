@@ -485,6 +485,18 @@ def load_registry_names(**overrides):
     return sorted({recognizer.name for recognizer in registry.recognizers}), None
 
 
+def test_yaml_supported_countries_null_loads_everything():
+    """An explicit ``supported_countries:`` with no value is None, not a filter.
+
+    Uncommenting only the ``supported_countries:`` line in a registry YAML
+    leaves the key present with a null value, so the registry must still load
+    and nothing may be filtered out.
+    """
+    names, error = load_registry_names(supported_countries=None)
+    assert error is None, f"a null supported_countries must load, got: {error}"
+    assert names == ["CreditCardRecognizer", "UkNinoRecognizer", "UsSsnRecognizer"]
+
+
 def test_yaml_supported_countries_loads_and_filters_recognizers():
     """``supported_countries`` in YAML narrows the loaded country-specific set."""
     unfiltered, error = load_registry_names()
