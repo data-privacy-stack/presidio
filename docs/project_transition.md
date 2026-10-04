@@ -39,6 +39,6 @@ Now that the migration is complete:
 
 Maintainers and contributors continue to actively drive the project. We welcome new contributors who care about privacy-preserving technologies and responsible data handling.
 
-Details regarding governance, contribution guidelines, maintainership, Docker image publishing, and roadmap planning are available in the repository documentation.
+Details regarding contribution guidelines and Docker image publishing are available in the repository documentation.
 
 Thank you to everyone who supported Presidio through this transition and helped make it a valuable resource for the privacy engineering community.
