@@ -1,6 +1,11 @@
-import pytest
+from pathlib import Path
 
+import presidio_analyzer
+import pytest
+import yaml
 from presidio_analyzer.predefined_recognizers import UsLicenseRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+
 from tests import assert_result_within_score_range
 
 
@@ -12,6 +17,27 @@ def recognizer():
 @pytest.fixture(scope="module")
 def entities():
     return ["US_DRIVER_LICENSE"]
+
+
+def test_two_letter_license_loads_and_detects_from_default_config():
+    """The configured recognizer should accept the fixed two-letter format."""
+    conf = Path(presidio_analyzer.__file__).parent / "conf" / "default_recognizers.yaml"
+    recognizers = yaml.safe_load(conf.read_text(encoding="utf-8"))["recognizers"]
+    entry = next(r for r in recognizers if r.get("name") == "UsLicenseRecognizer")
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [dict(entry, enabled=True)],
+        }
+    ).create_recognizer_registry()
+    loaded_recognizer = registry.recognizers[0]
+
+    results = loaded_recognizer.analyze("AB12", ["US_DRIVER_LICENSE"])
+
+    assert [(result.start, result.end, result.score) for result in results] == [
+        (0, 4, 0.3)
+    ]
+    assert loaded_recognizer.analyze("A-Z]]12", ["US_DRIVER_LICENSE"]) == []
 
 
 @pytest.mark.parametrize(
