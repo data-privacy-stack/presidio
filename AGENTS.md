@@ -8,8 +8,8 @@ working. Correctness and backward compatibility outrank cleverness.
 
 The review-side versions of these rules — which the Copilot PR review agent
 also enforces — live in `.github/copilot-instructions.md` and
-`.github/instructions/*.instructions.md`. Follow them at authoring time so the
-review finds nothing.
+`.github/instructions/*.instructions.md`. Follow them at authoring time;
+`/review-pr` checks this for you.
 
 ## Working in this repo
 
@@ -29,6 +29,14 @@ uv run ruff check . && uv run ruff format .
 - Never log PII values (`entity.text`) — only entity types and positions.
 - Modules that process records are stateless; do not add state.
 - Terminology: "threshold", not "cutoff"; ISO 639-1 language codes everywhere.
+
+## Before opening a PR
+
+Run `/review-pr` in Claude Code from your branch. It checks the diff against
+this file and `.github/instructions/`, runs Ruff and the nearest tests, and
+lists what is missing. Fix what it reports before opening the PR; the same
+check is run on review. The skill lives in `.claude/skills/review-pr/`; other
+agents can follow its steps manually.
 
 ## Adding a PII recognizer
 
