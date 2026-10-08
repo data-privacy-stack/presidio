@@ -33,14 +33,9 @@ current branch against `main`; use it before opening a PR.
    behavior change.
 5. In the affected package run `uv run ruff check .` and the tests closest to the
    change (`uv run pytest <touched test files>`). Report failures, do not fix.
-6. Judge the tests: true positives, hard negatives, embedded values, exact
-   boundaries, and nothing that tests implementation detail (log text, mock
-   calls, private helpers).
-7. Judge docstrings and docs: public APIs need a summary and full `:param:`
-   docs; no docstring describes implementation rather than behavior; docs stay
-   high-level and readable by someone new to the project.
-8. Judge the design: is the fix at the source or a local workaround? If a
-   workaround, say in one line what the source fix would be.
+6. Judge the diff against the Code quality bar in `AGENTS.md`: simplicity,
+   fix at the source, extensibility, tests, docstrings and docs. One line per
+   violation, cite file:line.
 
 ## Output, nothing else
 

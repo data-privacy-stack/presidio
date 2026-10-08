@@ -122,3 +122,21 @@ touching the layer**. The short version:
 - **Docs move with code**: `docs/supported_entities.md` for entities,
   `docs/api-docs/api-docs.yml` for API changes, reST docstrings on public
   APIs, samples for complex features.
+
+## Code quality bar
+
+Reviewers hold PRs to this, not only to correctness.
+
+- Simple over complete. Code should be readable top to bottom by someone new to
+  the module. If a complete solution is hard to follow and a simpler one covers
+  the real requirement, propose the simpler one and say what it leaves out.
+- Fix at the source. Do not infer state or intent from indirect signals when the
+  source can expose it directly. A wider change is preferred over a workaround;
+  if the right fix is out of scope, say so in the PR rather than narrowing it.
+- Easy to extend. A new case, entity, or format should need a change in one
+  predictable place. Introduce an abstraction only when there are two real uses.
+- Tests cover behavior at the public boundary. No tests of log text, message
+  wording, private helpers, or mock calls. One test per behavior.
+- Docstrings: public APIs get a summary and full `:param:` list; no docstring
+  describes implementation. Docs are high-level, plain language, no
+  parameter-by-parameter detail.
