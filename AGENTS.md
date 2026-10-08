@@ -9,7 +9,7 @@ working. Correctness and backward compatibility outrank cleverness.
 The review-side versions of these rules — which the Copilot PR review agent
 also enforces — live in `.github/copilot-instructions.md` and
 `.github/instructions/*.instructions.md`. Follow them at authoring time;
-`/review-pr` checks this for you.
+the pre-PR check below verifies this for you.
 
 ## Working in this repo
 
@@ -32,11 +32,12 @@ uv run ruff check . && uv run ruff format .
 
 ## Before opening a PR
 
-Run `/review-pr` in Claude Code from your branch. It checks the diff against
-this file and `.github/instructions/`, runs Ruff and the nearest tests, and
-lists what is missing. Fix what it reports before opening the PR; the same
-check is run on review. The skill lives in `.claude/skills/review-pr/`; other
-agents can follow its steps manually.
+Check your branch against this file and `.github/instructions/`, run Ruff and
+the nearest tests, and fix what is missing. The same check is run on review.
+
+- Claude Code: run `/review-pr` from your branch. The skill lives in
+  `.claude/skills/review-pr/`.
+- Others: follow the steps in `.claude/skills/review-pr/SKILL.md` manually.
 
 ## Adding a PII recognizer
 
@@ -135,6 +136,9 @@ Reviewers hold PRs to this, not only to correctness.
   if the right fix is out of scope, say so in the PR rather than narrowing it.
 - Easy to extend. A new case, entity, or format should need a change in one
   predictable place. Introduce an abstraction only when there are two real uses.
+- Impact on accuracy. If the change might reduce detection accuracy (missed PII,
+  likely false positives, changed scores for existing inputs), say so in the PR
+  description and explain the trade-off.
 - Tests cover behavior at the public boundary. No tests of log text, message
   wording, private helpers, or mock calls. One test per behavior.
 - Docstrings: public APIs get a summary and full `:param:` list; no docstring
