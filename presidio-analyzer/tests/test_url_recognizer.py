@@ -4,6 +4,7 @@ import pytest
 
 from tests import assert_result
 from presidio_analyzer.predefined_recognizers import UrlRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 
 @pytest.fixture(scope="module")
@@ -32,8 +33,12 @@ def entities():
         ("https://www.microsoft.com/store/abc/", 1, ((0, 36),), 0.6,),
         ("microsoft.com", 1, ((0, 13),), 0.5,),
         ("my domains: microsoft.com google.co.il", 2, ((12, 25), (26, 38),), 0.5),
-        ('"https://presidio.dataprivacystack.org/"', 1, ((0, 40),), 0.6),
-        ("'https://presidio.dataprivacystack.org/'", 1, ((0, 40),), 0.6),
+        # Quoted URLs: the surrounding quotes are not part of the URL
+        ('"https://presidio.dataprivacystack.org/"', 1, ((1, 39),), 0.6),
+        ("'https://presidio.dataprivacystack.org/'", 1, ((1, 39),), 0.6),
+        ('"www.example.com"', 1, ((1, 16),), 0.5),
+        ('{"website": "https://example.com/profile/42"}', 1, ((13, 43),), 0.6),
+        ("<a href='https://example.com/profile/42'>profile</a>", 1, ((9, 39),), 0.6),
 
         # Invalid URLs
         ("www.microsoft", 0, (), 0),
@@ -71,3 +76,20 @@ def test_repeated_dot_input_does_not_backtrack(recognizer, entities):
     elapsed = time.time() - start
     assert results == []
     assert elapsed < 15
+
+
+def test_quoted_url_excludes_quotes_when_loaded_from_configuration(entities):
+    # Replacing the detected span must leave the quotes in place, otherwise
+    # anonymizing JSON, HTML attributes or quoted log fields breaks them.
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [{"name": "UrlRecognizer", "type": "predefined"}],
+        }
+    ).create_recognizer_registry()
+    assert [type(r).__name__ for r in registry.recognizers] == ["UrlRecognizer"]
+
+    text = 'The docs are at "https://presidio.dataprivacystack.org/"!'
+    results = registry.recognizers[0].analyze(text, entities)
+    assert len(results) == 1
+    assert_result(results[0], entities[0], 17, 55, 0.6)
