@@ -26,6 +26,7 @@ uv run ruff check . && uv run ruff format .
   package's `pyproject.toml` dependencies, run `uv lock` in that package and
   commit the updated `uv.lock` in the same change — CI fails on drift.
 - Do not edit `CHANGELOG.md`; release entries are generated from merged PRs.
+- PRs need >= 90% test coverage on changed lines; a bot reports it on the PR.
 - Never log PII values (`entity.text`) — only entity types and positions.
 - Modules that process records are stateless; do not add state.
 - Terminology: "threshold", not "cutoff"; ISO 639-1 language codes everywhere.
@@ -51,7 +52,10 @@ workflow, in order:
    country name for new country directories (`south_africa`, not `za`;
    don't imitate the pre-existing short forms `us`/`uk`/`thai`), or
    `generic/`, `nlp_engine_recognizers/`, `ner/`, `third_party/` as
-   appropriate.
+   appropriate. Country-specific classes set `COUNTRY_CODE` to the
+   directory's ISO 3166-1 alpha-2 code (`uk` for the United Kingdom
+   directory); the YAML entry mirrors it as `country_code` and the loader
+   refuses to load on mismatch.
 2. **Use ISO 639-1 language codes** (`ko` for Korean, never `kr`) — a
    mismatch loads nothing, silently.
 3. **Make the constructor loader-compatible**: accept the YAML loader's
