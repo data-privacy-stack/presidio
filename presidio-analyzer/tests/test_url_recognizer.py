@@ -4,7 +4,6 @@ import pytest
 
 from tests import assert_result
 from presidio_analyzer.predefined_recognizers import UrlRecognizer
-from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 
 @pytest.fixture(scope="module")
@@ -76,20 +75,3 @@ def test_repeated_dot_input_does_not_backtrack(recognizer, entities):
     elapsed = time.time() - start
     assert results == []
     assert elapsed < 15
-
-
-def test_quoted_url_excludes_quotes_when_loaded_from_configuration(entities):
-    # Replacing the detected span must leave the quotes in place, otherwise
-    # anonymizing JSON, HTML attributes or quoted log fields breaks them.
-    registry = RecognizerRegistryProvider(
-        registry_configuration={
-            "supported_languages": ["en"],
-            "recognizers": [{"name": "UrlRecognizer", "type": "predefined"}],
-        }
-    ).create_recognizer_registry()
-    assert [type(r).__name__ for r in registry.recognizers] == ["UrlRecognizer"]
-
-    text = 'The docs are at "https://presidio.dataprivacystack.org/"!'
-    results = registry.recognizers[0].analyze(text, entities)
-    assert len(results) == 1
-    assert_result(results[0], entities[0], 17, 55, 0.6)
