@@ -61,7 +61,18 @@ class StreamingAnonymizer:
 
     def feed(self, delta: str) -> str:
         """Add a delta and return the anonymized text that is now safe to send."""
-        self._held += delta
+        # Take the delta in pieces that fit the limit, so the held text never
+        # grows past max_segment_chars + 1, however large a single delta is.
+        output = []
+        pos = 0
+        while pos < len(delta):
+            room = self.max_segment_chars + 1 - len(self._held)
+            output.append(self._feed_piece(delta[pos : pos + room]))
+            pos += room
+        return "".join(output)
+
+    def _feed_piece(self, piece: str) -> str:
+        self._held += piece
         output = []
         start = 0
         for match in self.boundary.finditer(self._held):

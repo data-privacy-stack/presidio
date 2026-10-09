@@ -71,7 +71,7 @@ Things to know:
 
 The hold-back must be at least as long as the longest entity a recognizer can match. If every recognizer had a maximum match length, holding back that many characters would be enough. Presidio's default recognizers do not: the spaCy NER recognizer matches names and locations of any length, and patterns such as URLs have no fixed cap. A fixed window can always be crossed, so the sample holds back to a natural boundary instead. That makes the hold-back as long as a sentence or a line, which is why it needs a limit:
 
-- **Long segments fail closed.** A segment longer than `max_segment_chars` (2,000 by default) raises `SegmentTooLongError` instead of being sent unanalyzed. Catch it and end the response with an error. The limit also bounds memory.
+- **Long segments fail closed.** A segment longer than `max_segment_chars` (2,000 by default) raises `SegmentTooLongError` instead of being sent unanalyzed. Catch it and end the response with an error. The limit also bounds memory: a single delta larger than the limit is taken in pieces, so the held text never grows past it.
 
 If you restrict `entities` to pattern recognizers with a known maximum length, a fixed hold-back of that length is a valid boundary and gives lower latency.
 

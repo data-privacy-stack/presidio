@@ -86,3 +86,18 @@ def test_long_segment_fails_closed(engines):
     for deltas in [[text], [text[:30], text[30:]]]:
         with pytest.raises(SegmentTooLongError):
             run(engines, deltas, max_segment_chars=40)
+
+
+def test_oversized_delta_stays_within_limit(engines):
+    """A single delta far over the limit never grows the held text past it."""
+    streaming = StreamingAnonymizer(*engines, max_segment_chars=40)
+    with pytest.raises(SegmentTooLongError):
+        streaming.feed("x" * 10_000)
+    assert len(streaming._held) <= 41
+
+
+def test_oversized_delta_of_short_segments(engines):
+    """A delta over the limit made of short segments is anonymized normally."""
+    text = TEXTS[0] * 3
+    expected = run(engines, [text])
+    assert run(engines, [text], max_segment_chars=80) == expected
