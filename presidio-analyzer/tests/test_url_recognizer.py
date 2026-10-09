@@ -37,6 +37,10 @@ def entities():
         ("http://api.example.org:3000/users?id=42", 1, ((0, 39),), 0.6,),
         ("https://example.com:443", 1, ((0, 23),), 0.6,),
         ("intranet.example.com:8080/records", 1, ((0, 33),), 0.5,),
+        ("https://example.de:8443/über/straße?q=ä", 1, ((0, 39),), 0.6,),
+        # A colon without digits, or more than 5 digits, is not a port
+        ("example.com: closed", 1, ((0, 11),), 0.5,),
+        ("example.com:123456/x", 1, ((0, 11),), 0.5,),
         ('"https://presidio.dataprivacystack.org/"', 1, ((0, 40),), 0.6),
         ("'https://presidio.dataprivacystack.org/'", 1, ((0, 40),), 0.6),
 
