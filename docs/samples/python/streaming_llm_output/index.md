@@ -107,8 +107,8 @@ pytest test_streaming_anonymizer.py
 Output of `python streaming_anonymizer.py` with `presidio-analyzer` 2.2.364 and `en_core_web_lg` 3.8.0:
 
 ```text
-Each delta on its own: 'Sure. You can reach <PERSON> at jane.d<EMAIL_ADDRESS> or on 212-555-0147.\nAnything else?'
-StreamingAnonymizer:   'Sure. You can reach <PERSON> at <EMAIL_ADDRESS> or on <PHONE_NUMBER>.\nAnything else?'
+StreamingAnonymizer: 'Sure. You can reach <PERSON> at <EMAIL_ADDRESS> or on <PHONE_NUMBER>.\nAnything else?'
+Each delta on its own gives the same output: False
 ```
 
 ## Further reading
