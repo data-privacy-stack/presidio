@@ -101,3 +101,10 @@ def test_oversized_delta_of_short_segments(engines):
     text = TEXTS[0] * 3
     expected = run(engines, [text])
     assert run(engines, [text], max_segment_chars=80) == expected
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_limit_below_one_is_rejected(engines, limit):
+    """A limit below 1 is rejected instead of looping forever in feed."""
+    with pytest.raises(ValueError):
+        StreamingAnonymizer(*engines, max_segment_chars=limit)

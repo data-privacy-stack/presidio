@@ -37,7 +37,8 @@ class StreamingAnonymizer:
     :param boundary: Compiled pattern whose match end marks a segment end. Each
         match must be decided by characters up to its end, never by later text.
     :param max_segment_chars: Longest segment held back. A longer one raises
-        SegmentTooLongError instead of being released unanalyzed.
+        SegmentTooLongError instead of being released unanalyzed. Must be at
+        least 1.
     """
 
     def __init__(
@@ -50,6 +51,10 @@ class StreamingAnonymizer:
         boundary: re.Pattern = DEFAULT_BOUNDARY,
         max_segment_chars: int = 2000,
     ):
+        if max_segment_chars < 1:
+            raise ValueError(
+                f"max_segment_chars must be at least 1, got {max_segment_chars}"
+            )
         self.analyzer = analyzer
         self.anonymizer = anonymizer
         self.language = language
@@ -128,15 +133,16 @@ if __name__ == "__main__":
         "5-0147.\nAnything else?",
     ]
 
+    streamed = "".join(
+        anonymize_stream(deltas, StreamingAnonymizer(analyzer, anonymizer))
+    )
+    print(f"StreamingAnonymizer: {streamed!r}")
+
+    # Per-delta output contains raw values, so only report whether it differs.
     naive = "".join(
         anonymizer.anonymize(
             text=d, analyzer_results=analyzer.analyze(text=d, language="en")
         ).text
         for d in deltas
     )
-    print(f"Each delta on its own: {naive!r}")
-
-    streamed = "".join(
-        anonymize_stream(deltas, StreamingAnonymizer(analyzer, anonymizer))
-    )
-    print(f"StreamingAnonymizer:   {streamed!r}")
+    print(f"Each delta on its own gives the same output: {naive == streamed}")
