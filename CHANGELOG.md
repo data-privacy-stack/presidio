@@ -6,11 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Analyzer
 #### Added
+- Added `UuidRecognizer` (generic, entity type `UUID`) to detect UUIDs in the standard 8-4-4-4-12 hyphenated hexadecimal format, covering RFC 4122 versions 1-5 and RFC 9562 versions 6-8. Validates version and variant nibbles and filters the nil UUID to reduce false positives.
 - South African ID number (`ZA_ID_NUMBER`) recognizer for the 13-digit national identity number, using pattern matching, context words, birth-date validation, and Luhn checksum validation. Disabled by default.
 - South African recognizers for `ZA_PASSPORT`, `ZA_INCOME_TAX_NUMBER`, `ZA_DRIVER_LICENSE`, `ZA_VAT_NUMBER`, `ZA_COMPANY_REGISTRATION`, `ZA_TRAFFIC_REGISTER_NUMBER`, `ZA_LICENSE_PLATE`, `ZA_MOBILE_NUMBER`, and `ZA_TELEPHONE_NUMBER`. All disabled by default.
 - Added `NoOpNlpEngine` for configurations that do not require NLP engine artifacts, enabling standalone recognizers such as `HuggingFaceNerRecognizer` to run without a spaCy or Stanza model (#2071) (Thanks @ultramancode)
 - Added per-recognizer and per-entity score threshold configuration in the recognizer registry YAML, with the analyzer's global `default_score_threshold` as the fallback (#2116) (Thanks @rodboev)
 - Added `PhUmidRecognizer` for Philippine Unified Multi-Purpose ID (UMID/CRN) numbers in dashed and plain 12-digit formats; disabled by default (#2045) (Thanks @Surya-5555)
+
+#### Changed
+- The `kr` language code is deprecated in favor of the ISO 639-1 code `ko`. `KrRrnRecognizer` and `KrPassportRecognizer` still accept `kr` in `supported_languages` as a backward-compatibility alias for registries configured against their original class defaults; the alias will be removed in <release TBD>. `KrBrnRecognizer`, `KrDriverLicenseRecognizer` and `KrFrnRecognizer` have only ever defaulted to `ko`, so `kr` was removed from their `default_recognizers.yaml` entries in this release. (#2236)
 
 #### Fixed
 - Prevented `SlimSpacyNlpEngine` from registering an inert spaCy recognizer and advertising unsupported spaCy NER entities. The new `NlpEngine.has_ner` property defaults to `True`; engines without native NER output, including `SlimSpacyNlpEngine` and `NoOpNlpEngine`, explicitly return `False` so Presidio skips NLP recognizer registration.
