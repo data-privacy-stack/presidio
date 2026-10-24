@@ -12,6 +12,10 @@ from presidio_analyzer import (
     Pattern,
     RecognizerResult,
 )
+from presidio_analyzer.text_normalization import (
+    build_normalized_view,
+    map_span_to_original,
+)
 
 if TYPE_CHECKING:
     from presidio_analyzer.nlp_engine import NlpArtifacts
@@ -33,6 +37,15 @@ class PatternRecognizer(LocalRecognizer):
     identified using a deny-list
     :param global_regex_flags: regex flags to be used in regex matching,
     including deny-lists.
+    :param normalize_text: If True, patterns are also run on a bounded
+    normalized view of the text (NFKC compatibility normalization with
+    format characters removed, see
+    :func:`presidio_analyzer.text_normalization.build_normalized_view`),
+    and matches are mapped back to original-text offsets. This catches
+    entities written with compatibility variants (e.g. full-width digits)
+    or with invisible format characters inserted (e.g. zero-width spaces)
+    that would otherwise be missed. Off by default: when False, only the
+    raw text is analyzed, preserving existing behavior exactly.
     :param country_code: Optional ISO 3166-1 alpha-2 country tag, forwarded
     to :class:`EntityRecognizer`. Lets custom recognizers declare a country
     without subclassing — typically used by ``from_dict`` and the
@@ -59,6 +72,7 @@ class PatternRecognizer(LocalRecognizer):
         global_regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
         version: str = "0.0.1",
         country_code: Optional[str] = None,
+        normalize_text: bool = False,
     ):
         if not supported_entity:
             raise ValueError("Pattern recognizer should be initialized with entity")
@@ -83,6 +97,7 @@ class PatternRecognizer(LocalRecognizer):
         self.context = context
         self.deny_list_score = deny_list_score
         self.global_regex_flags = global_regex_flags
+        self.normalize_text = normalize_text
 
         if deny_list:
             deny_list_pattern = self._deny_list_to_regex(deny_list)
@@ -115,6 +130,17 @@ class PatternRecognizer(LocalRecognizer):
         if self.patterns:
             pattern_result = self.__analyze_patterns(text, regex_flags)
             results.extend(pattern_result)
+
+            if self.normalize_text:
+                normalized_text, index_map = build_normalized_view(text)
+                # If normalization changed nothing, the raw pass already
+                # found everything; skip the second pass.
+                if normalized_text != text:
+                    normalized_results = self.__analyze_patterns(
+                        normalized_text, regex_flags, offset_map=index_map
+                    )
+                    results.extend(normalized_results)
+                    results = EntityRecognizer.remove_duplicates(results)
 
         return results
 
@@ -191,7 +217,10 @@ class PatternRecognizer(LocalRecognizer):
         return explanation
 
     def __analyze_patterns(
-        self, text: str, flags: int = None
+        self,
+        text: str,
+        flags: int = None,
+        offset_map: Optional[List[int]] = None,
     ) -> List[RecognizerResult]:
         """
         Evaluate all patterns in the provided text.
@@ -200,6 +229,12 @@ class PatternRecognizer(LocalRecognizer):
 
         :param text: text to analyze
         :param flags: regex flags
+        :param offset_map: Optional offset map from
+            :func:`presidio_analyzer.text_normalization.build_normalized_view`.
+            When provided, ``text`` is a normalized view and the reported
+            ``RecognizerResult`` spans are mapped back to original-text
+            offsets. Validation and invalidation still run on the matched
+            (normalized) text.
         :return: A list of RecognizerResult
         """
         flags = flags if flags else self.global_regex_flags
@@ -230,6 +265,9 @@ class PatternRecognizer(LocalRecognizer):
                     # Skip empty results
                     if current_match == "":
                         continue
+
+                    if offset_map is not None:
+                        start, end = map_span_to_original(offset_map, start, end)
 
                     score = pattern.score
 
@@ -287,6 +325,7 @@ class PatternRecognizer(LocalRecognizer):
         return_dict["patterns"] = [pat.to_dict() for pat in self.patterns]
         return_dict["deny_list"] = self.deny_list
         return_dict["context"] = self.context
+        return_dict["normalize_text"] = self.normalize_text
         return_dict["supported_entity"] = return_dict["supported_entities"][0]
         del return_dict["supported_entities"]
 
