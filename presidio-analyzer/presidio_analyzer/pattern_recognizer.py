@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import regex as re
 
@@ -15,6 +15,7 @@ from presidio_analyzer import (
 from presidio_analyzer.text_normalization import (
     build_normalized_view,
     map_span_to_original,
+    needs_normalized_view,
 )
 
 if TYPE_CHECKING:
@@ -115,6 +116,7 @@ class PatternRecognizer(LocalRecognizer):
         entities: List[str],
         nlp_artifacts: Optional["NlpArtifacts"] = None,
         regex_flags: Optional[int] = None,
+        normalized_view: Optional[Tuple[str, List[int]]] = None,
     ) -> List[RecognizerResult]:
         """
         Analyzes text to detect PII using regular expressions or deny-lists.
@@ -123,6 +125,14 @@ class PatternRecognizer(LocalRecognizer):
         :param entities: Entities this recognizer can detect
         :param nlp_artifacts: Output values from the NLP engine
         :param regex_flags: regex flags to be used in regex matching
+        :param normalized_view: A prebuilt ``(normalized_text, index_map)``
+            pair for ``text``, as returned by
+            :func:`presidio_analyzer.text_normalization.build_normalized_view`.
+            Supplied by the analyzer engine so the view is built once per
+            text instead of once per recognizer. When omitted, the view is
+            built here only when
+            :func:`presidio_analyzer.text_normalization.needs_normalized_view`
+            says it could differ from the raw text.
         :return:
         """
         results = []
@@ -132,15 +142,19 @@ class PatternRecognizer(LocalRecognizer):
             results.extend(pattern_result)
 
             if self.normalize_text:
-                normalized_text, index_map = build_normalized_view(text)
-                # If normalization changed nothing, the raw pass already
-                # found everything; skip the second pass.
-                if normalized_text != text:
-                    normalized_results = self.__analyze_patterns(
-                        normalized_text, regex_flags, offset_map=index_map
-                    )
-                    results.extend(normalized_results)
-                    results = EntityRecognizer.remove_duplicates(results)
+                view = normalized_view
+                if view is None and needs_normalized_view(text):
+                    view = build_normalized_view(text)
+                if view is not None:
+                    normalized_text, index_map = view
+                    # If normalization changed nothing, the raw pass already
+                    # found everything; skip the second pass.
+                    if normalized_text != text:
+                        normalized_results = self.__analyze_patterns(
+                            normalized_text, regex_flags, offset_map=index_map
+                        )
+                        results.extend(normalized_results)
+                        results = EntityRecognizer.remove_duplicates(results)
 
         return results
 

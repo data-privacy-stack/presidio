@@ -199,6 +199,16 @@ class PredefinedRecognizerConfig(BaseRecognizerConfig):
     """Configuration for predefined recognizers."""
 
     type: str = Field(default="predefined", description="Type of recognizer")
+    normalize_text: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Run patterns on a bounded normalized view (NFKC plus "
+            "format-character removal) in addition to the raw text. "
+            "None (the default) leaves the recognizer default in place; "
+            "only predefined recognizers whose constructor accepts the "
+            "flag can use it."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_predefined_recognizer_exists(self):

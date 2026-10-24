@@ -9,6 +9,7 @@ import regex as re
 
 from presidio_analyzer import (
     EntityRecognizer,
+    PatternRecognizer,
     RecognizerResult,
 )
 from presidio_analyzer.app_tracer import AppTracer
@@ -25,6 +26,10 @@ from presidio_analyzer.nlp_engine import (
 from presidio_analyzer.recognizer_registry import (
     RecognizerRegistry,
     RecognizerRegistryProvider,
+)
+from presidio_analyzer.text_normalization import (
+    build_normalized_view,
+    needs_normalized_view,
 )
 
 logger = logging.getLogger("presidio-analyzer")
@@ -254,6 +259,18 @@ class AnalyzerEngine:
                 correlation_id, "nlp artifacts:" + nlp_artifacts.to_json()
             )
 
+        # Build the normalized view once per text when any selected
+        # pattern recognizer opted into normalization, instead of once
+        # per recognizer. Recognizers without the flag ignore it, and
+        # non-pattern recognizers never receive it (their analyze
+        # signatures do not accept it).
+        shared_normalized_view = None
+        if any(
+            isinstance(recognizer, PatternRecognizer) and recognizer.normalize_text
+            for recognizer in recognizers
+        ) and needs_normalized_view(text):
+            shared_normalized_view = build_normalized_view(text)
+
         results = []
         for recognizer in recognizers:
             # Lazy loading of the relevant recognizers
@@ -262,9 +279,17 @@ class AnalyzerEngine:
                 recognizer.is_loaded = True
 
             # analyze using the current recognizer and append the results
-            current_results = recognizer.analyze(
-                text=text, entities=entities, nlp_artifacts=nlp_artifacts
-            )
+            if isinstance(recognizer, PatternRecognizer):
+                current_results = recognizer.analyze(
+                    text=text,
+                    entities=entities,
+                    nlp_artifacts=nlp_artifacts,
+                    normalized_view=shared_normalized_view,
+                )
+            else:
+                current_results = recognizer.analyze(
+                    text=text, entities=entities, nlp_artifacts=nlp_artifacts
+                )
             if current_results:
                 # add recognizer name to recognition metadata inside results
                 # if not exists

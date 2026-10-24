@@ -11,6 +11,11 @@ class DateRecognizer(PatternRecognizer):
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
     :param supported_entity: The entity this recognizer can detect
+    :param normalize_text: If True, patterns are also run on a bounded
+    normalized view of the text (see
+    :class:`presidio_analyzer.PatternRecognizer`), so entities written
+    with compatibility variants or invisible format characters are
+    detected.
     """
 
     PATTERNS = [
@@ -90,6 +95,7 @@ class DateRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "DATE_TIME",
         name: Optional[str] = None,
+        normalize_text: bool = False,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -99,4 +105,5 @@ class DateRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
+            normalize_text=normalize_text,
         )

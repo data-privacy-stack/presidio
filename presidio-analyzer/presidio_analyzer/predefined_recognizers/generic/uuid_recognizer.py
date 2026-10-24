@@ -16,6 +16,11 @@ class UuidRecognizer(PatternRecognizer):
     ref:
     - https://datatracker.ietf.org/doc/html/rfc4122
     - https://datatracker.ietf.org/doc/html/rfc9562
+    :param normalize_text: If True, patterns are also run on a bounded
+    normalized view of the text (see
+    :class:`presidio_analyzer.PatternRecognizer`), so entities written
+    with compatibility variants or invisible format characters are
+    detected.
     """
 
     PATTERNS = [
@@ -45,6 +50,7 @@ class UuidRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "UUID",
         name: Optional[str] = None,
+        normalize_text: bool = False,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -54,6 +60,7 @@ class UuidRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
+            normalize_text=normalize_text,
         )
 
     def invalidate_result(self, pattern_text: str) -> bool:

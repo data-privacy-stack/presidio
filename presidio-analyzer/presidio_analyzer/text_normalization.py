@@ -32,6 +32,32 @@ unrelated characters together into spurious matches.
 import unicodedata
 from typing import List, Tuple
 
+import regex
+
+_FORMAT_CHAR_PATTERN = regex.compile(r"\p{Cf}")
+
+
+def needs_normalized_view(text: str) -> bool:
+    """
+    Return True when a normalized view of ``text`` could differ from ``text``.
+
+    The view differs exactly when whole-string NFKC normalization would
+    change the text, or when the text contains format characters (Unicode
+    category ``Cf``) that the view drops. Format characters alone do not
+    affect NFKC normalization, so ``is_normalized`` by itself is not enough:
+    a zero-width space leaves a string NFKC-normalized while the view
+    still removes it.
+
+    This is a fast pre-check (both scans run in C) for callers that would
+    otherwise build the view only to discover it equals the raw text.
+
+    :param text: The original text.
+    :return: True when building the view could produce a different string.
+    """
+    if not unicodedata.is_normalized("NFKC", text):
+        return True
+    return _FORMAT_CHAR_PATTERN.search(text) is not None
+
 
 def build_normalized_view(text: str) -> Tuple[str, List[int]]:
     """
