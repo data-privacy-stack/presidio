@@ -64,7 +64,27 @@ def test_normalized_view_drops_zero_width_characters():
     # dropped, so the map skips them; every normalized char still maps
     # to exactly one original char.
     assert index_map == [
-        0, 1, 2, 3, 4, 5, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18,
+        19,
+        21,
+        22,
+        23,
+        24,
     ]
 
 

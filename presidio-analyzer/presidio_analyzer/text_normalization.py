@@ -1,4 +1,4 @@
-"""Bounded Unicode normalization views for pattern-based recognition.
+r"""Bounded Unicode normalization views for pattern-based recognition.
 
 Pattern recognizers run regular expressions on raw text, so entities written
 with compatibility variants (e.g. full-width digits) or with invisible
@@ -14,7 +14,7 @@ The normalization is deliberately bounded:
 
 * ``NFKC`` compatibility normalization, applied per character, which folds
   full-width and other compatibility variants to their canonical form
-  (e.g. ``\\uff11`` -> ``1``).
+  (e.g. ``\uff11`` -> ``1``).
 * Removal of format characters (Unicode category ``Cf``), which covers
   zero-width spaces and similar invisible characters.
 
@@ -54,9 +54,7 @@ def build_normalized_view(text: str) -> Tuple[str, List[int]]:
     return "".join(normalized_chars), index_map
 
 
-def map_span_to_original(
-    index_map: List[int], start: int, end: int
-) -> Tuple[int, int]:
+def map_span_to_original(index_map: List[int], start: int, end: int) -> Tuple[int, int]:
     """
     Map a span from normalized-view offsets to original-text offsets.
 
