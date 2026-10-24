@@ -367,6 +367,15 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
     deny_list_score: float = Field(
         default=1.0, ge=0.0, le=1.0, description="Deny list score"
     )
+    normalize_text: bool = Field(
+        default=False,
+        description=(
+            "Run patterns on a bounded normalized view (NFKC plus "
+            "format-character removal) in addition to the raw text, "
+            "so entities written with compatibility variants or "
+            "invisible format characters are still detected"
+        ),
+    )
 
     # Language validation (legacy and new formats)
     supported_language: Optional[str] = Field(

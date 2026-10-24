@@ -451,3 +451,25 @@ def test_text_chunker_config_rejects_character_params_for_tokenizer():
 
     with pytest.raises(ValidationError, match="chunker_type='tokenizer'"):
         TextChunkerConfig(chunker_type="tokenizer", chunk_size=300)
+
+
+def test_recognizer_registry_provider_custom_normalize_text_is_honored():
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [
+                {
+                    "name": "Fullwidth ID",
+                    "supported_entity": "TEST_ID",
+                    "patterns": [{"name": "id", "regex": r"[0-9]{6}", "score": 0.9}],
+                    "normalize_text": True,
+                }
+            ],
+        }
+    )
+
+    recognizer = provider.create_recognizer_registry().recognizers[0]
+
+    assert recognizer.normalize_text is True
+    results = recognizer.analyze("１２３４５６", ["TEST_ID"])
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 0, 6)]
