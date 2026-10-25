@@ -117,6 +117,10 @@ docker run -d -p 5002:3000 ghcr.io/data-privacy-stack/presidio-analyzer:latest
 docker run -d -p 5001:3000 ghcr.io/data-privacy-stack/presidio-anonymizer:latest
 ```
 
+!!! note "Distroless images"
+
+    Hardened distroless variants of the analyzer and anonymizer images are published to the same repositories with a `-distroless` tag suffix, for example `ghcr.io/data-privacy-stack/presidio-analyzer:latest-distroless` or `ghcr.io/data-privacy-stack/presidio-analyzer:<version>-distroless`. `latest` remains the default image. The distroless images have no shell, run as a non-root user (UID 65532) on Python 3.12, listen on port 3000, ignore the `PORT` and `WORKERS` environment variables (use `GUNICORN_CMD_ARGS` instead, for example `--workers=2`), and are not available for the image redactor.
+
 ### For PII redaction in images
 
 For PII detection in images, the `presidio-image-redactor` is required.
