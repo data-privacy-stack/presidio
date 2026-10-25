@@ -14,14 +14,12 @@ All notable changes to this project will be documented in this file.
 - Added automatic pull request labelling by component and area based on the changed paths (#2240) (Thanks @omri374)
 - Updated the README and project transition documentation to reflect that the transition to the Data Privacy Stack is complete (#2274) (Thanks @omri374)
 - Updated the development setup documentation from Poetry to uv to match what CI runs (#2220) (Thanks @juno-junho)
-- Documented how to select a custom recognizer registry in the analyzer server with the `RECOGNIZER_REGISTRY_CONF_FILE` environment variable (#2311) (Thanks @nikolas-sapa)
-- Documented the `global_regex_flags` and `deny_list_score` request fields for ad-hoc `PatternRecognizer` entries in the analyzer API docs (#2255) (Thanks @MohammedAlkindi)
 
 #### Fixed
 - Fixed four `presidio-cli` bugs: `--no-warnings` crashing, the exit code not reflecting the number of problems found, `-f github` not emitting `::warning`/`::error` workflow commands, and out-of-range or non-numeric `threshold` config values being accepted silently (#2266) (Thanks @v0ropaev)
 
 #### Security
-- Updated the locked `aiohttp` to 3.14.3 and `anyio` to 4.14.2 in the analyzer, CLI, image-redactor, and structured lockfiles to fix six vulnerabilities; published dependency ranges are unchanged (#2304) (Thanks @RonShakutai)
+- Updated the locked `aiohttp` to 3.14.3 and `anyio` to 4.14.2 in the `presidio-cli` lockfile to fix six vulnerabilities; published dependency ranges are unchanged (#2304) (Thanks @RonShakutai)
 
 ### Analyzer
 #### Added
@@ -36,6 +34,8 @@ All notable changes to this project will be documented in this file.
 #### Changed
 - The `kr` language code is deprecated in favor of the ISO 639-1 code `ko`. `KrRrnRecognizer` and `KrPassportRecognizer` still accept `kr` in `supported_languages` as a backward-compatibility alias for registries configured against their original class defaults; the alias will be removed in <release TBD>. `KrBrnRecognizer`, `KrDriverLicenseRecognizer` and `KrFrnRecognizer` have only ever defaulted to `ko`, so `kr` was removed from their `default_recognizers.yaml` entries in this release. (#2236)
 - Requesting a mix of supported and unsupported entities still returns partial results, but `RecognizerRegistry.get_recognizers` now logs a warning naming the unsupported entity and language, noting that ignoring unsupported entities is deprecated and will raise in a future version (#2259) (Thanks @nikolas-sapa)
+- Documented how to select a custom recognizer registry in the analyzer server with the `RECOGNIZER_REGISTRY_CONF_FILE` environment variable (#2311) (Thanks @nikolas-sapa)
+- Documented the `global_regex_flags` and `deny_list_score` request fields for ad-hoc `PatternRecognizer` entries in the analyzer API docs (#2255) (Thanks @MohammedAlkindi)
 
 #### Fixed
 - Fixed `KrPassportRecognizer`, `KrBrnRecognizer`, `KrDriverLicenseRecognizer`, and `UsMbiRecognizer` raising a `TypeError` when built from a registry configuration by accepting the loader's `name` keyword, and registered `KrPassportRecognizer` in `default_recognizers.yaml` (#2170) (Thanks @developer0hye)
@@ -46,6 +46,9 @@ All notable changes to this project will be documented in this file.
 - Fixed an omitted `deny_list_score` in a YAML or dict recognizer registry being passed as `0.0`, which made deny-list matches score below any positive threshold; it now defaults to `1.0`, matching `PatternRecognizer` (#2254) (Thanks @ppradyoth)
 - Fixed quadratic duplicate-result checks in `EntityRecognizer.remove_duplicates` by limiting containment checks to overlapping results of the same entity type; results tied on score, start, and span length are now ordered deterministically by entity type (#2280) (Thanks @mbukowicz)
 - Fixed chunked NER recognizers (`GLiNERRecognizer`, `HuggingFaceNerRecognizer`) dropping the full-span prediction of an entity that straddles a chunk boundary in favor of a higher-scoring partial prediction, which left part of the entity in clear (#2362) (Thanks @Support-itecz)
+
+#### Security
+- Updated the locked `aiohttp` to 3.14.3 and `anyio` to 4.14.2 in the `presidio-analyzer` lockfile to fix six vulnerabilities; published dependency ranges are unchanged (#2304) (Thanks @RonShakutai)
 
 ### Anonymizer
 #### Added
@@ -61,6 +64,7 @@ All notable changes to this project will be documented in this file.
 ### Image Redactor
 #### Security
 - Raised the minimum `Pillow` version to 12.3.0, which patches 13 open security advisories, and canonicalized the requirement syntax (#2188, #2193) (Thanks @SharonHart)
+- Updated the locked `aiohttp` to 3.14.3 and `anyio` to 4.14.2 in the `presidio-image-redactor` lockfile to fix six vulnerabilities; published dependency ranges are unchanged (#2304) (Thanks @RonShakutai)
 
 ### Presidio-Structured
 #### Added
@@ -69,7 +73,28 @@ All notable changes to this project will be documented in this file.
 #### Fixed
 - Fixed `PandasDataProcessor` raising an `AttributeError` for columns whose names are not valid Python identifiers (e.g. "Full Name" or "e-mail") by reading cells by label instead of through `itertuples` attributes (#2142) (Thanks @uwezkhan)
 
+#### Security
+- Updated the locked `aiohttp` to 3.14.3 and `anyio` to 4.14.2 in the `presidio-structured` lockfile to fix six vulnerabilities; published dependency ranges are unchanged (#2304) (Thanks @RonShakutai)
+
 ## [2.2.364] - 2026-07-22
+### General
+#### Added
+- Added a `--threshold` flag to `presidio-cli` to override the analyzer confidence threshold directly from the command line (#2114) (Thanks @rodboev)
+
+#### Changed
+- Migrated CI and service-image dependency installation from Poetry to [uv](https://github.com/astral-sh/uv) with committed lockfiles, fixing prolonged dependency-resolution hangs and making builds reproducible.
+- Added Python 3.14 package support for `presidio-anonymizer`, `presidio-image-redactor`, `presidio-cli`, `presidio-structured`, and `presidio` by allowing Python `<3.15` and excluding `spacy==3.8.14` on Python 3.14 where applicable (#2096) (Thanks @Copilot)
+- Added `healthcheck` and `restart: unless-stopped` policies to all services in `docker-compose.yml` so containers auto-recover on crash and report readiness (#2149) (Thanks @hiro-nikaitou)
+- Updated the `LICENSE` file copyright from "Microsoft Corporation" to "Presidio Contributors" (#2134) (Thanks @cobypeled)
+- Replaced `presidio@microsoft.com` author email with `presidio@dataprivacystack.org` in all package `pyproject.toml` files (#2128) (Thanks @Copilot)
+- Improved CI stability by optimizing disk usage, pinning the Ollama Docker image to a specific version, and running Ollama end-to-end tests on arm64 runners (#2167) (Thanks @SharonHart)
+- Updated mobile homepage layout with a compact mascot for smaller screens (#2130) (Thanks @SharonHart)
+
+#### Fixed
+- Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
+- Fixed NLP engine initialization in the GLiNER usage sample (#2135) (Thanks @matteobachini-vianova)
+- Quoted `pip install` extras examples in documentation to prevent shell expansion of bracket expressions (#2093) (Thanks @nyxst4ck)
+
 ### Analyzer
 #### Added
 - Added `NoOpNlpEngine` for configurations that do not require NLP engine artifacts, enabling standalone recognizers such as `HuggingFaceNerRecognizer` to run without a spaCy or Stanza model (#2071) (Thanks @ultramancode)
@@ -96,27 +121,11 @@ All notable changes to this project will be documented in this file.
 - Fixed documentation incorrectly stating that `IpRecognizer` validates a checksum (#2133) (Thanks @Coshea46)
 
 ### Anonymizer
-#### Security
-- Bumped `cryptography` lower bound to `>=48.0.1` to resolve GHSA-537c-gmf6-5ccf (HIGH, vulnerable OpenSSL statically linked into wheels below 48.0.1) (#2144) (Thanks @Copilot)
-
-### General
 #### Added
 - Added `BatchDeanonymizeEngine` to complement `BatchAnonymizerEngine` for batch deanonymization over lists and nested dictionaries.
-- Added a `--threshold` flag to `presidio-cli` to override the analyzer confidence threshold directly from the command line (#2114) (Thanks @rodboev)
 
-#### Changed
-- Migrated CI and service-image dependency installation from Poetry to [uv](https://github.com/astral-sh/uv) with committed lockfiles, fixing prolonged dependency-resolution hangs and making builds reproducible.
-- Added Python 3.14 package support for `presidio-anonymizer`, `presidio-image-redactor`, `presidio-cli`, `presidio-structured`, and `presidio` by allowing Python `<3.15` and excluding `spacy==3.8.14` on Python 3.14 where applicable (#2096) (Thanks @Copilot)
-- Added `healthcheck` and `restart: unless-stopped` policies to all services in `docker-compose.yml` so containers auto-recover on crash and report readiness (#2149) (Thanks @hiro-nikaitou)
-- Updated the `LICENSE` file copyright from "Microsoft Corporation" to "Presidio Contributors" (#2134) (Thanks @cobypeled)
-- Replaced `presidio@microsoft.com` author email with `presidio@dataprivacystack.org` in all package `pyproject.toml` files (#2128) (Thanks @Copilot)
-- Improved CI stability by optimizing disk usage, pinning the Ollama Docker image to a specific version, and running Ollama end-to-end tests on arm64 runners (#2167) (Thanks @SharonHart)
-- Updated mobile homepage layout with a compact mascot for smaller screens (#2130) (Thanks @SharonHart)
-
-#### Fixed
-- Retried the Zensical documentation build on transient crashes (e.g. SIGKILL/exit 247) so the docs release pipeline no longer fails intermittently (Thanks @Copilot)
-- Fixed NLP engine initialization in the GLiNER usage sample (#2135) (Thanks @matteobachini-vianova)
-- Quoted `pip install` extras examples in documentation to prevent shell expansion of bracket expressions (#2093) (Thanks @nyxst4ck)
+#### Security
+- Bumped `cryptography` lower bound to `>=48.0.1` to resolve GHSA-537c-gmf6-5ccf (HIGH, vulnerable OpenSSL statically linked into wheels below 48.0.1) (#2144) (Thanks @Copilot)
 
 ### Presidio-Structured
 #### Security
