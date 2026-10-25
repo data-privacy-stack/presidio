@@ -46,6 +46,7 @@ All notable changes to this project will be documented in this file.
 - Fixed an omitted `deny_list_score` in a YAML or dict recognizer registry being passed as `0.0`, which made deny-list matches score below any positive threshold; it now defaults to `1.0`, matching `PatternRecognizer` (#2254) (Thanks @ppradyoth)
 - Fixed quadratic duplicate-result checks in `EntityRecognizer.remove_duplicates` by limiting containment checks to overlapping results of the same entity type; results tied on score, start, and span length are now ordered deterministically by entity type (#2280) (Thanks @mbukowicz)
 - Fixed chunked NER recognizers (`GLiNERRecognizer`, `HuggingFaceNerRecognizer`) dropping the full-span prediction of an entity that straddles a chunk boundary in favor of a higher-scoring partial prediction, which left part of the entity in clear (#2362) (Thanks @Support-itecz)
+- Pinned `preshed` below 3.0.14 in `presidio-analyzer`, because 3.0.14 breaks spaCy 3.8.x model loading with an `OverflowError` in `Tokenizer._flush_specials` for fresh `pip install` environments; the pin can be removed once spaCy or preshed ships a fix (#2405) (Thanks @omri374)
 
 #### Security
 - Updated the locked `aiohttp` to 3.14.3 and `anyio` to 4.14.2 in the `presidio-analyzer` lockfile to fix six vulnerabilities; published dependency ranges are unchanged (#2304) (Thanks @RonShakutai)
