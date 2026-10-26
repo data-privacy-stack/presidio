@@ -2733,7 +2733,7 @@ wheels = [
 
 [[package]]
 name = "presidio-analyzer"
-version = "2.2.364"
+version = "2.2.365"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
