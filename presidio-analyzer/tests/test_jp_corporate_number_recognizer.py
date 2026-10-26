@@ -58,9 +58,14 @@ def test_when_valid_corporate_number_then_detected_with_pattern_score(
         # Wrong length.
         "700001205000",
         "70000120500021",
-        # Inside a longer alphanumeric identifier.
+        # Inside a longer alphanumeric identifier, on either side and in both
+        # half-width and full-width letters.
         "AB7000012050002",
         "XT7000012050002",
+        "7000012050002AB",
+        "T7000012050002AB",
+        "７００００１２０５０００２ＡＢ",
+        "Ｔ７００００１２０５０００２ＡＢ",
         # Lookalikes of the same shape that fail the checksum: a millisecond
         # Unix timestamp and a JAN/EAN-13 barcode.
         "1761450000000",

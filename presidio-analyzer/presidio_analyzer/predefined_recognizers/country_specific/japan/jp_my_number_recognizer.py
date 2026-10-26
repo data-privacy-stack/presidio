@@ -5,10 +5,14 @@ from presidio_analyzer import EntityRecognizer, Pattern, PatternRecognizer
 
 # Digits as written in Japanese text: half-width (0-9) and full-width (０-９).
 _DIGIT = "[0-9０-９]"
-# Digit-aware boundaries. ``\b`` cannot be used: Japanese characters are word
-# characters, so there is no word boundary in "マイナンバーは123456789018です".
-_START = rf"(?<!{_DIGIT})"
-_END = rf"(?!{_DIGIT})"
+# Neighbours that rule a match out: more digits, and Latin letters half- and
+# full-width, so that a digit run inside a longer alphanumeric identifier
+# ("SKU123456789018") is not read as a My Number. ``\b`` cannot be used:
+# Japanese characters are word characters, so there is no word boundary in
+# "マイナンバーは123456789018です".
+_ADJACENT = "[0-9０-９A-Za-zＡ-Ｚａ-ｚ]"
+_START = rf"(?<!{_ADJACENT})"
+_END = rf"(?!{_ADJACENT})"
 
 
 class JpMyNumberRecognizer(PatternRecognizer):

@@ -71,6 +71,14 @@ def test_when_valid_my_number_then_detected_with_pattern_score(
         # Inconsistent separators.
         "1234-5678 9018",
         "1234-56789018",
+        # Inside a longer alphanumeric identifier, on either side, grouped or
+        # contiguous, in both half-width and full-width letters.
+        "SKU123456789018",
+        "123456789018END",
+        "Ａ１２３４５６７８９０１８",
+        "１２３４５６７８９０１８Ｂ",
+        "A1234-5678-9018",
+        "1234-5678-9018B",
         # Lookalikes of the same shape that fail the checksum: a mobile phone
         # number with a trailing extension, an order number, a timestamp.
         "注文番号は202610261234です。",

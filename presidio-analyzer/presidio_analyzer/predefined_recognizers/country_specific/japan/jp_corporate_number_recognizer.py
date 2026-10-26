@@ -5,8 +5,13 @@ from presidio_analyzer import EntityRecognizer, Pattern, PatternRecognizer
 
 # Digits as written in Japanese text: half-width (0-9) and full-width (０-９).
 _DIGIT = "[0-9０-９]"
-# ``\b`` cannot be used next to Japanese characters, which are word characters.
-_END = rf"(?!{_DIGIT})"
+# Neighbours that rule a match out: more digits, and Latin letters half- and
+# full-width, so that a digit run inside a longer alphanumeric identifier
+# ("T7000012050002AB") is not read as a Corporate Number. ``\b`` cannot be
+# used next to Japanese characters, which are word characters.
+_ADJACENT = "[0-9０-９A-Za-zＡ-Ｚａ-ｚ]"
+_START = rf"(?<!{_ADJACENT})"
+_END = rf"(?!{_ADJACENT})"
 
 
 class JpCorporateNumberRecognizer(PatternRecognizer):
@@ -51,12 +56,12 @@ class JpCorporateNumberRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "JP Corporate Number (very weak)",
-            rf"(?<![0-9０-９A-Za-zＡ-Ｚａ-ｚ]){_DIGIT}{{13}}{_END}",
+            rf"{_START}{_DIGIT}{{13}}{_END}",
             0.05,
         ),
         Pattern(
             "JP Qualified Invoice Issuer Number (medium)",
-            rf"(?<![0-9０-９A-Za-zＡ-Ｚａ-ｚ])[TＴ]{_DIGIT}{{13}}{_END}",
+            rf"{_START}[TＴ]{_DIGIT}{{13}}{_END}",
             0.3,
         ),
     ]
