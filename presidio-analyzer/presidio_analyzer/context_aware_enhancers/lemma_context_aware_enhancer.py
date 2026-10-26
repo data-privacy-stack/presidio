@@ -337,13 +337,18 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         # to an interesting context word, so we allow it and add 1 to
         # the number of collected words
 
-        # collect at most n words (in lower case)
+        # collect at most n_words keywords (plus the entity token itself).
+        # A hard cap on total token positions prevents scanning arbitrarily
+        # far when n_words is small (e.g. 0), which would otherwise allow
+        # context words far outside the intended window to contribute.
         remaining = n_words + 1
-        while 0 <= i < len(lemmas) and remaining > 0:
+        max_token_positions = n_words * 2 + 1
+        while 0 <= i < len(lemmas) and remaining > 0 and max_token_positions > 0:
             lower_lemma = lemmas[i].lower()
             if lower_lemma in lemmatized_filtered_keywords:
                 context_words.append(lower_lemma)
                 remaining -= 1
+            max_token_positions -= 1
             i = i - 1 if is_backward else i + 1
         return context_words
 
