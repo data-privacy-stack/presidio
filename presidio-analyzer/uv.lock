@@ -2831,7 +2831,7 @@ requires-dist = [
     { name = "stanza", marker = "extra == 'stanza'", specifier = ">=1.11.1,<2.0.0" },
     { name = "tldextract", specifier = ">=5.3.1,<6.0.0" },
     { name = "transformers", marker = "extra == 'gliner'", specifier = ">=4.51.3,<5.17.0" },
-    { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.0.0,<6.0.0" },
+    { name = "transformers", marker = "extra == 'transformers'", specifier = ">=4.28.0,<6.0.0" },
     { name = "waitress", marker = "sys_platform == 'win32' and extra == 'server'", specifier = ">=2.0.0,<4.0.0" },
 ]
 provides-extras = ["server", "transformers", "stanza", "azure-ai-language", "ahds", "gliner", "langextract"]
