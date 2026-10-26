@@ -11,7 +11,6 @@ license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -22,7 +21,7 @@ urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 include = ["conf/*",]
 
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 dependencies = [
     "spacy (>=3.4.4,!=3.7.0,<4.0.0); python_version < '3.14'",
     "spacy (>=3.4.4,!=3.7.0,!=3.8.14,<4.0.0); python_version >= '3.14'",
@@ -67,8 +66,7 @@ gliner = [
     "transformers (>=4.51.3,<5.17.0)",
     "huggingface_hub",
     "gliner (>=0.2.29,<1.0.0)",
-    "onnxruntime (>=1.19, <1.24.1) ; python_version == '3.10'",
-    "onnxruntime (>=1.19) ; python_version > '3.10'"
+    "onnxruntime (>=1.19)"
 ]
 langextract = [
     "langextract (>=1.0.0,<2.0.0)",
