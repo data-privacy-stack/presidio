@@ -16,6 +16,8 @@ class PhoneRecognizer(LocalRecognizer):
     """Recognize multi-regional phone numbers.
 
      Using python-phonenumbers, along with fixed and regional context words.
+    Validated numbers receive a higher confidence score than
+    possible-but-invalid matches.
     :param context: Base context words for enhancing the assurance scores.
     :param supported_language: Language this recognizer supports
     :param supported_entity: The entity this recognizer can detect
@@ -25,6 +27,7 @@ class PhoneRecognizer(LocalRecognizer):
     """
 
     SCORE = 0.4
+    VALIDATED_SCORE = 0.9
     CONTEXT = ["phone", "number", "telephone", "cell", "cellphone", "mobile", "call"]
     DEFAULT_SUPPORTED_REGIONS = ("US", "GB", "DE", "FR", "IL", "IN", "CA", "BR")
 
@@ -82,12 +85,17 @@ class PhoneRecognizer(LocalRecognizer):
         return EntityRecognizer.remove_duplicates(results)
 
     def _get_recognizer_result(self, match, text, region, nlp_artifacts):
+        score = (
+            self.VALIDATED_SCORE
+            if phonenumbers.is_valid_number(match.number)
+            else self.SCORE
+        )
         result = RecognizerResult(
             entity_type=self.supported_entities[0],
             start=match.start,
             end=match.end,
-            score=self.SCORE,
-            analysis_explanation=self._get_analysis_explanation(region),
+            score=score,
+            analysis_explanation=self._get_analysis_explanation(region, score),
             recognition_metadata={
                 RecognizerResult.RECOGNIZER_NAME_KEY: self.name,
                 RecognizerResult.RECOGNIZER_IDENTIFIER_KEY: self.id,
@@ -96,10 +104,10 @@ class PhoneRecognizer(LocalRecognizer):
 
         return result
 
-    def _get_analysis_explanation(self, region):
+    def _get_analysis_explanation(self, region, score=None):
         return AnalysisExplanation(
             recognizer=PhoneRecognizer.__name__,
-            original_score=self.SCORE,
+            original_score=self.SCORE if score is None else score,
             textual_explanation=f"Recognized as {region} region phone number, "
             f"using PhoneRecognizer",
         )
