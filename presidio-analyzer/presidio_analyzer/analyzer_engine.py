@@ -261,12 +261,13 @@ class AnalyzerEngine:
 
         # Build the normalized view once per text when any selected
         # pattern recognizer opted into normalization, instead of once
-        # per recognizer. Recognizers without the flag ignore it, and
-        # non-pattern recognizers never receive it (their analyze
-        # signatures do not accept it).
+        # per recognizer. Only recognizers with the flag receive it, so
+        # subclasses that override analyze without the normalized_view
+        # parameter keep working.
         shared_normalized_view = None
         if any(
-            isinstance(recognizer, PatternRecognizer) and recognizer.normalize_text
+            isinstance(recognizer, PatternRecognizer)
+            and getattr(recognizer, "normalize_text", False)
             for recognizer in recognizers
         ) and needs_normalized_view(text):
             shared_normalized_view = build_normalized_view(text)
@@ -279,17 +280,14 @@ class AnalyzerEngine:
                 recognizer.is_loaded = True
 
             # analyze using the current recognizer and append the results
-            if isinstance(recognizer, PatternRecognizer):
-                current_results = recognizer.analyze(
-                    text=text,
-                    entities=entities,
-                    nlp_artifacts=nlp_artifacts,
-                    normalized_view=shared_normalized_view,
-                )
-            else:
-                current_results = recognizer.analyze(
-                    text=text, entities=entities, nlp_artifacts=nlp_artifacts
-                )
+            kwargs = {}
+            if shared_normalized_view is not None and getattr(
+                recognizer, "normalize_text", False
+            ):
+                kwargs["normalized_view"] = shared_normalized_view
+            current_results = recognizer.analyze(
+                text=text, entities=entities, nlp_artifacts=nlp_artifacts, **kwargs
+            )
             if current_results:
                 # add recognizer name to recognition metadata inside results
                 # if not exists

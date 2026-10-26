@@ -7,7 +7,7 @@ builds the normalized view once per text.
 """
 
 import pytest
-from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+from presidio_analyzer import AnalyzerEngine, PatternRecognizer, RecognizerRegistry
 from presidio_analyzer.nlp_engine import NoOpNlpEngine
 from presidio_analyzer.predefined_recognizers.country_specific.us.us_ssn_recognizer import (  # noqa: E501
     UsSsnRecognizer,
@@ -241,3 +241,31 @@ def test_engine_builds_no_view_when_flag_off(monkeypatch):
     analyzer.analyze("card 4111111111111111", language="en")
 
     assert calls == []
+
+
+@pytest.mark.parametrize("email_normalize_text", [True, False])
+def test_engine_keeps_custom_analyze_override_working(email_normalize_text):
+    """Old-signature analyze overrides still work through the engine."""
+
+    class LegacyAnalyzeRecognizer(PatternRecognizer):
+        def analyze(self, text, entities, nlp_artifacts=None, regex_flags=None):
+            return super().analyze(text, entities, nlp_artifacts, regex_flags)
+
+    registry = RecognizerRegistry(
+        recognizers=[
+            LegacyAnalyzeRecognizer(supported_entity="TITLE", deny_list=["Mr."]),
+            EmailRecognizer(normalize_text=email_normalize_text),
+        ],
+        supported_languages=["en"],
+    )
+    analyzer = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NoOpNlpEngine(models=[{"lang_code": "en", "model_name": "no_op"}]),
+    )
+
+    results = analyzer.analyze(
+        "Mr. Smith, " + to_fullwidth("test@example.com"), language="en"
+    )
+
+    expected = {"TITLE", "EMAIL_ADDRESS"} if email_normalize_text else {"TITLE"}
+    assert {r.entity_type for r in results} == expected
