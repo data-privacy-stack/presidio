@@ -25,6 +25,7 @@ Official Presidio container images are now published to GitHub Container Registr
 - [`ghcr.io/data-privacy-stack/presidio-anonymizer`](https://github.com/orgs/data-privacy-stack/packages/container/package/presidio-anonymizer)
 - [`ghcr.io/data-privacy-stack/presidio-image-redactor`](https://github.com/orgs/data-privacy-stack/packages/container/package/presidio-image-redactor)
 
+The analyzer and anonymizer are also published as distroless images in the same repositories, built from `Dockerfile.distroless` and tagged with a `-distroless` suffix (for example `presidio-analyzer:latest-distroless` and `presidio-analyzer:<release-version>-distroless`, plus per-platform `-linux-amd64` and `-linux-arm64` tags). The unsuffixed tags, including `latest`, remain the default images. There is no distroless image-redactor. CI runs the e2e tests against both the default and the distroless images.
 The legacy Microsoft Container Registry images at `mcr.microsoft.com/presidio-*` are no longer updated. Existing MCR tags can still be pulled for older deployments, but users should update image references to GHCR before upgrading. For example:
 
 ```sh
