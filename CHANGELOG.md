@@ -6,13 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ## [2.2.366] - 2026-10-27
 ### General
+#### Added
+- Added distroless variants of the analyzer and anonymizer container images, built from `Dockerfile.distroless` on Azure Linux and published to the same GHCR repositories as `<version>-distroless` and `latest-distroless` tags; the unsuffixed tags, including `latest`, remain the default images. The distroless images contain no shell, package manager, pip or uv, run Python 3.12 as UID 65532, listen on port 3000, and take gunicorn settings through `GUNICORN_CMD_ARGS` instead of `PORT` and `WORKERS`. A `docker-compose.distroless.yml` override runs them locally, and CI runs the e2e tests against them (#2407) (Thanks @SharonHart)
+
 #### Changed
 - Dropped Python 3.10 support, which reached end of life on 2026-10-01. All packages now require Python `>=3.11,<3.15`; Python 3.10 users resolve to the previous releases (#2409) (Thanks @SharonHart)
+- The default analyzer and anonymizer images no longer contain `curl`: the image `HEALTHCHECK` now probes `/health` with the Python standard library, ignoring any `HTTP_PROXY` settings, and the `docker-compose.yml` healthcheck overrides were removed so the image healthchecks apply (#2407) (Thanks @SharonHart)
 
 #### Fixed
 - Fixed the documentation publishing workflow deleting the `CNAME` file, which took the custom `presidio.dataprivacystack.org` domain offline after every publish; canonical links and the sitemap now use the custom domain (#2410) (Thanks @omri374)
+- Fixed the documented `docker run` port mapping for a source-built anonymizer image, which listens on container port 3000 (#2407) (Thanks @SharonHart)
 
 #### Security
+- Slimmed and hardened the default analyzer and anonymizer images: the `python:3.12-slim` and `python:3.14-slim` bases are re-pinned with OS security updates applied, uv is bind-mounted at build time instead of installed, and setuptools and wheel (plus pip in the anonymizer) are removed from the final image. This cuts the Trivy critical, high and medium findings from 321 to 103 (anonymizer) and from 345 to 113 (analyzer); the distroless images bring them down to 1 and 6 (#2407) (Thanks @SharonHart)
 - Refreshed every `uv.lock` file to fix the 100 known advisories in the locked development and CI dependencies, including `pillow` 13.0.0, `virtualenv` 21.14.13, `pyjwt` 2.15.1, `aiohttp` 3.14.5, `urllib3` 2.8.0, `cryptography` 50.0.2, `filelock` 4.2.4, `oauthlib` 4.0.0 and `certifi` 2026.10.23; apart from the `pillow` and `onnxruntime` requirements listed below, published dependency ranges are unchanged (#2409) (Thanks @SharonHart)
 
 ### Analyzer
