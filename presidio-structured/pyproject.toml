@@ -4,14 +4,13 @@ requires = ["poetry-core"]
 
 [project]
 name = "presidio_structured"
-version = "0.0.8"
+version = "0.0.9"
 description = "Presidio structured package - analyzes and anonymizes structured and semi-structured data."
 authors = [{name = "Presidio", email = "presidio@dataprivacystack.org"}]
 license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -20,7 +19,7 @@ classifiers = [
 keywords = ["presidio_structured"]
 urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 
 dependencies = [
     "presidio-analyzer (>=2.2.0,<3.0.0)",

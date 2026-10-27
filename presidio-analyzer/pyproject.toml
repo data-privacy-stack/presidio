@@ -4,14 +4,13 @@ requires = ["poetry-core"]
 
 [project]
 name = "presidio_analyzer"
-version = "2.2.364"
+version = "2.2.365"
 description = "Presidio Analyzer package"
 authors = [{name = "Presidio", email = "presidio@dataprivacystack.org"}]
 license = "MIT"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -22,10 +21,13 @@ urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
 include = ["conf/*",]
 
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 dependencies = [
     "spacy (>=3.4.4,!=3.7.0,<4.0.0); python_version < '3.14'",
     "spacy (>=3.4.4,!=3.7.0,!=3.8.14,<4.0.0); python_version >= '3.14'",
+    # preshed 3.0.14 breaks spaCy model loading (OverflowError in Tokenizer._flush_specials,
+    # explosion/spaCy#14058); remove once fixed upstream.
+    "preshed (<3.0.14)",
     "numpy (>=1.19.0,<2.5.0)",
     "click (>=8.1.0,<9.0.0)",
     "regex (>=2023.0.0)",
@@ -35,6 +37,9 @@ dependencies = [
     "pydantic (>=2.12.5,<3.0.0)",
 ]
 
+[project.entry-points."spacy_factories"]
+presidio_hf_token_pipe = "presidio_analyzer.nlp_engine.huggingface_token_pipe:create_huggingface_token_pipe"
+
 [project.optional-dependencies]
 server = [
     "flask (>=1.1,<4.0.0)",
@@ -42,10 +47,9 @@ server = [
     "waitress (>=2.0.0,<4.0.0); platform_system == 'Windows'"
 ]
 transformers = [
-    "transformers (>=4.0.0,<6.0.0)",
+    "transformers (>=4.28.0,<6.0.0)",
     "accelerate (>=0.20.0,<2.0.0)",
-    "huggingface_hub (>=0.20.0,<2.0.0)",
-    "spacy_huggingface_pipelines (>=0.0.4,<1.0.0)"]
+    "huggingface_hub (>=0.20.0,<2.0.0)"]
 
 stanza = [
     "stanza (>=1.11.1,<2.0.0)",
@@ -59,11 +63,10 @@ ahds = [
     "azure-health-deidentification (>=1.1.0b1,<2.0.0)"
 ]
 gliner = [
-    "transformers",
+    "transformers (>=4.51.3,<5.17.0)",
     "huggingface_hub",
-    "gliner (>=0.2.26,<1.0.0)",
-    "onnxruntime (>=1.19, <1.24.1) ; python_version == '3.10'",
-    "onnxruntime (>=1.19) ; python_version > '3.10'"
+    "gliner (>=0.2.29,<1.0.0)",
+    "onnxruntime (>=1.19)"
 ]
 langextract = [
     "langextract (>=1.0.0,<2.0.0)",
