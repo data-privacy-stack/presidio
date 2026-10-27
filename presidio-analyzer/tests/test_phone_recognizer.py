@@ -1,6 +1,9 @@
+import phonenumbers
 import pytest
+from presidio_analyzer.predefined_recognizers.generic.phone_recognizer import (
+    PhoneRecognizer,
+)
 
-from presidio_analyzer.predefined_recognizers.generic.phone_recognizer import PhoneRecognizer
 from tests import assert_result, assert_result_with_textual_explanation
 
 
@@ -28,9 +31,6 @@ def recognizer():
         ("BR: +55 11 98456 5666", 1, ["PHONE_NUMBER"], ((4, 21), ), 0.4),
         ("My Japanese number is 090-1234-5678", 1, ["PHONE_NUMBER"],((22, 35), ), 0.4),
         ("My CN number is 13812345678", 1, ["PHONE_NUMBER"],((16, 27), ), 0.4),
-        # GB national-format number: only matched when region is the valid ISO code
-        # "GB" (not "UK"). Regression test for the DEFAULT_SUPPORTED_REGIONS fix.
-        ("My UK number is 020 7946 0958", 1, ["PHONE_NUMBER"], ((16, 29), ), 0.4),
         # fmt: on
     ],
 )
@@ -48,6 +48,38 @@ def test_when_all_phones_then_succeed(
     assert len(results) == expected_len
     for i, (res, (st_pos, fn_pos)) in enumerate(zip(results, expected_positions)):
         assert_result(res, entities[i], st_pos, fn_pos, score)
+
+
+def test_default_supported_regions_are_valid():
+    """Ensure every default phone region is supported by libphonenumber."""
+    invalid_regions = (
+        set(PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS)
+        - phonenumbers.SUPPORTED_REGIONS
+    )
+    assert not invalid_regions
+
+
+def test_when_gb_national_phone_then_succeed_with_gb_explanation(
+    spacy_nlp_engine,
+):
+    """Ensure a GB national phone number is attributed to the GB region."""
+    text = "My UK number is 020 7946 0958"
+    nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
+    results = PhoneRecognizer().analyze(
+        text,
+        ["PHONE_NUMBER"],
+        nlp_artifacts=nlp_artifacts,
+    )
+
+    assert len(results) == 1
+    assert_result_with_textual_explanation(
+        results[0],
+        "PHONE_NUMBER",
+        16,
+        29,
+        0.4,
+        "Recognized as GB region phone number, using PhoneRecognizer",
+    )
 
 
 @pytest.mark.parametrize(
