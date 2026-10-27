@@ -1505,7 +1505,7 @@ wheels = [
 
 [[package]]
 name = "presidio-image-redactor"
-version = "0.0.61"
+version = "0.0.62"
 source = { editable = "." }
 dependencies = [
     { name = "azure-ai-formrecognizer" },

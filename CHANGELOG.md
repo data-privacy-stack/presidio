@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+## [2.2.366] - 2026-10-27
+### General
+#### Changed
+- Dropped Python 3.10 support, which reached end of life on 2026-10-01. All packages now require Python `>=3.11,<3.15`; Python 3.10 users resolve to the previous releases (#2409) (Thanks @SharonHart)
+
+#### Fixed
+- Fixed the documentation publishing workflow deleting the `CNAME` file, which took the custom `presidio.dataprivacystack.org` domain offline after every publish; canonical links and the sitemap now use the custom domain (#2410) (Thanks @omri374)
+
+#### Security
+- Refreshed every `uv.lock` file to fix the 100 known advisories in the locked development and CI dependencies, including `pillow` 13.0.0, `virtualenv` 21.14.13, `pyjwt` 2.15.1, `aiohttp` 3.14.5, `urllib3` 2.8.0, `cryptography` 50.0.2, `filelock` 4.2.4, `oauthlib` 4.0.0 and `certifi` 2026.10.23; apart from the `pillow` and `onnxruntime` requirements listed below, published dependency ranges are unchanged (#2409) (Thanks @SharonHart)
+
+### Analyzer
+#### Added
+- Added an optional `context_aware_enhancer` section to the analyzer YAML configuration so the `LemmaContextAwareEnhancer` parameters (`context_similarity_factor`, `min_score_with_context_similarity`, `context_prefix_count`, `context_suffix_count` and `context_matching_mode`) can be set without Python code; invalid values are rejected at parse time with an actionable message, and configurations without the section keep the previous defaults (#2373) (Thanks @MetehanAydemir)
+
+#### Changed
+- Replaced the unmaintained `spacy-huggingface-pipelines` dependency with an internal spaCy token-classification component. `TransformersNlpEngine` now registers the `presidio_hf_token_pipe` factory instead of `hf_token_pipe`, so a spaCy pipeline saved with `nlp.to_disk()` that references `hf_token_pipe` no longer loads. The `transformers` extra now requires `transformers>=4.28.0,<6.0.0`, and the `gliner` extra requires `gliner>=0.2.29` and `transformers>=4.51.3,<5.17.0`. Detection results and scores are unchanged (#2201) (Thanks @SharonHart)
+- The `gliner` extra now declares a single `onnxruntime>=1.19` requirement; the `<1.24.1` cap applied only to Python 3.10 (#2409) (Thanks @SharonHart)
+
+#### Security
+- Locked `transformers` to 5.16.1, which fixes GHSA-xrqw-3rrv-vx5w and GHSA-x9r9-c232-4q39; the published range still allows Transformers 4.x, and installing Transformers 5.10 or later is recommended to pick up the fixes (#2201) (Thanks @SharonHart)
+
+### Image Redactor
+#### Security
+- Raised the `Pillow` requirement to `>=13.0.0,<14.0.0`, which fixes the 41 security advisories (5 critical, 23 high) open against Pillow 12.3.0, and replaced the `Image.getdata()` call in the DICOM redactor with `get_flattened_data()`, since `getdata()` is deprecated in Pillow 13 and removed in Pillow 14 (#2393, #2409) (Thanks @SharonHart)
+
 ## [2.2.365] - 2026-10-25
 ### General
 #### Added
@@ -945,7 +971,8 @@ Upgrade Analyzer spacy version to 3.0.5
 New endpoint for deanonymizing encrypted entities by the anonymizer.  
 
 
-[unreleased]: https://github.com/data-privacy-stack/presidio/compare/2.2.365...HEAD
+[unreleased]: https://github.com/data-privacy-stack/presidio/compare/2.2.366...HEAD
+[2.2.366]: https://github.com/data-privacy-stack/presidio/compare/2.2.365...2.2.366
 [2.2.365]: https://github.com/data-privacy-stack/presidio/compare/2.2.364...2.2.365
 [2.2.364]: https://github.com/data-privacy-stack/presidio/compare/2.2.363...2.2.364
 [2.2.363]: https://github.com/data-privacy-stack/presidio/compare/2.2.362...2.2.363
