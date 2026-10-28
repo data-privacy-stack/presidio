@@ -335,6 +335,13 @@ recognizers:
     enabled: false
     country_code: fi
 
+  - name: NoFodselsnummerRecognizer
+    supported_languages:
+    - nb
+    type: predefined
+    enabled: false
+    country_code: "no"
+
   - name: KrBrnRecognizer
     supported_languages: 
     - ko
