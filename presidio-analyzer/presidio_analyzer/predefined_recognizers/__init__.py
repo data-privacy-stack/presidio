@@ -61,6 +61,11 @@ from .country_specific.italy.it_identity_card_recognizer import ItIdentityCardRe
 from .country_specific.italy.it_passport_recognizer import ItPassportRecognizer
 from .country_specific.italy.it_vat_code import ItVatCodeRecognizer
 
+# Kazakhstan recognizers
+from .country_specific.kazakhstan.kz_iin_recognizer import (
+    KzIinRecognizer,
+)
+
 # Korea recognizers
 from .country_specific.korea.kr_brn_recognizer import KrBrnRecognizer
 from .country_specific.korea.kr_driver_license_recognizer import (
@@ -288,6 +293,7 @@ __all__ = [
     "UkVehicleRegistrationRecognizer",
     "AzureHealthDeidRecognizer",
     "KrBrnRecognizer",
+    "KzIinRecognizer",
     "KrRrnRecognizer",
     "KrDriverLicenseRecognizer",
     "KrFrnRecognizer",

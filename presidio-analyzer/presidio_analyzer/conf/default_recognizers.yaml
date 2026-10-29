@@ -372,6 +372,13 @@ recognizers:
     enabled: false
     country_code: kr
 
+  - name: KzIinRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: kz
+
   - name: SeOrganisationsnummerRecognizer
     supported_languages:
     - sv
