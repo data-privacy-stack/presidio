@@ -64,6 +64,28 @@ class InVehicleRegistrationRecognizer(PatternRecognizer):
             r"\b[A-Z]{2}\d{2}[A-Z]{1,2}(?!0000)\d{4}\b",
             0.50,
         ),
+        # Plates are usually written with a space or hyphen between groups.
+        # Accepted separated forms, with one separator used throughout:
+        #   "MH 12 AB 1234" / "MH-12-AB-1234"  (two-digit district)
+        #   "DL 3C AB 1234" / "DL-3C-AB-1234"  (one-digit district + series)
+        #   "DL 3 CAB 1234" / "DL-3-CAB-1234"  (one-digit district)
+        # This shape also occurs in clinical and pharmacy text ("OR 10 MG 1000",
+        # "HR 12 BP 1234"), so these patterns are weak: validate_result does not
+        # promote them, and context words lift real plates. Matching follows the
+        # recognizer's case-insensitive default, since the low score rather than
+        # letter case is what keeps coincidental matches below a threshold.
+        Pattern(
+            "India Vehicle Registration (separated, weak)",
+            r"\b[A-Z]{2}([- ])\d{1}"
+            r"(?:[A-Z]{1,3}|\1[A-Z]{1,3}|[A-Z]\1[A-Z]{1,2})"
+            r"\1(?!0000)\d{4}\b",
+            0.30,
+        ),
+        Pattern(
+            "India Vehicle Registration (separated, weak)",
+            r"\b[A-Z]{2}([- ])\d{2}\1[A-Z]{1,2}\1(?!0000)\d{4}\b",
+            0.30,
+        ),
         Pattern(
             "India Vehicle Registration",
             r"\b[2-9]{1}[1-9]{1}(BH)(?!0000)\d{4}[A-HJ-NP-Z]{2}\b",
@@ -77,6 +99,8 @@ class InVehicleRegistrationRecognizer(PatternRecognizer):
     ]
 
     CONTEXT = ["RTO", "vehicle", "plate", "registration"]
+
+    SEPARATORS = ("-", " ")
 
     # fmt: off
     in_vehicle_foreign_mission_codes = {
@@ -355,7 +379,13 @@ class InVehicleRegistrationRecognizer(PatternRecognizer):
         sanitized_value = EntityRecognizer.sanitize_value(
             pattern_text, self.replacement_pairs
         )
-        return self.__check_vehicle_registration(sanitized_value)
+        is_valid_registration = self.__check_vehicle_registration(sanitized_value)
+        if any(separator in pattern_text for separator in self.SEPARATORS):
+            # A separated match is kept at its weak pattern score only when the
+            # state and RTO district are valid; context, not validation, is
+            # what lifts it.
+            return None if is_valid_registration else False
+        return is_valid_registration
 
     def __check_vehicle_registration(self, sanitized_value: str) -> bool:
         # print('check function called')
