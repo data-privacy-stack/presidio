@@ -21,7 +21,7 @@ uv run pytest -xvv
 uv run ruff check . && uv run ruff format .
 ```
 
-- Python `>=3.10,<3.15`; code must run on every version in range.
+- Python `>=3.11,<3.15`; code must run on every version in range.
 - Dependencies are managed with **uv**, not pip/Poetry. If you touch a
   package's `pyproject.toml` dependencies, run `uv lock` in that package and
   commit the updated `uv.lock` in the same change — CI fails on drift.

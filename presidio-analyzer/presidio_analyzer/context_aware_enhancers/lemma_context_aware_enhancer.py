@@ -1,6 +1,6 @@
 import copy
 import logging
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from presidio_analyzer import EntityRecognizer, RecognizerResult
 from presidio_analyzer.context_aware_enhancers import ContextAwareEnhancer
@@ -82,6 +82,19 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
 
         # create a deep copy of the results object, so we can manipulate it
         results = copy.deepcopy(raw_results)
+        self._enhance_in_place(text, results, nlp_artifacts, recognizers, context)
+        return results
+
+    def _enhance_in_place(
+        self,
+        text: str,
+        results: List[RecognizerResult],
+        nlp_artifacts: NlpArtifacts,
+        recognizers: List[EntityRecognizer],
+        context: Optional[List[str]] = None,
+    ) -> Set[int]:
+        """Enhance results in place; return the positions whose context matched."""
+        matched = set()
 
         # create recognizer context dictionary
         recognizers_dict = {recognizer.id: recognizer for recognizer in recognizers}
@@ -95,9 +108,9 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         # Sanity
         if nlp_artifacts is None:
             logger.warning("NLP artifacts were not provided")
-            return results
+            return matched
 
-        for result in results:
+        for i, result in enumerate(results):
             recognizer = None
             # get recognizer matching the result, if found.
             if (
@@ -158,7 +171,8 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
                     supportive_context_word
                 )
                 result.analysis_explanation.set_improved_score(result.score)
-        return results
+                matched.add(i)
+        return matched
 
     @staticmethod
     def _find_supportive_word_in_context(

@@ -13,8 +13,10 @@ from presidio_analyzer import (
 )
 from presidio_analyzer.app_tracer import AppTracer
 from presidio_analyzer.context_aware_enhancers import (
+    CompositeContextAwareEnhancer,
     ContextAwareEnhancer,
     LemmaContextAwareEnhancer,
+    PhraseContextAwareEnhancer,
 )
 from presidio_analyzer.nlp_engine import (
     NlpArtifacts,
@@ -50,7 +52,8 @@ class AnalyzerEngine:
     :param supported_languages: List of possible languages this engine could be run on.
     Used for loading the right NLP models and recognizers for these languages.
     :param context_aware_enhancer: instance of type ContextAwareEnhancer for enhancing
-    confidence score based on context words, (LemmaContextAwareEnhancer will be created
+    confidence score based on context words, (a CompositeContextAwareEnhancer of a
+    LemmaContextAwareEnhancer and a PhraseContextAwareEnhancer will be created
     by default if None passed)
     """
 
@@ -111,13 +114,13 @@ class AnalyzerEngine:
         self.log_decision_process = log_decision_process
         self.default_score_threshold = default_score_threshold
 
-        if isinstance(self.nlp_engine, NoOpNlpEngine) and isinstance(
-            context_aware_enhancer, LemmaContextAwareEnhancer
-        ):
+        token_based_enhancer = self._find_token_based_enhancer(context_aware_enhancer)
+        if isinstance(self.nlp_engine, NoOpNlpEngine) and token_based_enhancer:
             warnings.warn(
-                "LemmaContextAwareEnhancer cannot use context words from the analyzed "
-                "text with NoOpNlpEngine because no tokens or lemmas are produced. "
-                "Only context passed explicitly to analyze() can be used.",
+                f"{type(token_based_enhancer).__name__} cannot use context words "
+                "from the analyzed text with NoOpNlpEngine because no tokens or "
+                "lemmas are produced. Only context passed explicitly to analyze() "
+                "can be used.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -125,11 +128,29 @@ class AnalyzerEngine:
         if not context_aware_enhancer:
             logger.debug(
                 "context aware enhancer not provided, creating default"
-                + " lemma based enhancer."
+                + " lemma and phrase based enhancer."
             )
-            context_aware_enhancer = LemmaContextAwareEnhancer()
+            context_aware_enhancer = CompositeContextAwareEnhancer(
+                [LemmaContextAwareEnhancer, PhraseContextAwareEnhancer]
+            )
 
         self.context_aware_enhancer = context_aware_enhancer
+
+    @staticmethod
+    def _find_token_based_enhancer(
+        enhancer: Optional[ContextAwareEnhancer],
+    ) -> Optional[ContextAwareEnhancer]:
+        """Return the enhancer, or one inside it, that reads tokens or lemmas."""
+        if isinstance(
+            enhancer, (LemmaContextAwareEnhancer, PhraseContextAwareEnhancer)
+        ):
+            return enhancer
+        if isinstance(enhancer, CompositeContextAwareEnhancer):
+            for child in enhancer.enhancers:
+                found = AnalyzerEngine._find_token_based_enhancer(child)
+                if found:
+                    return found
+        return None
 
     def get_recognizers(self, language: Optional[str] = None) -> List[EntityRecognizer]:
         """
