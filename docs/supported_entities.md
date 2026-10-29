@@ -146,6 +146,11 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | SE_ORGANISATIONSNUMMER    | The Swedish Organisations ID Number is a unique 10-digit number issued to all Swedish organisations. | Pattern match, context, and checksum. |
 | SE_PERSONNUMMER    | The Swedish Personal ID Number is a unique 10/12-digit number issued to all Swedish residents. The recognizer also supports Samordningsnummer (coordination numbers) issued to individuals who are not (yet) registered residents but need a Swedish identifier (e.g., temporary workers, students). | Pattern match, context, and checksum. |
 
+### Sri Lanka
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| LK_NATIONAL_ID    | The Sri Lanka national identity card (NIC) number is issued by the Department for Registration of Persons in two forms: 12 digits since 2016 (birth year + day of year + serial + check digit) and 9 digits + V/X before 2016 (2-digit birth year + day of year + serial + check digit + letter). | Pattern match, context and sanity checks. |
+
 ### South Africa
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
