@@ -263,7 +263,10 @@ class AnalyzerEngine:
         if all_fields:
             # Since all_fields=True, list all entities by iterating
             # over all recognizers
-            entities = self.get_supported_entities(language=language)
+            supported_entities = set()
+            for recognizer in recognizers:
+                supported_entities.update(recognizer.get_supported_entities() or [])
+            entities = list(supported_entities)
 
         # run the nlp pipeline over the given text, store the results in
         # a NlpArtifacts instance
