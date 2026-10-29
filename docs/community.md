@@ -25,5 +25,6 @@ This section collects different resources developed with Presidio.
 | [Extending Power BI with Python and R](https://github.com/PacktPublishing/Extending-Power-BI-with-Python-and-R) | Code repository for [Extending Power BI with Python and R](https://www.packtpub.com/product/extending-power-bi-with-python-and-r/9781801078207), published by Packt. |
 | [HebSafeHarbor](https://github.com/8400TheHealthNetwork/HebSafeHarbor) | Clinical notes anonymization in Hebrew. |
 | [Presidio GitHub Action](https://github.com/marketplace/actions/presidio-action) | GitHub Action that analyzes text for PII entities with the Presidio framework. |
+| [sumi](https://github.com/NagaYu/sumi) | Japanese PII detection that holds up on hard negatives - 0.13B CPU token classifier, rule layer, and reversible masking. Drops into Presidio in one line. |
 
 * Please create a PR if you're interested in adding your tool to this list.
