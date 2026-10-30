@@ -384,6 +384,9 @@ class AnalyzerEngine:
         """Note in the explanation when normalization changed the matched text."""
         normalized_text, index_map = normalized_view
         for result in results:
+            if not AnalyzerEngine._has_valid_span(result, len(index_map)):
+                # Reported when the results are mapped back to the original text.
+                continue
             start, end = map_span_to_original(index_map, result.start, result.end)
             if (
                 result.analysis_explanation
@@ -414,12 +417,30 @@ class AnalyzerEngine:
     def _map_results_to_original(
         results: List[RecognizerResult], index_map: List[int]
     ) -> List[RecognizerResult]:
-        """Map results from normalized-text offsets back to the original text."""
+        """
+        Map results from normalized-text offsets back to the original text.
+
+        Results with an empty or out-of-range span cannot be mapped, so they are
+        skipped with a warning instead of failing the whole request.
+        """
+        mapped_results = []
         for result in results:
+            if not AnalyzerEngine._has_valid_span(result, len(index_map)):
+                logger.warning(
+                    f"Skipping a {result.entity_type} result with an invalid span "
+                    f"({result.start}, {result.end}) for a normalized text of "
+                    f"length {len(index_map)}"
+                )
+                continue
             result.start, result.end = map_span_to_original(
                 index_map, result.start, result.end
             )
-        return results
+            mapped_results.append(result)
+        return mapped_results
+
+    @staticmethod
+    def _has_valid_span(result: RecognizerResult, text_length: int) -> bool:
+        return 0 <= result.start < result.end <= text_length
 
     def _enhance_using_context(
         self,

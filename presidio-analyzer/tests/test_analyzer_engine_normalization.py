@@ -10,6 +10,7 @@ from typing import List, Optional
 
 import pytest
 from presidio_analyzer import (
+    AnalysisExplanation,
     AnalyzerEngine,
     BatchAnalyzerEngine,
     LocalRecognizer,
@@ -34,8 +35,9 @@ from presidio_analyzer.predefined_recognizers import (
 
 DIGITS = "110101199003077512"
 ID_PATTERN = r"(?<![0-9])[0-9]{17}[0-9X](?![0-9])"
-ZERO_WIDTH_ID = "110​101​1990​0307​7512"
+ZERO_WIDTH_ID = "110\u200b101\u200b1990\u200b0307\u200b7512"
 NORMALIZED_NOTE = "Detected on the normalized text"
+ZERO_WIDTH_SPACE = chr(0x200B)
 
 
 def to_fullwidth(text: str) -> str:
@@ -93,6 +95,36 @@ class RecordingRecognizer(LocalRecognizer):
         if start < 0:
             return []
         return [RecognizerResult("KEYWORD", start, start + len(self.keyword), 0.8)]
+
+
+class FixedSpansRecognizer(LocalRecognizer):
+    """Returns the same (entity, start, end) results for any text."""
+
+    def __init__(self, spans):
+        self.spans = spans
+        super().__init__(
+            supported_entities=[entity for entity, _, _ in spans],
+            name="FixedSpansRecognizer",
+        )
+
+    def load(self) -> None:
+        pass
+
+    def analyze(
+        self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts = None
+    ) -> List[RecognizerResult]:
+        return [
+            RecognizerResult(
+                entity,
+                start,
+                end,
+                0.8,
+                analysis_explanation=AnalysisExplanation(
+                    recognizer=self.name, original_score=0.8
+                ),
+            )
+            for entity, start, end in self.spans
+        ]
 
 
 def test_normalize_text_is_off_by_default():
@@ -189,7 +221,7 @@ def test_predefined_recognizers_detect_fullwidth_values(
 
 
 def test_zero_width_separated_iban_is_detected():
-    text = "DE89​370400440532013000"
+    text = "DE89\u200b370400440532013000"
 
     results = make_engine([IbanRecognizer()]).analyze(text, language="en")
 
@@ -200,12 +232,27 @@ def test_zero_width_separated_iban_is_detected():
 
 def test_other_recognizers_get_only_the_normalized_text():
     recognizer = RecordingRecognizer("John")
-    text = "Name: Ｊｏｈｎ​."
+    text = "Name: Ｊｏｈｎ\u200b."
 
     results = make_engine([recognizer]).analyze(text, language="en")
 
     assert [text for text, _ in recognizer.calls] == ["Name: John."]
     assert [(r.entity_type, r.start, r.end) for r in results] == [("KEYWORD", 6, 10)]
+
+
+def test_results_with_invalid_spans_are_skipped(caplog):
+    # The normalized text is "Name: John", 10 characters long.
+    recognizer = FixedSpansRecognizer(
+        [("VALID", 6, 10), ("EMPTY", 5, 5), ("OUT_OF_RANGE", 3, 30)]
+    )
+    text = "Name: " + to_fullwidth("John") + ZERO_WIDTH_SPACE
+
+    with caplog.at_level("WARNING", logger="presidio-analyzer"):
+        results = make_engine([recognizer]).analyze(text, language="en")
+
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("VALID", 6, 10)]
+    assert "EMPTY result with an invalid span (5, 5)" in caplog.text
+    assert "OUT_OF_RANGE result with an invalid span (3, 30)" in caplog.text
 
 
 def test_allow_list_applies_to_the_normalized_text():
@@ -250,7 +297,7 @@ def test_batch_analyzer_passes_original_text_and_normalized_artifacts(
         pytest.skip("spaCy engine not available")
     recognizer = RecordingRecognizer("John")
     engine = make_engine([id_recognizer(), recognizer], nlp_engine=spacy_nlp_engine)
-    texts = ["ID " + to_fullwidth(DIGITS), "plain text", "Name: Ｊｏｈｎ​."]
+    texts = ["ID " + to_fullwidth(DIGITS), "plain text", "Name: Ｊｏｈｎ\u200b."]
 
     results = BatchAnalyzerEngine(analyzer_engine=engine).analyze_iterator(
         texts, language="en"

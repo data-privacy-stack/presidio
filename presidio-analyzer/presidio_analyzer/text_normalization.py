@@ -3,7 +3,7 @@ r"""Bounded text normalization for the analyzer.
 Entities are missed when they are written with full-width ("wide")
 characters, as typed with many Chinese and Japanese input methods
 (``１２３``, ``ＡＢＣ``), or with invisible characters inserted to split a
-number (``123​456``): ASCII patterns and models do not see them.
+number (``123\u200b456``): ASCII patterns and models do not see them.
 
 This module builds a *normalized view* of a text that undoes those two
 things, alongside an *offset map* back to the original text, so entities
@@ -40,20 +40,20 @@ import regex
 _FULLWIDTH_OFFSET = 0xFEE0
 
 _INVISIBLE_CHARS = frozenset(
-    "­"  # soft hyphen
-    "​"  # zero-width space
-    "⁠"  # word joiner
-    "⁡⁢⁣⁤"  # invisible math operators
-    "﻿"  # zero-width no-break space (byte order mark)
+    "\u00ad"  # soft hyphen
+    "\u200b"  # zero-width space
+    "\u2060"  # word joiner
+    "\u2061\u2062\u2063\u2064"  # invisible math operators
+    "\ufeff"  # zero-width no-break space (byte order mark)
 )
 
 _CHANGEABLE_CHAR_PATTERN = regex.compile(
-    "[！-～" + "".join(sorted(_INVISIBLE_CHARS)) + "]"
+    "[\uff01-\uff5e" + "".join(sorted(_INVISIBLE_CHARS)) + "]"
 )
 
 
 def _is_fullwidth(char: str) -> bool:
-    return "！" <= char <= "～"
+    return "\uff01" <= char <= "\uff5e"
 
 
 def _fold(char: str) -> str:

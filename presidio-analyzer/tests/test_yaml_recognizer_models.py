@@ -524,6 +524,24 @@ def test_recognizer_registry_config_normalize_text():
     assert config.model_dump()["normalize_text"] is True
 
 
+def test_recognizer_level_normalize_text_points_to_registry_setting():
+    """normalize_text inside a recognizer entry fails with a pointer to the top level."""
+    with pytest.raises(
+        ValidationError, match="at the top level of the recognizer registry"
+    ):
+        PredefinedRecognizerConfig(name="UsPassportRecognizer", normalize_text=True)
+
+    with pytest.raises(
+        ValidationError, match="at the top level of the recognizer registry"
+    ):
+        CustomRecognizerConfig(
+            name="custom_norm",
+            supported_entity="CUSTOM_ENTITY",
+            patterns=[{"name": "id", "regex": r"[0-9]+", "score": 0.5}],
+            normalize_text=True,
+        )
+
+
 def test_recognizer_registry_config_rejects_non_boolean_normalize_text():
     """normalize_text must be a boolean."""
     with pytest.raises(ValidationError, match="normalize_text"):

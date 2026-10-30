@@ -86,6 +86,23 @@ class BaseRecognizerConfig(BaseModel):
         description="Default and entity-specific score thresholds",
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_recognizer_level_normalize_text(cls, data: Any) -> Any:
+        """Point to the registry-level setting when a recognizer sets normalize_text.
+
+        Text normalization is applied by the analyzer engine to all recognizers,
+        so it is configured once for the whole registry.
+        """
+        if isinstance(data, dict) and "normalize_text" in data:
+            raise ValueError(
+                f"Recognizer '{data.get('name')}' sets 'normalize_text', which is "
+                "not a recognizer setting. Set 'normalize_text: true' at the top "
+                "level of the recognizer registry configuration, next to "
+                "'global_regex_flags'."
+            )
+        return data
+
     @field_validator("supported_language")
     @classmethod
     def validate_single_language(cls, v: Optional[str]) -> Optional[str]:

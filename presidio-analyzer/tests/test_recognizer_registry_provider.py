@@ -487,7 +487,7 @@ def test_recognizer_registry_provider_normalize_text_reaches_registry_and_engine
 
     assert registry.normalize_text is True
     assert engine.normalize_text is True
-    results = engine.analyze("code １２３​４５６", language="en")
+    results = engine.analyze("code １２３\u200b４５６", language="en")
     assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 5, 12)]
 
 
@@ -506,3 +506,22 @@ def test_recognizer_registry_provider_rejects_invalid_normalize_text():
                 normalize_text="sometimes"
             )
         )
+
+
+def test_recognizer_registry_provider_rejects_recognizer_level_normalize_text():
+    configuration = _normalize_text_registry_configuration()
+    configuration["recognizers"] = [
+        {
+            "name": "UsPassportRecognizer",
+            "type": "predefined",
+            "enabled": True,
+            "normalize_text": True,
+        }
+    ]
+
+    with pytest.raises(ValueError) as exc_info:
+        RecognizerRegistryProvider(registry_configuration=configuration)
+
+    assert "at the top level of the recognizer registry" in str(
+        exc_info.value.__cause__
+    )

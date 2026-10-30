@@ -65,15 +65,15 @@ def test_fullwidth_symbols_are_folded_only_between_letters_or_digits(text, expec
 @pytest.mark.parametrize(
     "text",
     [
-        "می‌خواهم",  # Persian, zero-width non-joiner as part of the word
-        "क्‍ष",  # Devanagari with a zero-width joiner
+        "می\u200cخواهم",  # Persian, zero-width non-joiner as part of the word
+        "क्\u200dष",  # Devanagari with a zero-width joiner
         "น้ำ",  # Thai, changed by NFKC
         "한국어",  # Korean
         "١٢٣ ۱۲۳",  # Arabic-Indic and Persian digits
         "①②③ x² ½ ﬁ",  # compatibility characters NFKC would rewrite
         "ｶﾀｶﾅ",  # half-width katakana
         "東京　大阪",  # ideographic space
-        "é",  # combining accent
+        "e\u0301",  # combining accent
     ],
 )
 def test_other_text_is_unchanged(text):
@@ -83,7 +83,7 @@ def test_other_text_is_unchanged(text):
 
 
 def test_invisible_characters_are_removed():
-    text = "ID 110​101­1990⁠0307﻿7512"
+    text = "ID 110\u200b101\u00ad1990\u20600307\ufeff7512"
     assert needs_normalized_view(text)
     normalized, index_map = build_normalized_view(text)
     assert normalized == "ID 110101199003077512"
@@ -93,12 +93,12 @@ def test_invisible_characters_are_removed():
 
 
 def test_symbols_next_to_removed_characters_are_still_folded():
-    normalized, _ = build_normalized_view("２３４​－５６－​７８９０")
+    normalized, _ = build_normalized_view("２３４\u200b－５６－\u200b７８９０")
     assert normalized == "234-56-7890"
 
 
 def test_map_span_to_original_covers_removed_characters_inside_the_span():
-    text = "ID 110​101 end"
+    text = "ID 110\u200b101 end"
     _, index_map = build_normalized_view(text)
     assert map_span_to_original(index_map, 3, 9) == (3, 10)
 
@@ -112,9 +112,9 @@ def test_map_span_to_original_rejects_invalid_spans():
 
 
 def test_map_span_to_normalized():
-    text = "a​bc​ d"
+    text = "a\u200bbc\u200b d"
     _, index_map = build_normalized_view(text)
-    # "a​bc" -> "abc"
+    # "a\u200bbc" -> "abc"
     assert map_span_to_normalized(index_map, 0, 4) == (0, 3)
     # Removed characters at the edges of the span are dropped.
     assert map_span_to_normalized(index_map, 1, 5) == (1, 3)
@@ -123,7 +123,7 @@ def test_map_span_to_normalized():
 
 
 def test_spans_round_trip():
-    text = "pay " + to_fullwidth("DE89370400440532013000") + "​ now"
+    text = "pay " + to_fullwidth("DE89370400440532013000") + "\u200b now"
     _, index_map = build_normalized_view(text)
     span = map_span_to_normalized(index_map, 4, 26)
     assert span == (4, 26)
