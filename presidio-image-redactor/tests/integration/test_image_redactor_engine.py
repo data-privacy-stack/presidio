@@ -2,7 +2,12 @@ from typing import Callable
 
 import pytest
 
-from presidio_image_redactor import ImageRedactorEngine, ImageAnalyzerEngine, DocumentIntelligenceOCR
+from presidio_image_redactor import (
+    ImageRedactorEngine,
+    ImageAnalyzerEngine,
+    DocumentIntelligenceOCR,
+    OpenCVFaceRecognizer,
+)
 
 from tests.integration.methods import get_resource_image, compare_images, image_sim
 
@@ -184,3 +189,16 @@ def test_redact_and_return_bbox_with_analyzer_kwargs(engine_builder: Callable):
     assert not compare_images(redacted_image_entities, redacted_image_score)
     
     assert len(bboxes_no_args) != len(bboxes_entities) or len(bboxes_no_args) != len(bboxes_score)
+
+
+def test_given_visual_face_recognizer_then_face_region_is_redacted(synthetic_face_image):
+    """A face is redacted even though the image contains no text at all."""
+    engine = ImageRedactorEngine(ImageAnalyzerEngine(visual_recognizers=[OpenCVFaceRecognizer()]))
+
+    redacted_image, bboxes = engine.redact_and_return_bbox(synthetic_face_image, red_fill)
+
+    assert len(bboxes) == 1
+    face = bboxes[0]
+    assert face.entity_type == "FACE"
+    center = (face.left + face.width // 2, face.top + face.height // 2)
+    assert redacted_image.getpixel(center) == red_fill

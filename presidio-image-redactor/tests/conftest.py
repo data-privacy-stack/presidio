@@ -2,6 +2,9 @@ import pydicom
 import json
 import os
 
+import cv2
+import numpy as np
+
 from PIL import Image
 from presidio_analyzer.recognizer_result import RecognizerResult
 
@@ -122,3 +125,60 @@ def get_dummy_nlp_engine():
             return ["en"]
 
     return DummyNlpEngine()
+
+
+def _draw_synthetic_face(size: int = 256) -> np.ndarray:
+    """Draw a shaded frontal face, as a greyscale numpy array.
+
+    The shapes (light oval head, dark eye sockets with bright whites and dark
+    irises, brows, a bright nose bridge and a dark mouth) produce the Haar-like
+    intensity pattern that `haarcascade_frontalface_default` looks for, so no
+    binary image fixture (nor a photo of a real person) has to be committed.
+    """
+    s, c = size, size // 2
+    img = np.full((s, s), 170, np.uint8)
+    cv2.ellipse(img, (c, c), (int(s * 0.28), int(s * 0.36)), 0, 0, 360, 215, -1)
+    cv2.ellipse(
+        img, (c, c - int(s * 0.15)), (int(s * 0.22), int(s * 0.14)), 0, 0, 360, 225, -1
+    )
+    for dx in (-1, 1):
+        ex, ey = c + dx * int(s * 0.11), c - int(s * 0.08)
+        cv2.ellipse(img, (ex, ey), (int(s * 0.085), int(s * 0.05)), 0, 0, 360, 120, -1)
+        cv2.ellipse(img, (ex, ey), (int(s * 0.06), int(s * 0.03)), 0, 0, 360, 235, -1)
+        cv2.circle(img, (ex, ey), int(s * 0.025), 30, -1)
+        cv2.ellipse(
+            img,
+            (ex, ey - int(s * 0.075)),
+            (int(s * 0.08), int(s * 0.015)),
+            0,
+            0,
+            360,
+            60,
+            -1,
+        )
+    cv2.rectangle(
+        img,
+        (c - int(s * 0.03), c - int(s * 0.08)),
+        (c + int(s * 0.03), c + int(s * 0.07)),
+        230,
+        -1,
+    )
+    cv2.ellipse(
+        img, (c, c + int(s * 0.09)), (int(s * 0.055), int(s * 0.02)), 0, 0, 360, 110, -1
+    )
+    cv2.ellipse(
+        img, (c, c + int(s * 0.2)), (int(s * 0.11), int(s * 0.035)), 0, 0, 360, 70, -1
+    )
+    cv2.ellipse(
+        img, (c, c + int(s * 0.2)), (int(s * 0.09), int(s * 0.012)), 0, 0, 360, 140, -1
+    )
+    cv2.ellipse(
+        img, (c, c + int(s * 0.33)), (int(s * 0.2), int(s * 0.05)), 0, 0, 180, 140, -1
+    )
+    return cv2.GaussianBlur(img, (0, 0), s * 0.01)
+
+
+@pytest.fixture(scope="function")
+def synthetic_face_image():
+    """A drawn 256x256 RGB frontal face, detectable by a Haar cascade."""
+    return Image.fromarray(_draw_synthetic_face()).convert("RGB")

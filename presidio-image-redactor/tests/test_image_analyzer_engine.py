@@ -2,7 +2,7 @@ import pytest
 from presidio_analyzer import RecognizerResult, AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_analyzer.recognizer_registry import RecognizerRegistry
 
-from presidio_image_redactor import ImageAnalyzerEngine
+from presidio_image_redactor import ImageAnalyzerEngine, OCR, VisualObjectRecognizer
 from presidio_image_redactor.entities import ImageRecognizerResult
 
 import PIL
@@ -390,3 +390,55 @@ def test_use_other_language_in_analyze(get_dummy_nlp_engine, get_mock_png):
     )
     # There aren't the dummy pattern in the image, so the redacted should be empty
     assert len(redacted) == 0
+
+
+class StubVisualRecognizer(VisualObjectRecognizer):
+    """Visual recognizer stub returning one fixed FACE bbox."""
+
+    def __init__(self):
+        self.seen_images = []
+
+    def recognize(self, image: object) -> List[ImageRecognizerResult]:
+        self.seen_images.append(image)
+        return [ImageRecognizerResult("FACE", 0, 0, 0.85, 10, 20, 30, 40)]
+
+
+class EmptyOCR(OCR):
+    """OCR stub that finds no text at all."""
+
+    def perform_ocr(self, image: object, **kwargs) -> dict:
+        return {"text": [], "left": [], "top": [], "width": [], "height": [], "conf": []}
+
+
+def _engine_without_text_detection(nlp_engine, visual_recognizers):
+    """Build an ImageAnalyzerEngine whose OCR and analyzer never find anything."""
+    analyzer_engine = AnalyzerEngine(
+        nlp_engine=nlp_engine,
+        registry=RecognizerRegistry(recognizers=[], supported_languages=["en"]),
+    )
+    return ImageAnalyzerEngine(
+        analyzer_engine=analyzer_engine,
+        ocr=EmptyOCR(),
+        visual_recognizers=visual_recognizers,
+    )
+
+
+def test_given_visual_recognizer_then_analyze_returns_its_bboxes(get_dummy_nlp_engine, get_mock_png):
+    """Visual recognizer results are appended to the OCR-derived bboxes."""
+    stub_recognizer = StubVisualRecognizer()
+    engine = _engine_without_text_detection(get_dummy_nlp_engine, [stub_recognizer])
+
+    results = engine.analyze(get_mock_png)
+
+    assert results == [ImageRecognizerResult("FACE", 0, 0, 0.85, 10, 20, 30, 40)]
+    # The recognizer must receive the original image, not the preprocessed one.
+    assert len(stub_recognizer.seen_images) == 1
+    assert stub_recognizer.seen_images[0] is get_mock_png
+
+
+def test_given_no_visual_recognizers_then_analyze_results_are_unchanged(get_dummy_nlp_engine, get_mock_png):
+    """Omitting visual_recognizers keeps the previous behaviour."""
+    engine = _engine_without_text_detection(get_dummy_nlp_engine, None)
+
+    assert engine.visual_recognizers == []
+    assert engine.analyze(get_mock_png) == []
