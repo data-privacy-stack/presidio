@@ -211,7 +211,8 @@ Detected using the `MedicalNERRecognizer` (requires the `transformers` extra). U
 
 |FieldType | Description | Detection Method |
 | --- | --- | --- |
-|FACE | A human face detected in image pixels | Haar cascade face detection (`OpenCVFaceRecognizer`) |
+|FACE | A human face detected in image pixels | Haar cascade face detection (`OpenCVFaceRecognizer`), EgoBlur detector (`EgoBlurRecognizer`) |
+|LICENSE_PLATE | A vehicle license plate detected in image pixels | EgoBlur detector (`EgoBlurRecognizer`) |
 
 ## Adding a custom PII entity
 

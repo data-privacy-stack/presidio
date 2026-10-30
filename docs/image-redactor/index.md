@@ -117,7 +117,7 @@ Pre-requisites:
 Python script example can be found under:
 /presidio/e2e-tests/tests/test_image_redactor.py
 
-## Redacting visual objects (faces)
+## Redacting visual objects (faces and license plates)
 
 Besides text, the `ImageAnalyzerEngine` can run *visual object recognizers*,
 which detect non-textual PII directly in the image pixels. `OpenCVFaceRecognizer`
@@ -155,6 +155,45 @@ region of the image rather than a span of text.
     Haar cascades detect frontal faces only, so profiles, strongly rotated and
     occluded faces are missed. The `ImagePiiVerifyEngine` overlay currently
     shows OCR-derived bounding boxes only.
+
+### EgoBlur face and license plate detection
+
+`EgoBlurRecognizer` wraps Meta's [EgoBlur](https://www.projectaria.com/tools/egoblur/)
+detectors, which find faces (`FACE`) and vehicle license plates
+(`LICENSE_PLATE`). It needs torch and torchvision, installed with the
+`egoblur` extra:
+
+```sh
+pip install "presidio-image-redactor[egoblur]"
+```
+
+The model weights are not bundled with Presidio: download the face and
+license plate models from
+[projectaria.com](https://www.projectaria.com/tools/egoblur/) and pass their
+paths to the recognizer.
+
+```python
+from presidio_image_redactor import (
+    EgoBlurRecognizer,
+    ImageAnalyzerEngine,
+    ImageRedactorEngine,
+)
+
+egoblur = EgoBlurRecognizer(
+    face_model_path="./ego_blur_face.jit",
+    lp_model_path="./ego_blur_lp.jit",
+)
+analyzer_engine = ImageAnalyzerEngine(visual_recognizers=[egoblur])
+engine = ImageRedactorEngine(image_analyzer_engine=analyzer_engine)
+```
+
+Either path may be omitted to run a single detector.
+
+!!! note "Note"
+    The EgoBlur weights are licensed under the Apache License 2.0 but are
+    downloaded by the user, never by Presidio. Only the gen1 TorchScript
+    models are supported; the gen2 models need the detectron2 wrapper from
+    the EgoBlur repository.
 
 ## Getting started (DICOM images)
 
