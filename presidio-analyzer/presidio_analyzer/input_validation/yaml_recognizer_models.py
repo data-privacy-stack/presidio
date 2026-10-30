@@ -1,6 +1,6 @@
 """Pydantic models for YAML recognizer configurations."""
 
-from typing import Any, Dict, List, Literal, Optional, Type, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -193,6 +193,83 @@ class TextChunkerConfig(BaseModel):
                     "only 'tokenizer', 'max_tokens' and 'overlap_tokens' are allowed."
                 )
         return self
+
+
+class ContextAwareEnhancerSettingsConfig(BaseModel):
+    """Validated settings of a lemma or phrase context-aware enhancer.
+
+    Omitted fields keep the enhancer constructor defaults.
+
+    :param context_similarity_factor: How much to enhance confidence of a match.
+    :param min_score_with_context_similarity: Minimum confidence score
+    when context is found.
+    :param context_prefix_count: How many words before the entity to match context.
+    :param context_suffix_count: How many words after the entity to match context.
+    :param context_matching_mode: "substring" or "whole_word".
+    """
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    context_similarity_factor: Optional[float] = Field(
+        None, ge=0, le=1, description="How much to enhance confidence of a match"
+    )
+    min_score_with_context_similarity: Optional[float] = Field(
+        None, ge=0, le=1, description="Minimum confidence score with context"
+    )
+    context_prefix_count: Optional[int] = Field(
+        None, ge=0, description="Words before the entity to match context"
+    )
+    context_suffix_count: Optional[int] = Field(
+        None, ge=0, description="Words after the entity to match context"
+    )
+    context_matching_mode: Optional[Literal["substring", "whole_word"]] = Field(
+        None, description="Matching mode for context words"
+    )
+
+    def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        """Serialize the config without None values by default.
+
+        The dump is passed directly to the enhancer constructor. Excluding None
+        values preserves constructor defaults for omitted YAML fields.
+        """
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(*args, **kwargs)
+
+
+class LemmaContextAwareEnhancerConfig(ContextAwareEnhancerSettingsConfig):
+    """A ``LemmaContextAwareEnhancer`` in the ``enhancers`` list."""
+
+    type: Literal["lemma"]
+
+
+class PhraseContextAwareEnhancerConfig(ContextAwareEnhancerSettingsConfig):
+    """A ``PhraseContextAwareEnhancer`` in the ``enhancers`` list."""
+
+    type: Literal["phrase"]
+
+
+class ContextAwareEnhancerConfig(ContextAwareEnhancerSettingsConfig):
+    """Validated configuration for the analyzer's context-aware enhancer.
+
+    The analyzer runs a ``CompositeContextAwareEnhancer``. Without ``enhancers``,
+    it holds a ``LemmaContextAwareEnhancer`` and a ``PhraseContextAwareEnhancer``.
+    With ``enhancers``, it holds the listed enhancers in order. The settings given
+    here apply to every enhancer, and an entry's own settings override them.
+
+    :param enhancers: The enhancers to run in order, each with a ``type``
+    of "lemma" or "phrase" and its settings.
+    """
+
+    enhancers: Optional[
+        List[
+            Annotated[
+                Union[
+                    LemmaContextAwareEnhancerConfig, PhraseContextAwareEnhancerConfig
+                ],
+                Field(discriminator="type"),
+            ]
+        ]
+    ] = Field(None, min_length=1, description="Enhancers to run in order")
 
 
 class PredefinedRecognizerConfig(BaseRecognizerConfig):
