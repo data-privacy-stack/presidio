@@ -143,6 +143,9 @@ redacted_image = engine.redact(image, (255, 192, 203))
 redacted_image.save("new_image.png")
 ```
 
+The `entities` and `score_threshold` arguments of `ImageAnalyzerEngine.analyze`
+also apply to visual results.
+
 To use a different detector, implement the `VisualObjectRecognizer` abstract
 class: its single `recognize` method receives the image and returns a list of
 `ImageRecognizerResult` objects with `start = end = 0`, since the entity is a
