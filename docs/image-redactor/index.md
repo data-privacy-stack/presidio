@@ -117,6 +117,42 @@ Pre-requisites:
 Python script example can be found under:
 /presidio/e2e-tests/tests/test_image_redactor.py
 
+## Redacting visual objects (faces)
+
+Besides text, the `ImageAnalyzerEngine` can run *visual object recognizers*,
+which detect non-textual PII directly in the image pixels. `OpenCVFaceRecognizer`
+detects faces using the Haar cascade classifier bundled with `opencv-python` and
+returns them as `FACE` entities, which are then redacted like any other entity:
+
+```python
+from PIL import Image
+from presidio_image_redactor import (
+    ImageAnalyzerEngine,
+    ImageRedactorEngine,
+    OpenCVFaceRecognizer,
+)
+
+# Get the image to redact using PIL lib (pillow)
+image = Image.open("./my_image_with_a_face.png")
+
+# Faces are redacted in addition to the text PII found by OCR
+analyzer_engine = ImageAnalyzerEngine(visual_recognizers=[OpenCVFaceRecognizer()])
+engine = ImageRedactorEngine(image_analyzer_engine=analyzer_engine)
+
+redacted_image = engine.redact(image, (255, 192, 203))
+redacted_image.save("new_image.png")
+```
+
+To use a different detector, implement the `VisualObjectRecognizer` abstract
+class: its single `recognize` method receives the image and returns a list of
+`ImageRecognizerResult` objects with `start = end = 0`, since the entity is a
+region of the image rather than a span of text.
+
+!!! note "Note"
+    Haar cascades detect frontal faces only, so profiles, strongly rotated and
+    occluded faces are missed. The `ImagePiiVerifyEngine` overlay currently
+    shows OCR-derived bounding boxes only.
+
 ## Getting started (DICOM images)
 
 === "Python"

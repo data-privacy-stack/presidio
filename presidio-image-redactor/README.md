@@ -69,6 +69,13 @@ redacted_image.save("new_image.png")
 # redacted_image.show()
 ```
 
+To redact faces as well as text, pass a visual object recognizer to the image analyzer engine:
+`ImageRedactorEngine(ImageAnalyzerEngine(visual_recognizers=[OpenCVFaceRecognizer()]))`. Faces are
+reported as `FACE` entities and redacted like any other entity; a custom detector can be plugged in
+by implementing the `VisualObjectRecognizer` abstract class. See
+[the documentation](https://data-privacy-stack.github.io/presidio/image-redactor/#redacting-visual-objects-faces)
+for details.
+
 ### As docker service
 
 In folder presidio/presidio-image-redactor run:
