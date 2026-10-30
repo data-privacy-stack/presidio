@@ -41,6 +41,11 @@ def test_given_different_input_types_then_same_face_bbox_is_returned(
     assert from_pil == from_path
 
 
+def test_given_missing_image_path_then_value_error_is_raised(tmp_path):
+    with pytest.raises(ValueError):
+        OpenCVFaceRecognizer().recognize(str(tmp_path / "missing.png"))
+
+
 def test_given_unsupported_input_type_then_value_error_is_raised():
     with pytest.raises(ValueError):
         OpenCVFaceRecognizer().recognize(42)
