@@ -22,7 +22,10 @@ from presidio_analyzer import (
     LocalRecognizer,
     RecognizerResult,
 )
-from presidio_analyzer.chunkers import BaseTextChunker, CharacterBasedTextChunker
+from presidio_analyzer.chunkers import (
+    BaseTextChunker,
+    CharacterBasedTextChunker,
+)
 from presidio_analyzer.nlp_engine import NlpArtifacts, device_detector
 
 try:
@@ -145,8 +148,11 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         :param chunk_overlap: Number of characters to overlap between chunks.
         :param chunk_size: Maximum number of characters per chunk.
         :param tokenizer_name: Name of the tokenizer. Defaults to model_name.
-        :param text_chunker: Custom text chunking strategy. If None, uses
-            CharacterBasedTextChunker with provided chunk_size and chunk_overlap.
+        :param text_chunker: Text chunking strategy. Accepts a BaseTextChunker
+            instance. If None, uses CharacterBasedTextChunker with provided
+            chunk_size and chunk_overlap. When loaded from YAML, the registry
+            loader converts the ``text_chunker`` dict to a chunker instance
+            automatically.
         :param label_prefixes: List of label prefixes to strip (e.g., B-, I-).
         :raises ImportError: If transformers or torch libraries are not installed.
         """
@@ -192,6 +198,16 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             # Use sorted set for deterministic order
             final_supported_entities = sorted(list(set(self.label_mapping.values())))
 
+        # Initialize text chunker before super().__init__() because
+        # super() may call load(), which resolves deferred chunkers.
+        if text_chunker is not None:
+            self.text_chunker = text_chunker
+        else:
+            self.text_chunker = CharacterBasedTextChunker(
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            )
+
         super().__init__(
             supported_entities=final_supported_entities,
             name=name,
@@ -199,15 +215,6 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             version=version,
             context=context,
         )
-
-        # Initialize the text chunker
-        if text_chunker:
-            self.text_chunker = text_chunker
-        else:
-            self.text_chunker = CharacterBasedTextChunker(
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-            )
 
         logger.info(
             f"Initialized {self.name} with model={self.model_name}, "
@@ -290,6 +297,15 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         except Exception:
             logger.exception(f"Failed to load model {self.model_name}")
             raise
+
+        # Resolve deferred tokenizer chunker using the pipeline's tokenizer
+        from presidio_analyzer.chunkers import TokenizerBasedTextChunker
+
+        if (
+            isinstance(self.text_chunker, TokenizerBasedTextChunker)
+            and self.text_chunker.is_deferred
+        ):
+            self.text_chunker.resolve(self.ner_pipeline.tokenizer)
 
     def _normalize_label(self, label: str) -> str:
         """Normalize label by removing prefixes like B-/I-/U-/L-.

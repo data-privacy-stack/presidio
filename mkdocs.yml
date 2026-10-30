@@ -1,5 +1,5 @@
 site_name: Presidio
-site_url: https://data-privacy-stack.github.io/presidio
+site_url: https://presidio.dataprivacystack.org/
 site_description: PII anonymization for text, images, and structured data.
 site_author: Data Privacy Stack
 copyright: '<a href="https://dataprivacystack.org/">Data Privacy Stack</a>'
@@ -127,6 +127,7 @@ nav:
         - Add Presidio as an HTTP service to your Azure Data Factory: samples/deployments/data-factory/presidio-data-factory-template-gallery-http.md
         - Add Presidio on Databricks to your Azure Data Factory: samples/deployments/data-factory/presidio-data-factory-template-gallery-databricks.md
       - PII Masking LLM calls using LiteLLM proxy: samples/docker/litellm.md
+      - Protect LLM requests with Presidio and AISIX AI Gateway: samples/docker/aisix.md
     - Demo app:
       - Create a simple demo app using Streamlit: samples/python/streamlit/index.md
 not_in_nav : |

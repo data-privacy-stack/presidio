@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -26,9 +24,6 @@ def mock_gliner():
 def test_analyze_passed_entities_are_subset_of_entity_mapping(
     mock_gliner
 ):
-
-    if sys.version_info < (3, 10):
-        pytest.skip("gliner requires Python >= 3.10")
 
     # Mock GLiNER predict_entities
     mock_gliner.predict_entities.return_value = [
@@ -70,11 +65,6 @@ def test_analyze_passed_entities_are_subset_of_entity_mapping(
 
 
 def test_analyze_with_unsupported_entity(mock_gliner):
-
-
-    if sys.version_info < (3, 10):
-        pytest.skip("gliner requires Python >= 3.10")
-
 
     # Mock GLiNER predict_entities
     mock_gliner.gliner.predict_entities.return_value = [
@@ -141,9 +131,6 @@ def test_analyze_with_no_entities(mock_gliner):
 
 def test_gliner_handles_long_text_with_chunking(mock_gliner):
     """Test that GLiNER chunks long text and adjusts entity offsets correctly."""
-    if sys.version_info < (3, 10):
-        pytest.skip("gliner requires Python >= 3.10")
-
     text = "John Smith lives here. " + ("x " * 120) + "Jane Doe works there."
 
     # Mock returns entities with positions relative to each chunk
@@ -185,9 +172,6 @@ def test_gliner_handles_long_text_with_chunking(mock_gliner):
 
 def test_gliner_detects_entity_split_across_chunk_boundary(mock_gliner):
     """Test that overlap catches entities split at chunk boundaries."""
-    if sys.version_info < (3, 10):
-        pytest.skip("gliner requires Python >= 3.10")
-
     # Entity "Amanda Williams" will be split: "Amanda" at end of chunk 1, "Williams" at start of chunk 2
     # With 50-char overlap, both parts should be in the overlapping region
     text = ("x " * 100) + "Amanda Williams" + (" x" * 100)
@@ -217,9 +201,6 @@ def test_gliner_detects_entity_split_across_chunk_boundary(mock_gliner):
 
 def test_gliner_deduplicates_entities_in_overlap_region(mock_gliner):
     """Test that duplicate entities from overlapping chunks are removed."""
-    if sys.version_info < (3, 10):
-        pytest.skip("gliner requires Python >= 3.10")
-
     # Create text where entity appears in overlap region of both chunks
     text = ("x " * 95) + "Dr. Smith" + (" x" * 100)
 
@@ -274,9 +255,6 @@ def test_when_onnx_parameters_then_passes_to_from_pretrained(
     load_onnx_model, onnx_model_file, expected_onnx_model, expected_file
 ):
     """Test that ONNX parameters are passed to GLiNER.from_pretrained."""
-    if sys.version_info < (3, 10):
-        pytest.skip("gliner requires Python >= 3.10")
-
     pytest.importorskip("gliner", reason="GLiNER package is not installed")
 
     with patch(GLINER_MOCK_PATH) as mock_gliner_class:
@@ -299,9 +277,6 @@ def test_when_onnx_parameters_then_passes_to_from_pretrained(
 
 def test_when_model_kwargs_then_passes_to_from_pretrained():
     """Test that additional model kwargs are passed to GLiNER.from_pretrained."""
-    if sys.version_info < (3, 10):
-        pytest.skip("gliner requires Python >= 3.10")
-
     pytest.importorskip("gliner", reason="GLiNER package is not installed")
 
     with patch(GLINER_MOCK_PATH) as mock_gliner_class:
@@ -323,3 +298,98 @@ def test_when_model_kwargs_then_passes_to_from_pretrained():
         assert call_kwargs["custom_param2"] == 42
 
 
+def test_gliner_default_chunker():
+    """Test that GLiNER uses CharacterBasedTextChunker by default."""
+    pytest.importorskip("gliner", reason="GLiNER package is not installed")
+
+    recognizer = GLiNERRecognizer(supported_entities=["PERSON"])
+    assert isinstance(recognizer.text_chunker, CharacterBasedTextChunker)
+    assert recognizer.text_chunker.chunk_size == 250
+    assert recognizer.text_chunker.chunk_overlap == 50
+
+
+def test_gliner_custom_chunk_size():
+    """Test that chunk_size and chunk_overlap params are forwarded."""
+    pytest.importorskip("gliner", reason="GLiNER package is not installed")
+
+    recognizer = GLiNERRecognizer(
+        supported_entities=["PERSON"], chunk_size=400, chunk_overlap=60
+    )
+    assert isinstance(recognizer.text_chunker, CharacterBasedTextChunker)
+    assert recognizer.text_chunker.chunk_size == 400
+    assert recognizer.text_chunker.chunk_overlap == 60
+
+
+def test_gliner_text_chunker_dict_config_via_loader():
+    """Test that text_chunker dict is converted to chunker by the registry loader."""
+    pytest.importorskip("gliner", reason="GLiNER package is not installed")
+    from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "global_regex_flags": 26,
+            "recognizers": [
+                {
+                    "name": "GLiNERRecognizer",
+                    "type": "predefined",
+                    "supported_entities": ["PERSON"],
+                    "supported_languages": ["en"],
+                    "text_chunker": {
+                        "chunker_type": "character",
+                        "chunk_size": 300,
+                        "chunk_overlap": 40,
+                    },
+                }
+            ],
+        }
+    )
+    registry = provider.create_recognizer_registry()
+    gliner_recs = [
+        r for r in registry.recognizers if isinstance(r, GLiNERRecognizer)
+    ]
+    assert len(gliner_recs) == 1
+    assert isinstance(gliner_recs[0].text_chunker, CharacterBasedTextChunker)
+    assert gliner_recs[0].text_chunker.chunk_size == 300
+    assert gliner_recs[0].text_chunker.chunk_overlap == 40
+
+
+def test_gliner_text_chunker_object():
+    """Test that text_chunker accepts a BaseTextChunker instance directly."""
+    pytest.importorskip("gliner", reason="GLiNER package is not installed")
+
+    custom_chunker = CharacterBasedTextChunker(chunk_size=500, chunk_overlap=100)
+    recognizer = GLiNERRecognizer(
+        supported_entities=["PERSON"], text_chunker=custom_chunker
+    )
+    assert recognizer.text_chunker is custom_chunker
+
+
+def test_gliner_resolves_deferred_tokenizer_chunker():
+    """A deferred TokenizerBasedTextChunker is resolved during load()."""
+    pytest.importorskip("gliner", reason="GLiNER package is not installed")
+
+    from presidio_analyzer.chunkers import TokenizerBasedTextChunker
+
+    with patch(GLINER_MOCK_PATH) as mock_gliner_class:
+        mock_gliner_instance = MagicMock()
+        mock_gliner_class.from_pretrained.return_value = mock_gliner_instance
+
+        # The GLiNER model exposes its own fast tokenizer.
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.is_fast = True
+        mock_gliner_instance.data_processor.transformer_tokenizer = mock_tokenizer
+
+        chunker = TokenizerBasedTextChunker(max_tokens=128, overlap_tokens=16)
+        assert chunker.is_deferred
+
+        recognizer = GLiNERRecognizer(
+            supported_entities=["PERSON"], text_chunker=chunker
+        )
+        recognizer.load()
+
+        assert recognizer.text_chunker is chunker
+        assert not chunker.is_deferred
+        assert chunker.tokenizer is mock_tokenizer
+        assert chunker.max_tokens == 128
+        assert chunker.overlap_tokens == 16

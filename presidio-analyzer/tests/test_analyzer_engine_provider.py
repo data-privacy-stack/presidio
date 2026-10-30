@@ -1,6 +1,9 @@
 # ruff: noqa: D103,D205,E501,F541,F841,W293
 
+import importlib.util
+import os
 import re
+import warnings
 from pathlib import Path
 from typing import List
 from unittest.mock import patch
@@ -9,6 +12,11 @@ import pytest
 import yaml
 from install_nlp_models import _install_models_from_nlp_config, install_models
 from presidio_analyzer import AnalyzerEngineProvider, RecognizerResult
+from presidio_analyzer.context_aware_enhancers import (
+    CompositeContextAwareEnhancer,
+    LemmaContextAwareEnhancer,
+    PhraseContextAwareEnhancer,
+)
 from presidio_analyzer.nlp_engine import NlpArtifacts, SpacyNlpEngine
 from presidio_analyzer.predefined_recognizers import (
     AzureAILanguageRecognizer,
@@ -16,6 +24,27 @@ from presidio_analyzer.predefined_recognizers import (
     SpacyRecognizer,
     StanzaRecognizer,
 )
+
+def _has_module(name: str) -> bool:
+    # find_spec imports the parent packages of a dotted name, so a missing
+    # intermediate raises ModuleNotFoundError instead of returning None --
+    # "azure.health.deidentification" does exactly that without the ahds extra.
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+# Gate the optional-dependency tests below on the module each one actually
+# imports. `pytest.importorskip` cannot be used for this: evaluated inside a
+# decorator it runs at module import, so a missing extra takes the whole file
+# out of collection instead of skipping the two tests that need it.
+#
+# The bare `azure` name is also too coarse. `azure.*` are namespace packages and
+# the `ahds` extra populates them too, so `import azure` can succeed while
+# `azure.ai.textanalytics` is absent.
+_HAS_TEXT_ANALYTICS = _has_module("azure.ai.textanalytics")
+_HAS_HEALTH_DEID = _has_module("azure.health.deidentification")
 
 
 def get_full_paths(analyzer_yaml, nlp_engine_yaml=None, recognizer_registry_yaml=None):
@@ -241,9 +270,15 @@ def test_analyzer_engine_provider_with_files_per_provider():
 
 
 @pytest.mark.skipif(
-    pytest.importorskip("azure"), reason="Optional dependency not installed"
-)  # noqa: E501
-def test_analyzer_engine_provider_with_azure_ai_language():
+    not _HAS_TEXT_ANALYTICS, reason="azure-ai-language extra not installed"
+)
+def test_analyzer_engine_provider_with_azure_ai_language(monkeypatch):
+    # The constructor builds a client when none is injected, falling back to
+    # these variables. Nothing here reaches the network: the SDK client is
+    # constructed locally and `analyze` is overridden below.
+    monkeypatch.setenv("AZURE_AI_KEY", "test-key")
+    monkeypatch.setenv("AZURE_AI_ENDPOINT", "https://example.invalid/")
+
     analyzer_yaml, _, _ = get_full_paths(
         "conf/test_azure_ai_language_reco.yaml",
     )
@@ -261,17 +296,27 @@ def test_analyzer_engine_provider_with_azure_ai_language():
 
     analyzer_engine = provider.create_engine()
 
-    azure_ai_recognizers = [
-        rec
+    names = {
+        rec.name
         for rec in analyzer_engine.registry.recognizers
-        if rec.name == "Azure AI Language PII"
-    ]
+        if isinstance(rec, MockAzureAiLanguageRecognizer)
+    }
 
-    assert len(azure_ai_recognizers) == 1
+    # The plain entry takes its name from the YAML key; the `class_name` entry
+    # takes the name configured next to it. Both require the constructor to
+    # accept `name`, which is what regressed after #1800.
+    assert names == {"MockAzureAiLanguageRecognizer", "Azure AI Language PII"}
 
     assert len(analyzer_engine.analyze("This is a test", language="en")) > 0
 
-@pytest.mark.skipif(pytest.importorskip("azure"), reason="Optional dependency not installed") # noqa: E501
+
+# AzureHealthDeidRecognizer.__init__ builds a client when none is passed, and
+# that path reads AHDS_ENDPOINT and raises ValueError without it. The YAML entry
+# supplies no client, so the endpoint is as much a precondition as the package.
+@pytest.mark.skipif(
+    not _HAS_HEALTH_DEID or not os.getenv("AHDS_ENDPOINT"),
+    reason="ahds extra not installed or AHDS_ENDPOINT not set",
+)
 def test_analyzer_engine_provider_with_ahds():
     analyzer_yaml, _, _ = get_full_paths(
         "conf/test_ahds_reco.yaml",
@@ -795,3 +840,275 @@ def test_install_models_from_nlp_config_missing_models_raises_value_error():
     """nlp_configuration without models raises ValueError."""
     with pytest.raises(ValueError, match="models"):
         _install_models_from_nlp_config({"nlp_engine_name": "spacy"})
+
+
+def _write_context_enhancer_analyzer_conf(
+    tmp_path, context_aware_enhancer=None, nlp_engine_name="spacy"
+):
+    model_name = "en_core_web_lg" if nlp_engine_name == "spacy" else "no_op"
+    configuration = {
+        "supported_languages": ["en"],
+        "nlp_configuration": {
+            "nlp_engine_name": nlp_engine_name,
+            "models": [{"lang_code": "en", "model_name": model_name}],
+        },
+        "recognizer_registry": {
+            "recognizers": [
+                {
+                    "name": "Ticket recognizer",
+                    "type": "custom",
+                    "supported_language": "en",
+                    "supported_entity": "TICKET_ID",
+                    "patterns": [
+                        {"name": "ticket", "regex": r"\b\d{6}\b", "score": 0.3}
+                    ],
+                    "context": ["ticket"],
+                }
+            ]
+        },
+    }
+    if context_aware_enhancer is not None:
+        configuration["context_aware_enhancer"] = context_aware_enhancer
+
+    analyzer_yaml = tmp_path / "analyzer_with_context_enhancer.yaml"
+    analyzer_yaml.write_text(yaml.safe_dump(configuration, sort_keys=False))
+    return analyzer_yaml
+
+
+def test_when_context_aware_enhancer_configured_then_values_reach_engine(tmp_path):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={
+            "context_suffix_count": 3,
+            "context_matching_mode": "whole_word",
+        },
+    )
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+    # The settings apply to both enhancers of the default composite
+    composite = engine.context_aware_enhancer
+    assert isinstance(composite, CompositeContextAwareEnhancer)
+    assert [type(enhancer) for enhancer in composite.enhancers] == [
+        LemmaContextAwareEnhancer,
+        PhraseContextAwareEnhancer,
+    ]
+    for enhancer in composite.enhancers:
+        assert enhancer.context_suffix_count == 3
+        assert enhancer.context_matching_mode == "whole_word"
+        # Omitted fields keep the constructor defaults
+        assert enhancer.context_similarity_factor == 0.35
+        assert enhancer.min_score_with_context_similarity == 0.4
+        assert enhancer.context_prefix_count == 5
+
+
+def _assert_default_composite(composite):
+    assert isinstance(composite, CompositeContextAwareEnhancer)
+    assert [type(enhancer) for enhancer in composite.enhancers] == [
+        LemmaContextAwareEnhancer,
+        PhraseContextAwareEnhancer,
+    ]
+    for enhancer in composite.enhancers:
+        assert enhancer.context_similarity_factor == 0.35
+        assert enhancer.min_score_with_context_similarity == 0.4
+        assert enhancer.context_prefix_count == 5
+        assert enhancer.context_suffix_count == 0
+        assert enhancer.context_matching_mode == "substring"
+
+
+def test_when_context_aware_enhancer_section_absent_then_engine_uses_defaults(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(tmp_path)
+
+    provider = AnalyzerEngineProvider(analyzer_yaml)
+    assert provider._load_context_aware_enhancer() is None
+    engine = provider.create_engine()
+
+    _assert_default_composite(engine.context_aware_enhancer)
+
+
+def test_when_context_aware_enhancer_section_empty_then_engine_uses_defaults(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(tmp_path)
+    # A bare "context_aware_enhancer:" header parses as None
+    with open(analyzer_yaml, "a") as f:
+        f.write("context_aware_enhancer:\n")
+
+    provider = AnalyzerEngineProvider(analyzer_yaml)
+    assert provider.configuration["context_aware_enhancer"] is None
+    engine = provider.create_engine()
+
+    _assert_default_composite(engine.context_aware_enhancer)
+
+
+def test_when_context_aware_enhancers_listed_then_engine_runs_them_in_order(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={
+            "enhancers": [
+                {"type": "phrase", "context_matching_mode": "whole_word"},
+                {"type": "lemma", "context_suffix_count": 3},
+            ]
+        },
+    )
+
+    composite = (
+        AnalyzerEngineProvider(analyzer_yaml).create_engine().context_aware_enhancer
+    )
+
+    assert isinstance(composite, CompositeContextAwareEnhancer)
+    phrase, lemma = composite.enhancers
+    assert isinstance(phrase, PhraseContextAwareEnhancer)
+    assert phrase.context_matching_mode == "whole_word"
+    assert phrase.context_suffix_count == 0
+    assert isinstance(lemma, LemmaContextAwareEnhancer)
+    assert lemma.context_suffix_count == 3
+    assert lemma.context_matching_mode == "substring"
+
+
+def test_when_settings_next_to_enhancers_then_they_are_the_list_defaults(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={
+            "context_prefix_count": 2,
+            "context_matching_mode": "whole_word",
+            "enhancers": [
+                {"type": "lemma"},
+                {"type": "phrase", "context_suffix_count": 1},
+            ],
+        },
+    )
+
+    composite = (
+        AnalyzerEngineProvider(analyzer_yaml).create_engine().context_aware_enhancer
+    )
+
+    assert composite.context_prefix_count == 2
+    assert composite.context_matching_mode == "whole_word"
+    lemma, phrase = composite.enhancers
+    assert type(lemma) is LemmaContextAwareEnhancer
+    assert type(phrase) is PhraseContextAwareEnhancer
+    for enhancer in composite.enhancers:
+        assert enhancer.context_prefix_count == 2
+        assert enhancer.context_matching_mode == "whole_word"
+        assert enhancer.context_similarity_factor == 0.35
+    assert lemma.context_suffix_count == 0
+    assert phrase.context_suffix_count == 1
+
+
+@pytest.mark.parametrize(
+    "context_aware_enhancer, expected_score",
+    [
+        (None, 0.65),
+        ({"context_prefix_count": 3}, 0.65),
+        ({"enhancers": [{"type": "lemma"}]}, 0.3),
+        ({"enhancers": [{"type": "phrase"}]}, 0.65),
+    ],
+)
+def test_when_context_aware_enhancer_configured_then_phrase_context_follows_it(
+    tmp_path, context_aware_enhancer, expected_score
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path, context_aware_enhancer=context_aware_enhancer
+    )
+    with open(analyzer_yaml) as f:
+        configuration = yaml.safe_load(f)
+    configuration["recognizer_registry"]["recognizers"][0]["context"] = [
+        "ticket number"
+    ]
+    analyzer_yaml.write_text(yaml.safe_dump(configuration, sort_keys=False))
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+    results = engine.analyze(
+        text="My ticket number is 123456", language="en", entities=["TICKET_ID"]
+    )
+
+    assert len(results) == 1
+    assert results[0].score == pytest.approx(expected_score)
+
+
+def test_when_context_suffix_count_configured_then_suffix_context_boosts_score(
+    tmp_path,
+):
+    text = "Use 123456 as your ticket"
+
+    default_yaml = _write_context_enhancer_analyzer_conf(tmp_path)
+    default_engine = AnalyzerEngineProvider(default_yaml).create_engine()
+    default_results = default_engine.analyze(
+        text=text, language="en", entities=["TICKET_ID"]
+    )
+
+    suffix_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={"context_prefix_count": 0, "context_suffix_count": 3},
+    )
+    suffix_engine = AnalyzerEngineProvider(suffix_yaml).create_engine()
+    suffix_results = suffix_engine.analyze(
+        text=text, language="en", entities=["TICKET_ID"]
+    )
+
+    assert len(default_results) == 1
+    assert default_results[0].score == pytest.approx(0.3)
+    assert len(suffix_results) == 1
+    assert suffix_results[0].score == pytest.approx(0.65)
+
+
+def test_when_context_aware_enhancer_configured_with_no_op_engine_then_warns(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={"context_suffix_count": 3},
+        nlp_engine_name="no_op",
+    )
+
+    with pytest.warns(UserWarning, match="NoOpNlpEngine"):
+        AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+
+@pytest.mark.parametrize(
+    "enhancers, expected_class",
+    [
+        ([{"type": "phrase"}], "PhraseContextAwareEnhancer"),
+        ([{"type": "lemma"}, {"type": "phrase"}], "LemmaContextAwareEnhancer"),
+    ],
+)
+def test_when_context_aware_enhancers_listed_with_no_op_engine_then_warns(
+    tmp_path, enhancers, expected_class
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={"enhancers": enhancers},
+        nlp_engine_name="no_op",
+    )
+
+    with pytest.warns(UserWarning, match=f"{expected_class} cannot use") as record:
+        AnalyzerEngineProvider(analyzer_yaml).create_engine()
+    assert len([w for w in record if "NoOpNlpEngine" in str(w.message)]) == 1
+
+
+def test_when_context_aware_enhancer_absent_with_no_op_engine_then_no_warning(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path, nlp_engine_name="no_op"
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+
+def test_when_context_aware_enhancer_section_invalid_then_provider_raises(tmp_path):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path, context_aware_enhancer={"context_suffix_cnt": 3}
+    )
+
+    with pytest.raises(ValueError, match="context_suffix_cnt"):
+        AnalyzerEngineProvider(analyzer_yaml)

@@ -14,8 +14,8 @@ def image_sim(image_one: Image, image_two: Image) -> float:
     # Compare if two images are similar, by thresholding
     delta = ImageChops.difference(image_one, image_two).convert("L")
     # Count number of black pixels, those that are exactly the same
-    num_zero = (np.array(delta.getdata()) == 0).sum()
-    num_nonzero = (np.array(delta.getdata()) != 0).sum()
+    num_zero = (np.array(delta.get_flattened_data()) == 0).sum()
+    num_nonzero = (np.array(delta.get_flattened_data()) != 0).sum()
     # If the number of black pixels is above a threshold, the images are not similar
     print(num_zero, num_nonzero, num_zero / (num_zero + num_nonzero))
     return num_zero / (num_zero + num_nonzero)
