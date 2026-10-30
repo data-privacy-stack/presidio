@@ -1112,3 +1112,35 @@ def test_when_context_aware_enhancer_section_invalid_then_provider_raises(tmp_pa
 
     with pytest.raises(ValueError, match="context_suffix_cnt"):
         AnalyzerEngineProvider(analyzer_yaml)
+
+
+def test_when_registry_normalize_text_configured_then_engine_normalizes(tmp_path):
+    configuration = {
+        "supported_languages": ["en"],
+        "nlp_configuration": {
+            "nlp_engine_name": "no_op",
+            "models": [{"lang_code": "en", "model_name": "no_op"}],
+        },
+        "recognizer_registry": {
+            "normalize_text": True,
+            "recognizers": [
+                {
+                    "name": "Test ID",
+                    "type": "custom",
+                    "supported_language": "en",
+                    "supported_entity": "TEST_ID",
+                    "patterns": [
+                        {"name": "id", "regex": r"\b[0-9]{6}\b", "score": 0.9}
+                    ],
+                }
+            ],
+        },
+    }
+    analyzer_yaml = tmp_path / "analyzer_with_normalize_text.yaml"
+    analyzer_yaml.write_text(yaml.safe_dump(configuration, sort_keys=False))
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+    assert engine.normalize_text is True
+    results = engine.analyze("code １２３４５６", language="en")
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 5, 11)]

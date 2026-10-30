@@ -37,6 +37,10 @@ class RecognizerRegistry:
     :param global_regex_flags: regex flags to be used in regex matching,
     including deny-lists
     :param supported_languages: List of languages supported by this registry.
+    :param normalize_text: If True, an :class:`AnalyzerEngine` using this
+    registry analyzes a normalized view of the text (see
+    :mod:`presidio_analyzer.text_normalization`), unless the engine sets
+    ``normalize_text`` itself.
 
     """
 
@@ -45,12 +49,14 @@ class RecognizerRegistry:
         recognizers: Optional[Iterable[EntityRecognizer]] = None,
         global_regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
         supported_languages: Optional[List[str]] = None,
+        normalize_text: bool = False,
     ):
         if recognizers:
             self.recognizers = recognizers
         else:
             self.recognizers = []
         self.global_regex_flags = global_regex_flags
+        self.normalize_text = normalize_text
         self.supported_languages = (
             supported_languages if supported_languages else ["en"]
         )

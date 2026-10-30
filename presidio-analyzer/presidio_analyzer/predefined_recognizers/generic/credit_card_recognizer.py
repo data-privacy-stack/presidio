@@ -14,11 +14,6 @@ class CreditCardRecognizer(PatternRecognizer):
     :param replacement_pairs: List of tuples with potential replacement values
     for different strings to be used during pattern matching.
     This can allow a greater variety in input, for example by removing dashes or spaces.
-    :param normalize_text: If True, patterns are also run on a bounded
-    normalized view of the text (see
-    :class:`presidio_analyzer.PatternRecognizer`), so entities written
-    with compatibility variants or invisible format characters are
-    detected.
     """
 
     PATTERNS = [
@@ -51,7 +46,6 @@ class CreditCardRecognizer(PatternRecognizer):
         supported_entity: str = "CREDIT_CARD",
         replacement_pairs: Optional[List[Tuple[str, str]]] = None,
         name: Optional[str] = None,
-        normalize_text: bool = False,
     ):
         self.replacement_pairs = (
             replacement_pairs if replacement_pairs else [("-", ""), (" ", "")]
@@ -64,7 +58,6 @@ class CreditCardRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-            normalize_text=normalize_text,
         )
 
     def validate_result(self, pattern_text: str) -> bool:  # noqa: D102

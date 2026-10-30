@@ -711,6 +711,7 @@ class RecognizerConfigurationLoader:
         "supported_languages",
         "recognizers",
         "global_regex_flags",
+        "normalize_text",
     ]
 
     @staticmethod

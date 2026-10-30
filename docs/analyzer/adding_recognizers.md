@@ -98,6 +98,29 @@ engine = AnalyzerEngine(registry=registry)
 engine.analyze(...)
 ```
 
+### Full-width and zero-width characters
+
+Entities written with full-width characters (`１２３`, `ＡＢＣ`, common with Chinese and Japanese input methods), or with zero-width spaces inserted between their characters, are not matched by patterns and models that expect ASCII.
+To detect them, set `normalize_text=True` on the `AnalyzerEngine`, on the `RecognizerRegistry`, or as a top-level `normalize_text: true` key in the recognizer registry configuration (next to `global_regex_flags`):
+
+```python
+from presidio_analyzer import AnalyzerEngine
+
+analyzer = AnalyzerEngine(normalize_text=True)
+results = analyzer.analyze(text="My email is ｊｏｈｎ＠ｅｘａｍｐｌｅ．ｃｏｍ", language="en")
+print(results)
+```
+
+With this option on, the analyzer:
+
+- Folds full-width letters and digits to ASCII, and full-width symbols too when they sit between letters or digits, as in an email address or an ID number. Full-width punctuation in running text, such as `，` after a Han character, is kept as written.
+- Removes zero-width spaces and a few other invisible characters (soft hyphen, word joiner, byte order mark). Zero-width joiners and non-joiners are kept, since they are part of ordinary spelling in some scripts.
+- Runs the NLP engine, all recognizers, context enhancement and the allow-list on the normalized text. Pattern recognizers also run on the original text, so patterns written for it keep matching.
+- Returns results with offsets in the original text, so anonymization replaces the original characters. The analysis explanation notes when a match was found on normalized text that differs from the original.
+
+The option is off by default. When it is on, validation (for example a checksum) runs on the normalized value, and entities that were missed before can now be returned.
+If you pass precomputed `nlp_artifacts` to `analyze`, compute them on the normalized text, as the `BatchAnalyzerEngine` does.
+
 ### Creating a new `EntityRecognizer` in code
 
 To create a new recognizer via code:

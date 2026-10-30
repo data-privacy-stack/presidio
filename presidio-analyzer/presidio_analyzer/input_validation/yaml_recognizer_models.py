@@ -276,16 +276,6 @@ class PredefinedRecognizerConfig(BaseRecognizerConfig):
     """Configuration for predefined recognizers."""
 
     type: str = Field(default="predefined", description="Type of recognizer")
-    normalize_text: Optional[bool] = Field(
-        default=None,
-        description=(
-            "Run patterns on a bounded normalized view (NFKC plus "
-            "format-character removal) in addition to the raw text. "
-            "None (the default) leaves the recognizer default in place; "
-            "only predefined recognizers whose constructor accepts the "
-            "flag can use it."
-        ),
-    )
 
     @model_validator(mode="after")
     def validate_predefined_recognizer_exists(self):
@@ -454,15 +444,6 @@ class CustomRecognizerConfig(BaseRecognizerConfig):
     deny_list_score: float = Field(
         default=1.0, ge=0.0, le=1.0, description="Deny list score"
     )
-    normalize_text: bool = Field(
-        default=False,
-        description=(
-            "Run patterns on a bounded normalized view (NFKC plus "
-            "format-character removal) in addition to the raw text, "
-            "so entities written with compatibility variants or "
-            "invisible format characters are still detected"
-        ),
-    )
 
     # Language validation (legacy and new formats)
     supported_language: Optional[str] = Field(
@@ -561,6 +542,14 @@ class RecognizerRegistryConfig(BaseModel):
         default=None, description="List of supported languages"
     )
     global_regex_flags: int = Field(default=26, description="Global regex flags")
+    normalize_text: bool = Field(
+        default=False,
+        description=(
+            "Analyze a normalized view of the text, with full-width letters and "
+            "digits folded to ASCII and zero-width characters removed, and map "
+            "results back to the original text"
+        ),
+    )
     recognizers: List[
         Union[
             HuggingFaceRecognizerConfig,

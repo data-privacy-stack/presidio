@@ -208,31 +208,6 @@ def test_custom_recognizer_config_with_country_code():
     assert config.model_dump()["country_code"] == "am"
 
 
-def test_custom_recognizer_config_normalize_text():
-    """Custom YAML model preserves normalize_text instead of dropping it."""
-    config = CustomRecognizerConfig(
-        name="custom_norm",
-        supported_entity="CUSTOM_ENTITY",
-        patterns=[{"name": "id", "regex": r"[0-9]+", "score": 0.5}],
-        normalize_text=True,
-    )
-
-    assert config.normalize_text is True
-    assert config.model_dump()["normalize_text"] is True
-
-
-def test_custom_recognizer_config_normalize_text_defaults_to_false():
-    """normalize_text stays off unless a YAML config opts in."""
-    config = CustomRecognizerConfig(
-        name="custom_norm_default",
-        supported_entity="CUSTOM_ENTITY",
-        patterns=[{"name": "id", "regex": r"[0-9]+", "score": 0.5}],
-    )
-
-    assert config.normalize_text is False
-    assert config.model_dump()["normalize_text"] is False
-
-
 def test_custom_recognizer_config_rejects_blank_country_code():
     """Blank YAML country_code values fail validation instead of being ignored."""
     with pytest.raises(ValidationError) as exc_info:
@@ -537,7 +512,24 @@ def test_recognizer_registry_config_defaults():
     config = RecognizerRegistryConfig(recognizers=["CreditCardRecognizer"])
     assert config.supported_languages is None
     assert config.global_regex_flags == 26
+    assert config.normalize_text is False
     assert len(config.recognizers) == 1
+
+
+def test_recognizer_registry_config_normalize_text():
+    """The top-level normalize_text key is kept in the dumped config."""
+    config = RecognizerRegistryConfig(
+        normalize_text=True, recognizers=["CreditCardRecognizer"]
+    )
+    assert config.model_dump()["normalize_text"] is True
+
+
+def test_recognizer_registry_config_rejects_non_boolean_normalize_text():
+    """normalize_text must be a boolean."""
+    with pytest.raises(ValidationError, match="normalize_text"):
+        RecognizerRegistryConfig(
+            normalize_text="sometimes", recognizers=["CreditCardRecognizer"]
+        )
 
 
 def test_recognizer_registry_config_valid_languages():

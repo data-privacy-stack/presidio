@@ -3,7 +3,7 @@ import logging
 import os
 import warnings
 from collections import Counter
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import regex as re
 
@@ -31,6 +31,8 @@ from presidio_analyzer.recognizer_registry import (
 )
 from presidio_analyzer.text_normalization import (
     build_normalized_view,
+    map_span_to_normalized,
+    map_span_to_original,
     needs_normalized_view,
 )
 
@@ -60,6 +62,12 @@ class AnalyzerEngine:
     confidence score based on context words, (a CompositeContextAwareEnhancer of a
     LemmaContextAwareEnhancer and a PhraseContextAwareEnhancer will be created
     by default if None passed)
+    :param normalize_text: If True, analyze a normalized view of the text, with
+    full-width letters and digits folded to ASCII and zero-width characters
+    removed (see :mod:`presidio_analyzer.text_normalization`), and map the
+    results back to original-text offsets. Pattern recognizers also run on the
+    raw text. None (the default) uses the registry's ``normalize_text``, which
+    is off by default.
     """
 
     def __init__(
@@ -71,6 +79,7 @@ class AnalyzerEngine:
         default_score_threshold: float = 0,
         supported_languages: List[str] = None,
         context_aware_enhancer: Optional[ContextAwareEnhancer] = None,
+        normalize_text: Optional[bool] = None,
     ):
         if not supported_languages:
             supported_languages = ["en"]
@@ -115,6 +124,9 @@ class AnalyzerEngine:
         registry.validate_nlp_engine_compatibility(self.nlp_engine)
 
         self.registry = registry
+        if normalize_text is None:
+            normalize_text = getattr(registry, "normalize_text", False)
+        self.normalize_text = normalize_text
 
         self.log_decision_process = log_decision_process
         self.default_score_threshold = default_score_threshold
@@ -231,7 +243,9 @@ class AnalyzerEngine:
         - If `regex`, results which match with any regex condition in the allow_list would be allowed and not be returned as potential PII.
         - if `exact`, results which exactly match any value in the allow_list would be allowed and not be returned as potential PII.
         :param regex_flags: regex flags to be used for when allow_list_match is "regex"
-        :param nlp_artifacts: precomputed NlpArtifacts
+        :param nlp_artifacts: precomputed NlpArtifacts. With ``normalize_text`` on,
+        they must be computed on the normalized text, as
+        :class:`BatchAnalyzerEngine` does.
         :return: an array of the found entities in the text
 
         Unsupported entities are ignored with a logged warning, while supported
@@ -270,28 +284,21 @@ class AnalyzerEngine:
             # over all recognizers
             entities = self.get_supported_entities(language=language)
 
+        # With normalize_text on, everything up to the end of this method runs on
+        # the normalized text, and the results are mapped back to the original
+        # text at the end.
+        normalized_view = self._get_normalized_view(text)
+        analyzed_text = normalized_view[0] if normalized_view else text
+
         # run the nlp pipeline over the given text, store the results in
         # a NlpArtifacts instance
         if not nlp_artifacts:
-            nlp_artifacts = self.nlp_engine.process_text(text, language)
+            nlp_artifacts = self.nlp_engine.process_text(analyzed_text, language)
 
         if self.log_decision_process:
             self.app_tracer.trace(
                 correlation_id, "nlp artifacts:" + nlp_artifacts.to_json()
             )
-
-        # Build the normalized view once per text when any selected
-        # pattern recognizer opted into normalization, instead of once
-        # per recognizer. Only recognizers with the flag receive it, so
-        # subclasses that override analyze without the normalized_view
-        # parameter keep working.
-        shared_normalized_view = None
-        if any(
-            isinstance(recognizer, PatternRecognizer)
-            and getattr(recognizer, "normalize_text", False)
-            for recognizer in recognizers
-        ) and needs_normalized_view(text):
-            shared_normalized_view = build_normalized_view(text)
 
         results = []
         for recognizer in recognizers:
@@ -301,14 +308,25 @@ class AnalyzerEngine:
                 recognizer.is_loaded = True
 
             # analyze using the current recognizer and append the results
-            kwargs = {}
-            if shared_normalized_view is not None and getattr(
-                recognizer, "normalize_text", False
-            ):
-                kwargs["normalized_view"] = shared_normalized_view
             current_results = recognizer.analyze(
-                text=text, entities=entities, nlp_artifacts=nlp_artifacts, **kwargs
+                text=analyzed_text, entities=entities, nlp_artifacts=nlp_artifacts
             )
+            if normalized_view:
+                self._explain_normalized_matches(
+                    current_results or [], text, normalized_view
+                )
+            if normalized_view and isinstance(recognizer, PatternRecognizer):
+                # Also run the patterns on the raw text, so patterns written for
+                # it (e.g. matching full-width digits) keep working.
+                raw_results = recognizer.analyze(
+                    text=text, entities=entities, nlp_artifacts=None
+                )
+                current_results = EntityRecognizer.remove_duplicates(
+                    (current_results or [])
+                    + self._map_results_to_normalized(
+                        raw_results or [], normalized_view[1]
+                    )
+                )
             if current_results:
                 # add recognizer name to recognition metadata inside results
                 # if not exists
@@ -316,7 +334,7 @@ class AnalyzerEngine:
                 results.extend(current_results)
 
         results = self._enhance_using_context(
-            text, results, nlp_artifacts, recognizers, context
+            analyzed_text, results, nlp_artifacts, recognizers, context
         )
 
         if self.log_decision_process:
@@ -332,12 +350,75 @@ class AnalyzerEngine:
 
         if allow_list:
             results = self._remove_allow_list(
-                results, allow_list, text, regex_flags, allow_list_match
+                results, allow_list, analyzed_text, regex_flags, allow_list_match
             )
+
+        if normalized_view:
+            results = self._map_results_to_original(results, normalized_view[1])
 
         if not return_decision_process:
             results = self.__remove_decision_process(results)
 
+        return results
+
+    def _get_normalized_view(self, text: str) -> Optional[Tuple[str, List[int]]]:
+        """
+        Return the normalized view of the text, or None when it is not used.
+
+        None is returned when ``normalize_text`` is off or when normalization
+        does not change the text.
+        """
+        if not self.normalize_text or not needs_normalized_view(text):
+            return None
+        normalized_view = build_normalized_view(text)
+        if normalized_view[0] == text:
+            return None
+        return normalized_view
+
+    @staticmethod
+    def _explain_normalized_matches(
+        results: List[RecognizerResult],
+        text: str,
+        normalized_view: Tuple[str, List[int]],
+    ) -> None:
+        """Note in the explanation when normalization changed the matched text."""
+        normalized_text, index_map = normalized_view
+        for result in results:
+            start, end = map_span_to_original(index_map, result.start, result.end)
+            if (
+                result.analysis_explanation
+                and normalized_text[result.start : result.end] != text[start:end]
+            ):
+                result.analysis_explanation.append_textual_explanation_line(
+                    "Detected on the normalized text, with full-width characters "
+                    "folded and invisible characters removed; validation, if any, "
+                    "ran on the normalized value."
+                )
+
+    @staticmethod
+    def _map_results_to_normalized(
+        results: List[RecognizerResult], index_map: List[int]
+    ) -> List[RecognizerResult]:
+        """Map results found on the raw text to normalized-text offsets."""
+        mapped_results = []
+        for result in results:
+            span = map_span_to_normalized(index_map, result.start, result.end)
+            if span is None:
+                # The match only covers characters that normalization removed.
+                continue
+            result.start, result.end = span
+            mapped_results.append(result)
+        return mapped_results
+
+    @staticmethod
+    def _map_results_to_original(
+        results: List[RecognizerResult], index_map: List[int]
+    ) -> List[RecognizerResult]:
+        """Map results from normalized-text offsets back to the original text."""
+        for result in results:
+            result.start, result.end = map_span_to_original(
+                index_map, result.start, result.end
+            )
         return results
 
     def _enhance_using_context(

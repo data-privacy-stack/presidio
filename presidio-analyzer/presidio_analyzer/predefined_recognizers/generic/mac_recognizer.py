@@ -16,11 +16,6 @@ class MacAddressRecognizer(PatternRecognizer):
     ref :
     - https://en.wikipedia.org/wiki/MAC_address#Notational_conventions
     - https://www.ieee802.org/1/files/public/docs2020/yangsters-smansfield-mac-address-format-0420-v01.pdf
-    :param normalize_text: If True, patterns are also run on a bounded
-    normalized view of the text (see
-    :class:`presidio_analyzer.PatternRecognizer`), so entities written
-    with compatibility variants or invisible format characters are
-    detected.
     """
 
     PATTERNS = [
@@ -45,7 +40,6 @@ class MacAddressRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "MAC_ADDRESS",
         name: Optional[str] = None,
-        normalize_text: bool = False,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -54,8 +48,7 @@ class MacAddressRecognizer(PatternRecognizer):
             patterns=patterns,
             context=context,
             supported_language=supported_language,
-            name=name,
-            normalize_text=normalize_text,
+            name=name
         )
 
     def invalidate_result(self, pattern_text: str) -> bool:

@@ -17,11 +17,6 @@ from presidio_analyzer.predefined_recognizers.generic.iban_patterns import (
     EOS,
     regex_per_country,
 )
-from presidio_analyzer.text_normalization import (
-    build_normalized_view,
-    map_span_to_original,
-    needs_normalized_view,
-)
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -42,10 +37,6 @@ class IbanRecognizer(PatternRecognizer):
     :param replacement_pairs: List of tuples with potential replacement values
     for different strings to be used during pattern matching.
     This can allow a greater variety in input, for example by removing dashes or spaces.
-    :param normalize_text: If True, patterns are also run on a bounded
-    normalized view of the text (see
-    :class:`presidio_analyzer.PatternRecognizer`), so IBANs written with
-    compatibility variants or invisible format characters are detected.
     """
 
     # Pattern explanation:
@@ -86,7 +77,6 @@ class IbanRecognizer(PatternRecognizer):
         regex_flags: int = re.DOTALL | re.MULTILINE,
         replacement_pairs: Optional[List[Tuple[str, str]]] = None,
         name: Optional[str] = None,
-        normalize_text: bool = False,
     ):
         self.replacement_pairs = replacement_pairs or [("-", ""), (" ", "")]
         self.exact_match = exact_match
@@ -100,7 +90,6 @@ class IbanRecognizer(PatternRecognizer):
             supported_language=supported_language,
             global_regex_flags=regex_flags,
             name=name,
-            normalize_text=normalize_text,
         )
 
     def validate_result(self, pattern_text: str):  # noqa: D102
@@ -130,7 +119,6 @@ class IbanRecognizer(PatternRecognizer):
         entities: List[str],
         nlp_artifacts: NlpArtifacts = None,
         regex_flags: int = None,
-        normalized_view: Tuple[str, List[int]] = None,
     ) -> List[RecognizerResult]:
         """Analyze IBAN."""
         results = []
@@ -139,29 +127,9 @@ class IbanRecognizer(PatternRecognizer):
             pattern_result = self.__analyze_patterns(text)
             results.extend(pattern_result)
 
-            if self.normalize_text:
-                view = normalized_view
-                if view is None and needs_normalized_view(text):
-                    view = build_normalized_view(text)
-                if view is not None:
-                    normalized_text, index_map = view
-                    # If normalization changed nothing, the raw pass already
-                    # found everything; skip the second pass.
-                    if normalized_text != text:
-                        normalized_results = self.__analyze_patterns(
-                            normalized_text, offset_map=index_map
-                        )
-                        results.extend(normalized_results)
-                        results = EntityRecognizer.remove_duplicates(results)
-
         return results
 
-    def __analyze_patterns(
-        self,
-        text: str,
-        flags: int = None,
-        offset_map: List[int] = None,
-    ):
+    def __analyze_patterns(self, text: str, flags: int = None):
         """
         Evaluate all patterns in the provided text.
 
@@ -173,10 +141,6 @@ class IbanRecognizer(PatternRecognizer):
 
         :param text: text to analyze
         :param flags: regex flags
-        :param offset_map: Optional offset map from ``text`` back to the
-            original text, as returned by
-            :func:`presidio_analyzer.text_normalization.build_normalized_view`.
-            When provided, result spans are mapped back to original offsets.
         :return: A list of RecognizerResult
         """
         flags = flags if flags else self.global_regex_flags
@@ -200,11 +164,6 @@ class IbanRecognizer(PatternRecognizer):
                         # Skip empty results
                         if current_match == "":
                             continue
-
-                        if offset_map is not None:
-                            start, end = map_span_to_original(
-                                offset_map, start, end
-                            )
 
                         score = pattern.score
 

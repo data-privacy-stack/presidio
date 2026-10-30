@@ -13,11 +13,6 @@ class EmailRecognizer(PatternRecognizer):
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
     :param supported_entity: The entity this recognizer can detect
-    :param normalize_text: If True, patterns are also run on a bounded
-    normalized view of the text (see
-    :class:`presidio_analyzer.PatternRecognizer`), so entities written
-    with compatibility variants or invisible format characters are
-    detected.
     """
 
     # The domain part allows internal hyphen groups inside each label, including
@@ -42,7 +37,6 @@ class EmailRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "EMAIL_ADDRESS",
         name: Optional[str] = None,
-        normalize_text: bool = False,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -52,7 +46,6 @@ class EmailRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
-            normalize_text=normalize_text,
         )
 
     def validate_result(self, pattern_text: str):  # noqa: D102

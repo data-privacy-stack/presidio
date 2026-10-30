@@ -1,8 +1,13 @@
 import logging
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from collections import deque
+from typing import Any, Deque, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from presidio_analyzer import AnalyzerEngine, DictAnalyzerResult, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpArtifacts
+from presidio_analyzer.text_normalization import (
+    build_normalized_view,
+    needs_normalized_view,
+)
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -45,6 +50,14 @@ class BatchAnalyzerEngine:
         # validate types
         texts = self._validate_types(texts)
 
+        # With normalize_text on, analyze() works on the normalized text, so the
+        # NLP engine has to process that text. The original values are queued
+        # to be passed to analyze() in the same order.
+        original_texts: Optional[Deque[Any]] = None
+        if getattr(self.analyzer_engine, "normalize_text", False):
+            original_texts = deque()
+            texts = self._normalize_texts(texts, original_texts)
+
         # Process the texts as batch for improved performance
         nlp_artifacts_batch: Iterator[Tuple[str, NlpArtifacts]] = (
             self.analyzer_engine.nlp_engine.process_batch(
@@ -57,6 +70,8 @@ class BatchAnalyzerEngine:
 
         list_results = []
         for text, nlp_artifacts in nlp_artifacts_batch:
+            if original_texts is not None:
+                text = original_texts.popleft()
             results = self.analyzer_engine.analyze(
                 text=str(text), nlp_artifacts=nlp_artifacts, language=language, **kwargs
             )
@@ -137,6 +152,16 @@ class BatchAnalyzerEngine:
                 raise ValueError(f"type {type(value)} is unsupported.")
 
             yield DictAnalyzerResult(key=key, value=value, recognizer_results=results)
+
+    @staticmethod
+    def _normalize_texts(
+        texts: Iterable[Any], original_texts: Deque[Any]
+    ) -> Iterator[Any]:
+        for text in texts:
+            original_texts.append(text)
+            if isinstance(text, str) and needs_normalized_view(text):
+                text = build_normalized_view(text)[0]
+            yield text
 
     @staticmethod
     def _validate_types(value_iterator: Iterable[Any]) -> Iterator[Any]:

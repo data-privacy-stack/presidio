@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import regex as re
 
@@ -11,11 +11,6 @@ from presidio_analyzer import (
     LocalRecognizer,
     Pattern,
     RecognizerResult,
-)
-from presidio_analyzer.text_normalization import (
-    build_normalized_view,
-    map_span_to_original,
-    needs_normalized_view,
 )
 
 if TYPE_CHECKING:
@@ -38,15 +33,6 @@ class PatternRecognizer(LocalRecognizer):
     identified using a deny-list
     :param global_regex_flags: regex flags to be used in regex matching,
     including deny-lists.
-    :param normalize_text: If True, patterns are also run on a bounded
-    normalized view of the text (NFKC compatibility normalization with
-    format characters removed, see
-    :func:`presidio_analyzer.text_normalization.build_normalized_view`),
-    and matches are mapped back to original-text offsets. This catches
-    entities written with compatibility variants (e.g. full-width digits)
-    or with invisible format characters inserted (e.g. zero-width spaces)
-    that would otherwise be missed. Off by default: when False, only the
-    raw text is analyzed, preserving existing behavior exactly.
     :param country_code: Optional ISO 3166-1 alpha-2 country tag, forwarded
     to :class:`EntityRecognizer`. Lets custom recognizers declare a country
     without subclassing — typically used by ``from_dict`` and the
@@ -73,7 +59,6 @@ class PatternRecognizer(LocalRecognizer):
         global_regex_flags: Optional[int] = re.DOTALL | re.MULTILINE | re.IGNORECASE,
         version: str = "0.0.1",
         country_code: Optional[str] = None,
-        normalize_text: bool = False,
     ):
         if not supported_entity:
             raise ValueError("Pattern recognizer should be initialized with entity")
@@ -98,7 +83,6 @@ class PatternRecognizer(LocalRecognizer):
         self.context = context
         self.deny_list_score = deny_list_score
         self.global_regex_flags = global_regex_flags
-        self.normalize_text = normalize_text
 
         if deny_list:
             deny_list_pattern = self._deny_list_to_regex(deny_list)
@@ -116,7 +100,6 @@ class PatternRecognizer(LocalRecognizer):
         entities: List[str],
         nlp_artifacts: Optional["NlpArtifacts"] = None,
         regex_flags: Optional[int] = None,
-        normalized_view: Optional[Tuple[str, List[int]]] = None,
     ) -> List[RecognizerResult]:
         """
         Analyzes text to detect PII using regular expressions or deny-lists.
@@ -125,14 +108,6 @@ class PatternRecognizer(LocalRecognizer):
         :param entities: Entities this recognizer can detect
         :param nlp_artifacts: Output values from the NLP engine
         :param regex_flags: regex flags to be used in regex matching
-        :param normalized_view: A prebuilt ``(normalized_text, index_map)``
-            pair for ``text``, as returned by
-            :func:`presidio_analyzer.text_normalization.build_normalized_view`.
-            Supplied by the analyzer engine so the view is built once per
-            text instead of once per recognizer. When omitted, the view is
-            built here only when
-            :func:`presidio_analyzer.text_normalization.needs_normalized_view`
-            says it could differ from the raw text.
         :return:
         """
         results = []
@@ -140,21 +115,6 @@ class PatternRecognizer(LocalRecognizer):
         if self.patterns:
             pattern_result = self.__analyze_patterns(text, regex_flags)
             results.extend(pattern_result)
-
-            if self.normalize_text:
-                view = normalized_view
-                if view is None and needs_normalized_view(text):
-                    view = build_normalized_view(text)
-                if view is not None:
-                    normalized_text, index_map = view
-                    # If normalization changed nothing, the raw pass already
-                    # found everything; skip the second pass.
-                    if normalized_text != text:
-                        normalized_results = self.__analyze_patterns(
-                            normalized_text, regex_flags, offset_map=index_map
-                        )
-                        results.extend(normalized_results)
-                        results = EntityRecognizer.remove_duplicates(results)
 
         return results
 
@@ -231,10 +191,7 @@ class PatternRecognizer(LocalRecognizer):
         return explanation
 
     def __analyze_patterns(
-        self,
-        text: str,
-        flags: int = None,
-        offset_map: Optional[List[int]] = None,
+        self, text: str, flags: int = None
     ) -> List[RecognizerResult]:
         """
         Evaluate all patterns in the provided text.
@@ -243,12 +200,6 @@ class PatternRecognizer(LocalRecognizer):
 
         :param text: text to analyze
         :param flags: regex flags
-        :param offset_map: Optional offset map from
-            :func:`presidio_analyzer.text_normalization.build_normalized_view`.
-            When provided, ``text`` is a normalized view and the reported
-            ``RecognizerResult`` spans are mapped back to original-text
-            offsets. Validation and invalidation still run on the matched
-            (normalized) text.
         :return: A list of RecognizerResult
         """
         flags = flags if flags else self.global_regex_flags
@@ -279,9 +230,6 @@ class PatternRecognizer(LocalRecognizer):
                     # Skip empty results
                     if current_match == "":
                         continue
-
-                    if offset_map is not None:
-                        start, end = map_span_to_original(offset_map, start, end)
 
                     score = pattern.score
 
@@ -339,7 +287,6 @@ class PatternRecognizer(LocalRecognizer):
         return_dict["patterns"] = [pat.to_dict() for pat in self.patterns]
         return_dict["deny_list"] = self.deny_list
         return_dict["context"] = self.context
-        return_dict["normalize_text"] = self.normalize_text
         return_dict["supported_entity"] = return_dict["supported_entities"][0]
         del return_dict["supported_entities"]
 

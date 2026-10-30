@@ -453,23 +453,56 @@ def test_text_chunker_config_rejects_character_params_for_tokenizer():
         TextChunkerConfig(chunker_type="tokenizer", chunk_size=300)
 
 
-def test_recognizer_registry_provider_custom_normalize_text_is_honored():
+def _normalize_text_registry_configuration(**overrides):
+    configuration = {
+        "supported_languages": ["en"],
+        "global_regex_flags": 26,
+        "recognizers": [
+            {
+                "name": "Test ID",
+                "type": "custom",
+                "supported_entity": "TEST_ID",
+                "patterns": [{"name": "id", "regex": r"\b[0-9]{6}\b", "score": 0.9}],
+            }
+        ],
+    }
+    configuration.update(overrides)
+    return configuration
+
+
+def test_recognizer_registry_provider_normalize_text_reaches_registry_and_engine():
+    from presidio_analyzer import AnalyzerEngine
+    from presidio_analyzer.nlp_engine import NoOpNlpEngine
+
     provider = RecognizerRegistryProvider(
-        registry_configuration={
-            "supported_languages": ["en"],
-            "recognizers": [
-                {
-                    "name": "Fullwidth ID",
-                    "supported_entity": "TEST_ID",
-                    "patterns": [{"name": "id", "regex": r"[0-9]{6}", "score": 0.9}],
-                    "normalize_text": True,
-                }
-            ],
-        }
+        registry_configuration=_normalize_text_registry_configuration(
+            normalize_text=True
+        )
+    )
+    registry = provider.create_recognizer_registry()
+    engine = AnalyzerEngine(
+        registry=registry,
+        nlp_engine=NoOpNlpEngine(models=[{"lang_code": "en", "model_name": "no_op"}]),
     )
 
-    recognizer = provider.create_recognizer_registry().recognizers[0]
+    assert registry.normalize_text is True
+    assert engine.normalize_text is True
+    results = engine.analyze("code １２３​４５６", language="en")
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 5, 12)]
 
-    assert recognizer.normalize_text is True
-    results = recognizer.analyze("１２３４５６", ["TEST_ID"])
-    assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 0, 6)]
+
+def test_recognizer_registry_provider_normalize_text_defaults_to_false():
+    provider = RecognizerRegistryProvider(
+        registry_configuration=_normalize_text_registry_configuration()
+    )
+
+    assert provider.create_recognizer_registry().normalize_text is False
+
+
+def test_recognizer_registry_provider_rejects_invalid_normalize_text():
+    with pytest.raises(ValueError, match="Invalid recognizer registry configuration"):
+        RecognizerRegistryProvider(
+            registry_configuration=_normalize_text_registry_configuration(
+                normalize_text="sometimes"
+            )
+        )

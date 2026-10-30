@@ -85,6 +85,7 @@ class RecognizerRegistryProvider:
             recognizers=recognizers,
             supported_languages=supported_languages,
             global_regex_flags=global_regex_flags,
+            normalize_text=self.configuration.get("normalize_text", False),
         )
         registry.validate_nlp_engine_compatibility(self.nlp_engine)
 
