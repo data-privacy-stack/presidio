@@ -25,6 +25,9 @@ class OpenCVFaceRecognizer(VisualObjectRecognizer):
     Haar cascades do not produce a calibrated confidence, so every detection is
     reported with the same ``score`` value, which is a constructor parameter.
 
+    ``cv2.CascadeClassifier`` is not reentrant, so a single instance must not be
+    used concurrently from multiple threads. Create one per thread/worker.
+
     :param cascade_path: path to the Haar cascade XML file. Defaults to the
         frontal-face cascade bundled with opencv-python.
     :param scale_factor: how much the image size is reduced at each cascade
@@ -33,6 +36,9 @@ class OpenCVFaceRecognizer(VisualObjectRecognizer):
         be retained. Higher values yield fewer detections of higher quality.
     :param min_size: minimum face size in pixels (width, height).
     :param score: the fixed score assigned to every detected face.
+
+    :raises ValueError: if score is outside the 0-1 range, or if the Haar
+        cascade cannot be loaded from cascade_path.
     """
 
     def __init__(
@@ -43,6 +49,9 @@ class OpenCVFaceRecognizer(VisualObjectRecognizer):
         min_size: Tuple[int, int] = (30, 30),
         score: float = 0.85,
     ):
+        if not 0 <= score <= 1:
+            raise ValueError("score must be between 0 and 1")
+
         if not cascade_path:
             cascade_path = cv2.data.haarcascades + DEFAULT_CASCADE_FILE
 
@@ -59,9 +68,15 @@ class OpenCVFaceRecognizer(VisualObjectRecognizer):
     def recognize(self, image: object) -> List[ImageRecognizerResult]:
         """Detect faces in a given image.
 
+        Three channel arrays are interpreted as RGB; pass ``image[:, :, ::-1]``
+        for the BGR output of ``cv2.imread``.
+
         :param image: PIL Image/numpy array or file path(str) to be processed
 
         :return: list of detected faces with image bounding boxes
+
+        :raises ValueError: if image is not a PIL Image, a numpy array of a
+            supported shape and dtype, or a file path.
         """
         greyscale_image = self._to_greyscale(image)
         faces = self.classifier.detectMultiScale(
@@ -94,9 +109,13 @@ class OpenCVFaceRecognizer(VisualObjectRecognizer):
             return np.array(image.convert("L"))
 
         if isinstance(image, np.ndarray):
+            if image.ndim in (2, 3) and image.dtype != np.uint8:
+                raise ValueError(f"image array must be uint8, got {image.dtype}")
             if image.ndim == 2:
                 return image
-            if image.ndim == 3:
+            if image.ndim == 3 and image.shape[2] == 1:
+                return image[:, :, 0]
+            if image.ndim == 3 and image.shape[2] in (3, 4):
                 conversion = (
                     cv2.COLOR_RGBA2GRAY if image.shape[2] == 4 else cv2.COLOR_RGB2GRAY
                 )

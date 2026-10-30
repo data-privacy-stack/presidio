@@ -55,7 +55,8 @@ class ImageAnalyzerEngine:
         :param image: PIL Image/numpy array or file path(str) to be processed.
         :param ocr_kwargs: Additional params for OCR methods.
         :param text_analyzer_kwargs: Additional values for the analyze method
-        in AnalyzerEngine.
+        in AnalyzerEngine. The ``entities`` and ``score_threshold`` values also
+        apply to the results of the visual recognizers.
 
         :return: List of the extract entities with image bounding boxes.
         """
@@ -91,8 +92,15 @@ class ImageAnalyzerEngine:
             analyzer_result, ocr_result, text, allow_list
         )
 
+        requested_entities = text_analyzer_kwargs.get("entities")
+        score_threshold = text_analyzer_kwargs.get("score_threshold")
         for visual_recognizer in self.visual_recognizers:
-            bboxes.extend(visual_recognizer.recognize(original_image))
+            for result in visual_recognizer.recognize(original_image):
+                if requested_entities and result.entity_type not in requested_entities:
+                    continue
+                if score_threshold is not None and result.score < score_threshold:
+                    continue
+                bboxes.append(result)
 
         return bboxes
 
