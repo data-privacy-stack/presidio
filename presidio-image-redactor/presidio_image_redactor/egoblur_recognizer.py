@@ -111,10 +111,13 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
         """
         try:
             model = self._torch.jit.load(model_path, map_location="cpu")
+            return model.to(self.device).eval()
         except Exception as error:
-            message = f"Could not load an EgoBlur model from {model_path}"
+            message = (
+                f"Could not load an EgoBlur model from {model_path} "
+                f"onto device {self.device}"
+            )
             raise ValueError(message) from error
-        return model.to(self.device).eval()
 
     def recognize(self, image: object) -> List[ImageRecognizerResult]:
         """Detect faces and license plates in a given image.
@@ -131,6 +134,7 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
             supported shape and dtype, or a file path.
         """
         bgr_image = self._to_bgr(image)
+        height, width = bgr_image.shape[:2]
         tensor = self._torch.from_numpy(
             np.ascontiguousarray(bgr_image.transpose(2, 0, 1))
         ).to(self.device)
@@ -138,7 +142,10 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
         results = []
         for entity_type, detector, threshold in self.detectors:
             for box, score in self._detect(detector, tensor, threshold):
-                left, top = math.floor(box[0]), math.floor(box[1])
+                left = max(0, math.floor(box[0]))
+                top = max(0, math.floor(box[1]))
+                right = min(width, math.ceil(box[2]))
+                bottom = min(height, math.ceil(box[3]))
                 results.append(
                     ImageRecognizerResult(
                         entity_type,
@@ -147,8 +154,8 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
                         score,
                         left,
                         top,
-                        math.ceil(box[2]) - left,
-                        math.ceil(box[3]) - top,
+                        right - left,
+                        bottom - top,
                     )
                 )
         return results
@@ -163,7 +170,9 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
         :return: list of (xyxy box, score) tuples
         """
         with self._torch.no_grad():
-            boxes, _, scores, _ = detector(tensor)
+            # A gen1 detector may write into its input, as the EgoBlur reference
+            # script's image_tensor.clone() implies; give each one its own copy.
+            boxes, _, scores, _ = detector(tensor.clone())
         keep = self._nms(boxes, scores, self.nms_iou_threshold)
         boxes, scores = boxes[keep], scores[keep]
         above = scores > threshold
@@ -181,8 +190,11 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
         :return: the image as a HxWx3 uint8 BGR numpy array
         """
         if isinstance(image, str):
-            with Image.open(image) as opened_image:
-                return np.array(opened_image.convert("RGB"))[:, :, ::-1]
+            try:
+                with Image.open(image) as opened_image:
+                    return np.array(opened_image.convert("RGB"))[:, :, ::-1]
+            except (OSError, ValueError) as error:
+                raise ValueError(f"Could not read an image from {image}") from error
 
         if isinstance(image, Image.Image):
             return np.array(image.convert("RGB"))[:, :, ::-1]
@@ -192,6 +204,8 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
                 raise ValueError(f"image array must be uint8, got {image.dtype}")
             if image.ndim == 2:
                 return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            if image.ndim == 3 and image.shape[2] == 1:
+                return cv2.cvtColor(image[:, :, 0], cv2.COLOR_GRAY2BGR)
             if image.ndim == 3 and image.shape[2] in (3, 4):
                 return image[:, :, :3][:, :, ::-1]
 

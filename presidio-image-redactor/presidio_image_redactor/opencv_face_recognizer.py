@@ -102,8 +102,11 @@ class OpenCVFaceRecognizer(VisualObjectRecognizer):
         :return: the image as a single channel numpy array
         """
         if isinstance(image, str):
-            with Image.open(image) as opened_image:
-                return np.array(opened_image.convert("L"))
+            try:
+                with Image.open(image) as opened_image:
+                    return np.array(opened_image.convert("L"))
+            except (OSError, ValueError) as error:
+                raise ValueError(f"Could not read an image from {image}") from error
 
         if isinstance(image, Image.Image):
             return np.array(image.convert("L"))

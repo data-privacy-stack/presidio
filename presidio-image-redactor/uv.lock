@@ -1830,8 +1830,8 @@ requires-dist = [
     { name = "python-gdcm", specifier = ">=3.0.24.1,<4.0.0" },
     { name = "spacy", marker = "python_full_version == '3.13.*'", specifier = ">=3.8.7,<4.0.0" },
     { name = "spacy", marker = "python_full_version >= '3.14'", specifier = ">=3.8.7,!=3.8.14,<4.0.0" },
-    { name = "torch", marker = "extra == 'egoblur'", specifier = ">=2.0.0,<3.0.0" },
-    { name = "torchvision", marker = "extra == 'egoblur'", specifier = ">=0.15.0,<1.0.0" },
+    { name = "torch", marker = "extra == 'egoblur'", specifier = ">=2.2.0,<3.0.0" },
+    { name = "torchvision", marker = "extra == 'egoblur'", specifier = ">=0.17.0,<1.0.0" },
 ]
 provides-extras = ["server", "egoblur"]
 
