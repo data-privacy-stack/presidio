@@ -10,6 +10,7 @@ from presidio_analyzer import AnalyzerEngine, RecognizerResult
 
 from presidio_image_redactor import OCR, ImagePreprocessor, TesseractOCR
 from presidio_image_redactor.entities import ImageRecognizerResult
+from presidio_image_redactor.visual_object_recognizer import VisualObjectRecognizer
 
 
 class ImageAnalyzerEngine:
@@ -20,6 +21,9 @@ class ImageAnalyzerEngine:
     :param ocr: the OCR object to be used to detect text in images.
     :param image_preprocessor: The ImagePreprocessor object to be
         used to preprocess the image
+    :param visual_recognizers: Optional list of VisualObjectRecognizer objects
+        detecting non-textual PII (e.g. faces) directly in the image pixels.
+        Their results are added to the OCR-derived ones.
     """
 
     def __init__(
@@ -27,6 +31,7 @@ class ImageAnalyzerEngine:
         analyzer_engine: Optional[AnalyzerEngine] = None,
         ocr: Optional[OCR] = None,
         image_preprocessor: Optional[ImagePreprocessor] = None,
+        visual_recognizers: Optional[List[VisualObjectRecognizer]] = None,
     ):
         if not analyzer_engine:
             analyzer_engine = AnalyzerEngine()
@@ -39,6 +44,8 @@ class ImageAnalyzerEngine:
         if not image_preprocessor:
             image_preprocessor = ImagePreprocessor()
         self.image_preprocessor = image_preprocessor
+
+        self.visual_recognizers = visual_recognizers or []
 
     def analyze(
         self, image: object, ocr_kwargs: Optional[dict] = None, **text_analyzer_kwargs
@@ -54,6 +61,9 @@ class ImageAnalyzerEngine:
         """
         # Perform OCR
         perform_ocr_kwargs, ocr_threshold = self._parse_ocr_kwargs(ocr_kwargs)
+        # The visual recognizers run on the original image, so that their bboxes
+        # are in the same pixel coordinates as the rescaled OCR ones.
+        original_image = image
         image, preprocessing_metadata = self.image_preprocessor.preprocess_image(image)
         ocr_result = self.ocr.perform_ocr(image, **perform_ocr_kwargs)
         ocr_result = self.remove_space_boxes(ocr_result)
@@ -80,6 +90,9 @@ class ImageAnalyzerEngine:
         bboxes = self.map_analyzer_results_to_bounding_boxes(
             analyzer_result, ocr_result, text, allow_list
         )
+
+        for visual_recognizer in self.visual_recognizers:
+            bboxes.extend(visual_recognizer.recognize(original_image))
 
         return bboxes
 
