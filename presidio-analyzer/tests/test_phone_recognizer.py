@@ -1,6 +1,7 @@
 import pytest
 
 from presidio_analyzer.predefined_recognizers.generic.phone_recognizer import PhoneRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from tests import assert_result, assert_result_with_textual_explanation
 
 
@@ -136,6 +137,7 @@ def test_when_phone_with_leniency_then_succeed(
 )
 def test_when_phone_with_textual_explanation_then_succeed(
     spacy_nlp_engine,
+    tmp_path,
     text,
     expected_len,
     entities,
@@ -144,7 +146,19 @@ def test_when_phone_with_textual_explanation_then_succeed(
     expected_textual_explanations,
 ):
     nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
-    recognizer = PhoneRecognizer()
+    conf = tmp_path / "recognizers.yaml"
+    conf.write_text(
+        """supported_languages: [en]
+global_regex_flags: 26
+recognizers:
+  - name: PhoneRecognizer
+    supported_languages: [en]
+    type: predefined
+    enabled: true
+"""
+    )
+    registry = RecognizerRegistryProvider(conf_file=conf).create_recognizer_registry()
+    recognizer = registry.get_recognizers(language="en", entities=["PHONE_NUMBER"])[0]
     results = recognizer.analyze(text, entities, nlp_artifacts=nlp_artifacts)
     assert len(results) == expected_len
     for i, (res, (st_pos, fn_pos)) in enumerate(zip(results, expected_positions)):
