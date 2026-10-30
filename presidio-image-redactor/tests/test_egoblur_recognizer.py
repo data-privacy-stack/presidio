@@ -75,9 +75,7 @@ def red_pixel_image():
 
 
 def _expected(entity_type):
-    return ImageRecognizerResult(
-        entity_type, 0, 0, EXPECTED_SCORE, *EXPECTED_BBOX
-    )
+    return ImageRecognizerResult(entity_type, 0, 0, EXPECTED_SCORE, *EXPECTED_BBOX)
 
 
 def test_given_face_model_only_then_face_entity_is_returned(
