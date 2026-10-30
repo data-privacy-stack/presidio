@@ -2,7 +2,12 @@ import pytest
 from presidio_analyzer import RecognizerResult, AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_analyzer.recognizer_registry import RecognizerRegistry
 
-from presidio_image_redactor import ImageAnalyzerEngine, OCR, VisualObjectRecognizer
+from presidio_image_redactor import (
+    ImageAnalyzerEngine,
+    ImagePreprocessor,
+    OCR,
+    VisualObjectRecognizer,
+)
 from presidio_image_redactor.entities import ImageRecognizerResult
 
 import PIL
@@ -407,7 +412,14 @@ class EmptyOCR(OCR):
     """OCR stub that finds no text at all."""
 
     def perform_ocr(self, image: object, **kwargs) -> dict:
-        return {"text": [], "left": [], "top": [], "width": [], "height": [], "conf": []}
+        return {
+            "text": [],
+            "left": [],
+            "top": [],
+            "width": [],
+            "height": [],
+            "conf": [],
+        }
 
 
 def _engine_without_text_detection(nlp_engine, visual_recognizers):
@@ -423,7 +435,9 @@ def _engine_without_text_detection(nlp_engine, visual_recognizers):
     )
 
 
-def test_given_visual_recognizer_then_analyze_returns_its_bboxes(get_dummy_nlp_engine, get_mock_png):
+def test_given_visual_recognizer_then_analyze_returns_its_bboxes(
+    get_dummy_nlp_engine, get_mock_png
+):
     """Visual recognizer results are appended to the OCR-derived bboxes."""
     stub_recognizer = StubVisualRecognizer()
     engine = _engine_without_text_detection(get_dummy_nlp_engine, [stub_recognizer])
@@ -436,9 +450,72 @@ def test_given_visual_recognizer_then_analyze_returns_its_bboxes(get_dummy_nlp_e
     assert stub_recognizer.seen_images[0] is get_mock_png
 
 
-def test_given_no_visual_recognizers_then_analyze_results_are_unchanged(get_dummy_nlp_engine, get_mock_png):
+def test_given_no_visual_recognizers_then_analyze_results_are_unchanged(
+    get_dummy_nlp_engine, get_mock_png
+):
     """Omitting visual_recognizers keeps the previous behaviour."""
     engine = _engine_without_text_detection(get_dummy_nlp_engine, None)
 
     assert engine.visual_recognizers == []
     assert engine.analyze(get_mock_png) == []
+
+
+class HalvingPreprocessor(ImagePreprocessor):
+    """Preprocessor halving the image, so the scale_factor branch is used."""
+
+    def preprocess_image(self, image: object) -> tuple:
+        resized = image.resize((image.width // 2, image.height // 2))
+        return resized, {"scale_factor": 0.5}
+
+
+def test_given_rescaling_preprocessor_then_visual_bboxes_are_not_rescaled(
+    get_dummy_nlp_engine, get_mock_png
+):
+    """Visual recognizers see the original image and their bboxes stay as-is."""
+    stub_recognizer = StubVisualRecognizer()
+    analyzer_engine = AnalyzerEngine(
+        nlp_engine=get_dummy_nlp_engine,
+        registry=RecognizerRegistry(recognizers=[], supported_languages=["en"]),
+    )
+    engine = ImageAnalyzerEngine(
+        analyzer_engine=analyzer_engine,
+        ocr=EmptyOCR(),
+        image_preprocessor=HalvingPreprocessor(),
+        visual_recognizers=[stub_recognizer],
+    )
+
+    results = engine.analyze(get_mock_png)
+
+    assert len(stub_recognizer.seen_images) == 1
+    assert stub_recognizer.seen_images[0] is get_mock_png
+    assert results == [ImageRecognizerResult("FACE", 0, 0, 0.85, 10, 20, 30, 40)]
+
+
+def test_given_entities_filter_then_visual_results_are_filtered(
+    get_dummy_nlp_engine, get_mock_png
+):
+    """An entities list that excludes FACE drops the visual results."""
+    engine = _engine_without_text_detection(
+        get_dummy_nlp_engine, [StubVisualRecognizer()]
+    )
+
+    assert engine.analyze(get_mock_png, entities=["PERSON"]) == []
+    # PERSON is kept in the list because AnalyzerEngine rejects an entities
+    # list in which no entity has a text recognizer.
+    assert engine.analyze(get_mock_png, entities=["PERSON", "FACE"]) == [
+        ImageRecognizerResult("FACE", 0, 0, 0.85, 10, 20, 30, 40)
+    ]
+
+
+def test_given_score_threshold_then_visual_results_are_filtered(
+    get_dummy_nlp_engine, get_mock_png
+):
+    """A score_threshold above the recognizer score drops the visual results."""
+    engine = _engine_without_text_detection(
+        get_dummy_nlp_engine, [StubVisualRecognizer()]
+    )
+
+    assert engine.analyze(get_mock_png, score_threshold=0.99) == []
+    assert engine.analyze(get_mock_png, score_threshold=0.5) == [
+        ImageRecognizerResult("FACE", 0, 0, 0.85, 10, 20, 30, 40)
+    ]
