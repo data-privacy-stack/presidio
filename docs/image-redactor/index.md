@@ -190,8 +190,9 @@ engine = ImageRedactorEngine(image_analyzer_engine=analyzer_engine)
 Either path may be omitted to run a single detector.
 
 !!! note "Note"
-    The EgoBlur weights are licensed under the Apache License 2.0 but are
-    downloaded by the user, never by Presidio. Only the gen1 TorchScript
+    The EgoBlur license page states the Apache License 2.0. The weights are
+    downloaded by the user, never by Presidio, so review the terms on that
+    page before using or redistributing them. Only the gen1 TorchScript
     models are supported; the gen2 models need the detectron2 wrapper from
     the EgoBlur repository.
 
