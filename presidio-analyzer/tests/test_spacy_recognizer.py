@@ -5,6 +5,7 @@ from spacy.util import get_lang_class
 
 from presidio_analyzer.nlp_engine import NlpArtifacts, SpacyNlpEngine
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from tests import assert_result_within_score_range
 
 
@@ -115,3 +116,53 @@ def test_entity_not_returned_if_not_in_supported_entities(mock_nlp_artifacts):
         text="text", nlp_artifacts=mock_nlp_artifacts, entities=["DATE_TIME"]
     )
     assert len(res) == 0
+
+
+def test_default_explanation_is_used_when_given(mock_nlp_artifacts):
+    """A caller-supplied default_explanation must reach the results.
+
+    Regression test: the constructor stored the value in
+    ``self.default_explanation`` while ``analyze`` formatted the class constant
+    ``self.DEFAULT_EXPLANATION``, so the argument was silently discarded.
+    """
+    spacy_recognizer = SpacyRecognizer(
+        supported_entities=["PERSON"], default_explanation="custom {} reason"
+    )
+
+    res = spacy_recognizer.analyze(
+        text="My name is Mitchell", nlp_artifacts=mock_nlp_artifacts, entities=["PERSON"]
+    )
+
+    assert len(res) == 1
+    assert (
+        res[0].analysis_explanation.textual_explanation
+        == "custom PERSON reason"
+    )
+
+
+def test_default_explanation_falls_back_to_the_class_default(mock_nlp_artifacts, tmp_path):
+    """Without the argument, the built-in wording must still be produced."""
+    conf = tmp_path / "recognizers.yaml"
+    conf.write_text(
+        """supported_languages: [en]
+global_regex_flags: 26
+recognizers:
+  - name: SpacyRecognizer
+    supported_languages: [en]
+    supported_entities: [PERSON]
+    type: predefined
+    enabled: true
+"""
+    )
+    registry = RecognizerRegistryProvider(conf_file=conf).create_recognizer_registry()
+    spacy_recognizer = registry.get_recognizers(language="en", entities=["PERSON"])[0]
+
+    res = spacy_recognizer.analyze(
+        text="My name is Mitchell", nlp_artifacts=mock_nlp_artifacts, entities=["PERSON"]
+    )
+
+    assert len(res) == 1
+    assert (
+        res[0].analysis_explanation.textual_explanation
+        == SpacyRecognizer.DEFAULT_EXPLANATION.format("PERSON")
+    )
