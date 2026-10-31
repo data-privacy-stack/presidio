@@ -55,7 +55,14 @@ jobs:
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.5.0
         with:
           fail-on-severity: low
-          allow-licenses: MIT, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
+          allow-licenses: MIT, MIT-CMU, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
+          # Existing transitive dependencies whose licenses fall outside allow-licenses;
+          # exempted by name so version bumps (e.g. security fixes) are not blocked.
+          allow-dependencies-licenses: >-
+            pkg:pypi/blis, pkg:pypi/certifi, pkg:pypi/cffi, pkg:pypi/distlib,
+            pkg:pypi/emoji, pkg:pypi/kiwisolver, pkg:pypi/matplotlib, pkg:pypi/nodeenv,
+            pkg:pypi/nvidia-nvjitlink, pkg:pypi/orjson, pkg:pypi/protobuf, pkg:pypi/pygments,
+            pkg:pypi/regex, pkg:pypi/torch, pkg:pypi/tqdm, pkg:pypi/udtools, pkg:pypi/wrapt
           comment-summary-in-pr: on-failure
 
   test:
@@ -67,7 +74,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
         component: 
           - name: 'Analyzer'
             path: 'presidio-analyzer'
@@ -197,21 +204,20 @@ jobs:
       - name: Build wheel package
         working-directory: ${{ matrix.component.path }}
         run: |
-          # `build` needs tomli on Python < 3.11 to read pyproject.toml, and it
-          # isn't in the hashed requirements file; pre-install it (marker-guarded)
-          # so --require-hashes finds it already satisfied.
-          python -m pip install "tomli==2.4.1; python_version < '3.11'"
           pip install --require-hashes -r ${{ github.workspace }}/.github/pipelines/requirements-build.txt
           python -m build --wheel
 
   build-platform-images:
-    name: Build ${{ matrix.image }} (${{ matrix.platform }})
+    name: Build ${{ matrix.image }} (${{ matrix.platform }}${{ matrix.variant && format(', {0}', matrix.variant) }})
     runs-on: ${{ matrix.runner }}
     needs: [lint]
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: read
+    env:
+      # Image variants (distroless) are built from Dockerfile.<variant> and tagged with a -<variant> suffix.
+      TAG_SUFFIX: ${{ matrix.variant && format('-{0}', matrix.variant) }}
     strategy:
       matrix:
         include:
@@ -239,6 +245,16 @@ jobs:
             platform: linux/arm64
             platform_tag: linux-arm64
             runner: ubuntu-24.04-arm
+          - image: presidio-anonymizer
+            platform: linux/amd64
+            platform_tag: linux-amd64
+            runner: ubuntu-latest
+            variant: distroless
+          - image: presidio-analyzer
+            platform: linux/amd64
+            platform_tag: linux-amd64
+            runner: ubuntu-latest
+            variant: distroless
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
@@ -254,10 +270,11 @@ jobs:
       - name: Build ${{ matrix.image }} image artifact
         run: |
           mkdir -p image-artifacts
-          image_ref="${{ env.REGISTRY_NAME }}/${{ matrix.image }}:${{ env.TAG }}"
+          image_ref="${{ env.REGISTRY_NAME }}/${{ matrix.image }}:${{ env.TAG }}${TAG_SUFFIX}"
           docker buildx build \
             --platform ${{ matrix.platform }} \
-            --cache-from type=registry,ref=${{ env.REGISTRY_NAME }}/${{ matrix.image }}:latest \
+            --cache-from "type=registry,ref=${{ env.REGISTRY_NAME }}/${{ matrix.image }}:latest${TAG_SUFFIX}" \
+            --file "./${{ matrix.image }}/Dockerfile${{ matrix.variant && format('.{0}', matrix.variant) }}" \
             --tag "${image_ref}" \
             --output type=docker,dest="image-artifacts/${{ matrix.image }}.tar" \
             ./${{ matrix.image }}
@@ -266,16 +283,20 @@ jobs:
       - name: Upload ${{ matrix.image }} image artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ${{ matrix.image }}-${{ matrix.platform_tag }}
+          name: ${{ matrix.image }}-${{ matrix.platform_tag }}${{ env.TAG_SUFFIX }}
           path: image-artifacts/${{ matrix.image }}.tar.gz
           if-no-files-found: error
           retention-days: 1
 
   e2e-tests:
-    name: E2E Tests (${{ matrix.platform }})
+    name: E2E Tests (${{ matrix.platform }}${{ matrix.variant && format(', {0}', matrix.variant) }})
     runs-on: ${{ matrix.runner }}
     needs: build-platform-images
     if: github.ref == 'refs/heads/main'
+    env:
+      # The distroless variant only boots the analyzer and anonymizer (see docker-compose.distroless.yml).
+      COMPOSE_FILE: ${{ matrix.variant == 'distroless' && 'docker-compose.yml:docker-compose.distroless.yml' || 'docker-compose.yml' }}
+      TAG_SUFFIX: ${{ matrix.variant && format('-{0}', matrix.variant) }}
     strategy:
       matrix:
         include:
@@ -285,6 +306,10 @@ jobs:
           - platform: linux/arm64
             platform_tag: linux-arm64
             runner: ubuntu-24.04-arm
+          - platform: linux/amd64
+            platform_tag: linux-amd64
+            runner: ubuntu-latest
+            variant: distroless
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
@@ -294,7 +319,7 @@ jobs:
       - name: Download image artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: presidio-*-${{ matrix.platform_tag }}
+          pattern: presidio-*-${{ matrix.platform_tag }}${{ env.TAG_SUFFIX }}
           path: image-artifacts
           merge-multiple: true
 
@@ -308,16 +333,17 @@ jobs:
       - name: Start Presidio cluster
         run: |
           export DOCKER_DEFAULT_PLATFORM=${{ matrix.platform }}
-          docker compose -f docker-compose.yml up -d --no-build
+          docker compose up -d --no-build
         env:
           REGISTRY_NAME: ${{ env.REGISTRY_NAME }}
           IMAGE_PREFIX: ''
           TAG: ':${{ env.TAG }}'
 
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: Cache E2E dependencies
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
@@ -325,9 +351,9 @@ jobs:
           path: |
             ~/.cache/pip
             e2e-tests/env
-          key: ${{ runner.os }}-${{ matrix.platform }}-e2e-${{ hashFiles('e2e-tests/requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-e2e-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('e2e-tests/requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.platform }}-e2e-
+            ${{ runner.os }}-${{ matrix.platform }}-e2e-py${{ steps.setup-python.outputs.python-version }}-
 
       - name: Install E2E test dependencies
         working-directory: e2e-tests
@@ -343,7 +369,7 @@ jobs:
       - name: Download Ollama model for LangExtract recognizer tests
         if: matrix.platform == 'linux/arm64'
         run: |
-          ollama_container="$(docker compose -f docker-compose.yml ps -q ollama)"
+          ollama_container="$(docker compose ps -q ollama)"
           docker exec "$ollama_container" ollama pull qwen2.5:1.5b
           docker exec "$ollama_container" ollama run qwen2.5:1.5b
 
@@ -352,7 +378,10 @@ jobs:
         run: |
           source env/bin/activate
           pytest_args=()
-          if [ "${{ matrix.platform }}" != "linux/arm64" ]; then
+          if [ "${{ matrix.variant }}" = "distroless" ]; then
+            # Package tests don't use the images (the default run covers them) and there is no distroless image-redactor.
+            pytest_args=(-m "not package" --ignore=tests/test_api_image_redactor.py)
+          elif [ "${{ matrix.platform }}" != "linux/arm64" ]; then
             pytest_args=(-k "not ollama")
           fi
           pytest -vv --tb=short "${pytest_args[@]}"
@@ -361,19 +390,22 @@ jobs:
         if: failure()
         run: |
           echo "Capturing Docker logs for platform: ${{ matrix.platform }}"
-          docker compose -f docker-compose.yml logs
+          docker compose logs
 
       - name: Stop Docker containers
         if: always()
         run: |
-          docker compose -f docker-compose.yml down
+          docker compose down
 
   # Build and test Docker images locally for non-main branches without publishing
   local-build-and-test:
-    name: Local Build and E2E Tests (${{ matrix.platform }})
+    name: Local Build and E2E Tests (${{ matrix.platform }}${{ matrix.variant && format(', {0}', matrix.variant) }})
     runs-on: ${{ matrix.runner }}
     needs: [lint]
     if: github.ref != 'refs/heads/main'
+    env:
+      # The distroless variant only builds and boots the analyzer and anonymizer (see docker-compose.distroless.yml).
+      COMPOSE_FILE: ${{ matrix.variant == 'distroless' && 'docker-compose.yml:docker-compose.distroless.yml' || 'docker-compose.yml' }}
     strategy:
       matrix:
         include:
@@ -381,6 +413,9 @@ jobs:
             runner: ubuntu-latest
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            variant: distroless
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
@@ -393,7 +428,7 @@ jobs:
       - name: Build Presidio images locally
         run: |
           # Build all images locally without pushing
-          docker compose -f docker-compose.yml build
+          docker compose build
         env:
           REGISTRY_NAME: ${{ env.REGISTRY_NAME }}
           IMAGE_PREFIX: ''
@@ -401,16 +436,17 @@ jobs:
 
       - name: Start Presidio cluster locally
         run: |
-          docker compose -f docker-compose.yml up -d
+          docker compose up -d
         env:
           REGISTRY_NAME: ${{ env.REGISTRY_NAME }}
           IMAGE_PREFIX: ''
           TAG: ':${{ env.TAG }}'
 
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: Cache E2E dependencies
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
@@ -418,9 +454,9 @@ jobs:
           path: |
             ~/.cache/pip
             e2e-tests/env
-          key: ${{ runner.os }}-${{ matrix.platform }}-local-e2e-${{ hashFiles('e2e-tests/requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-local-e2e-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('e2e-tests/requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.platform }}-local-e2e-
+            ${{ runner.os }}-${{ matrix.platform }}-local-e2e-py${{ steps.setup-python.outputs.python-version }}-
 
       - name: Install E2E test dependencies
         working-directory: e2e-tests
@@ -436,7 +472,7 @@ jobs:
       - name: Download Ollama model for LangExtract recognizer tests
         if: matrix.platform == 'linux/arm64'
         run: |
-          ollama_container="$(docker compose -f docker-compose.yml ps -q ollama)"
+          ollama_container="$(docker compose ps -q ollama)"
           docker exec "$ollama_container" ollama pull qwen2.5:1.5b
           docker exec "$ollama_container" ollama run qwen2.5:1.5b
 
@@ -445,7 +481,10 @@ jobs:
         run: |
           source env/bin/activate
           pytest_args=()
-          if [ "${{ matrix.platform }}" != "linux/arm64" ]; then
+          if [ "${{ matrix.variant }}" = "distroless" ]; then
+            # Package tests don't use the images (the default run covers them) and there is no distroless image-redactor.
+            pytest_args=(-m "not package" --ignore=tests/test_api_image_redactor.py)
+          elif [ "${{ matrix.platform }}" != "linux/arm64" ]; then
             pytest_args=(-k "not ollama")
           fi
           pytest -vv --tb=short "${pytest_args[@]}"
@@ -454,9 +493,9 @@ jobs:
         if: failure()
         run: |
           echo "Capturing Docker logs for local build"
-          docker compose -f docker-compose.yml logs
+          docker compose logs
 
       - name: Stop Docker containers
         if: always()
         run: |
-          docker compose -f docker-compose.yml down
+          docker compose down

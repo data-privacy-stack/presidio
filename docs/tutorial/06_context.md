@@ -2,7 +2,10 @@
 
 Presidio has an internal mechanism for leveraging context words. This mechanism would increase the detection confidence of a PII entity in case a specific word appears before or after it.
 
-Furthermore, it is possible to create your own context enhancer, if you require a different logic for identifying context terms. The default context-aware enhancer in Presidio is the `LemmaContextAwareEnhancer` which compares each recognizer's context terms with the lemma of each token in the sentence.
+Furthermore, it is possible to create your own context enhancer, if you require a different logic for identifying context terms. The default context-aware enhancer in Presidio is a `CompositeContextAwareEnhancer` that runs two enhancers in order, and the first one that finds a context term enhances the score:
+
+- `LemmaContextAwareEnhancer` compares each recognizer's context terms with the lemma of each token in the sentence.
+- `PhraseContextAwareEnhancer` handles context terms of several words, such as `zip code`, which cannot equal the lemma of one token. It looks for them in the original text of the context window, outside the entity itself. The words of such a term may be separated by whitespace, a hyphen or a slash (`zip code`, `zip-code`, `zip/code`), and each word may also match a token's lemma (`woman driver` matches `women drivers`).
 
 In this example we would first implement a zip code recognizer without context, and then add context to see how the confidence changes. Zip regex patterns (essentially 5 digits) are very weak, so we would want the initial confidence to be low, and increased with the existence of context words.
 
@@ -53,7 +56,7 @@ zipcode_recognizer_w_context = PatternRecognizer(
 ```
 
 When creating an ```AnalyzerEngine``` we can provide our own context enhancement logic by passing it to ```context_aware_enhancer``` parameter.
-```AnalyzerEngine``` will create ```LemmaContextAwareEnhancer``` by default if not passed, which will enhance score of each matched result if its recognizer holds context words and the lemma of those words are found in the surroundings of the matched entity.
+```AnalyzerEngine``` will create the composite of ```LemmaContextAwareEnhancer``` and ```PhraseContextAwareEnhancer``` by default if not passed, which will enhance score of each matched result if its recognizer holds context words and the lemma of those words, or a context phrase, are found in the surroundings of the matched entity.
 
 Creating the `AnalyzerEngine` and adding the new recognizer:
 
@@ -71,7 +74,7 @@ print("Result:")
 print(results)
 ```
 
-The confidence score is now 0.4, instead of 0.01, since the ```LemmaContextAwareEnhancer``` default context similarity factor is 0.35 and default minimum score with context similarity is 0.4. We can change that by passing other values to the ```context_similarity_factor``` and ```min_score_with_context_similarity``` parameters of the ```LemmaContextAwareEnhancer``` object. For example:
+The confidence score is now 0.4, instead of 0.01, since the default context similarity factor is 0.35 and default minimum score with context similarity is 0.4. We can change that by passing other values to the ```context_similarity_factor``` and ```min_score_with_context_similarity``` parameters of the ```LemmaContextAwareEnhancer``` object. For example:
 
 <!--pytest-codeblocks:cont-->
 ```python
