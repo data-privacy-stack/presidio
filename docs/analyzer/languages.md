@@ -12,6 +12,9 @@ lemmatization, Named Entity Recognition and other NLP tasks.
 !!! note "Note"
     While different detection mechanisms such as regular expressions are language agnostic, the context words used to increase the PII detection confidence aren't. Consider updating the list of context words for each recognizer to leverage context words in additional languages.
 
+!!! note "Full-width and invisible characters"
+    Text typed with Chinese or Japanese input methods often contains full-width letters and digits (`１２３`), which ASCII patterns and models do not match. See [Full-width and invisible characters](text_normalization.md) to normalize the text before it is analyzed.
+
 ## Table of contents
 
 - [Configuring the NLP Engine](#configuring-the-nlp-engine)

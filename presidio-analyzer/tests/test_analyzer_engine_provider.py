@@ -18,6 +18,10 @@ from presidio_analyzer.context_aware_enhancers import (
     PhraseContextAwareEnhancer,
 )
 from presidio_analyzer.nlp_engine import NlpArtifacts, SpacyNlpEngine
+from presidio_analyzer.text_normalizers import (
+    FullWidthAndInvisibleCharsNormalizer,
+    NoOpTextNormalizer,
+)
 from presidio_analyzer.predefined_recognizers import (
     AzureAILanguageRecognizer,
     CreditCardRecognizer,
@@ -1114,7 +1118,7 @@ def test_when_context_aware_enhancer_section_invalid_then_provider_raises(tmp_pa
         AnalyzerEngineProvider(analyzer_yaml)
 
 
-def test_when_registry_normalize_text_configured_then_engine_normalizes(tmp_path):
+def _write_text_normalizer_analyzer_conf(tmp_path, **sections):
     configuration = {
         "supported_languages": ["en"],
         "nlp_configuration": {
@@ -1122,7 +1126,6 @@ def test_when_registry_normalize_text_configured_then_engine_normalizes(tmp_path
             "models": [{"lang_code": "en", "model_name": "no_op"}],
         },
         "recognizer_registry": {
-            "normalize_text": True,
             "recognizers": [
                 {
                     "name": "Test ID",
@@ -1135,12 +1138,53 @@ def test_when_registry_normalize_text_configured_then_engine_normalizes(tmp_path
                 }
             ],
         },
+        **sections,
     }
-    analyzer_yaml = tmp_path / "analyzer_with_normalize_text.yaml"
+    analyzer_yaml = tmp_path / "analyzer_with_text_normalizer.yaml"
     analyzer_yaml.write_text(yaml.safe_dump(configuration, sort_keys=False))
+    return analyzer_yaml
+
+
+@pytest.mark.parametrize(
+    "text_normalizer", [{"type": "full_width_and_invisible_chars"}, {}, None]
+)
+def test_when_text_normalizer_configured_then_engine_normalizes(
+    tmp_path, text_normalizer
+):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path, text_normalizer=text_normalizer
+    )
 
     engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
 
-    assert engine.normalize_text is True
+    assert isinstance(engine.text_normalizer, FullWidthAndInvisibleCharsNormalizer)
     results = engine.analyze("code １２３４５６", language="en")
     assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 5, 11)]
+
+
+def test_when_text_normalizer_not_configured_then_text_is_not_normalized(tmp_path):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(tmp_path)
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+    assert isinstance(engine.text_normalizer, NoOpTextNormalizer)
+    assert engine.analyze("code １２３４５６", language="en") == []
+
+
+@pytest.mark.parametrize(
+    "text_normalizer,message",
+    [
+        ({"type": "nfkc"}, "Invalid text_normalizer configuration: type"),
+        ({"kind": "full_width"}, "Valid keys are: \\['type'\\]"),
+        ("full_width_and_invisible_chars", "must be a dictionary"),
+    ],
+)
+def test_when_text_normalizer_section_invalid_then_provider_raises(
+    tmp_path, text_normalizer, message
+):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path, text_normalizer=text_normalizer
+    )
+
+    with pytest.raises(ValueError, match=message):
+        AnalyzerEngineProvider(analyzer_yaml)

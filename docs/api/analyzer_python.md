@@ -51,6 +51,10 @@
 
 ::: presidio_analyzer.context_aware_enhancers
 
+## Text normalization modules
+
+::: presidio_analyzer.text_normalizers
+
 ## NLP Engine modules
 
 ::: presidio_analyzer.nlp_engine

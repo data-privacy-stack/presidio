@@ -1,23 +1,27 @@
-"""AnalyzerEngine with normalize_text.
+"""AnalyzerEngine with a text normalizer.
 
 Covers issue #2396: entities written with full-width characters or with
-zero-width characters inserted are missed on the raw text. With
-normalize_text on, the engine analyzes a normalized view of the text and
-maps the results back to original-text offsets.
+zero-width characters inserted are missed on the raw text. With a text
+normalizer, the engine analyzes the normalized text and maps the results back
+to original-text offsets.
 """
 
-from typing import List, Optional
+from typing import List
 
 import pytest
 from presidio_analyzer import (
     AnalysisExplanation,
     AnalyzerEngine,
     BatchAnalyzerEngine,
+    FullWidthAndInvisibleCharsNormalizer,
     LocalRecognizer,
+    NoOpTextNormalizer,
+    NormalizedText,
     Pattern,
     PatternRecognizer,
     RecognizerRegistry,
     RecognizerResult,
+    TextNormalizer,
 )
 from presidio_analyzer.nlp_engine import NlpArtifacts, NoOpNlpEngine
 from presidio_analyzer.predefined_recognizers import (
@@ -59,13 +63,11 @@ def no_op_nlp_engine() -> NoOpNlpEngine:
     return NoOpNlpEngine(models=[{"lang_code": "en", "model_name": "no_op"}])
 
 
-def make_engine(
-    recognizers, normalize_text: Optional[bool] = True, nlp_engine=None
-) -> AnalyzerEngine:
+def make_engine(recognizers, normalize: bool = True, nlp_engine=None) -> AnalyzerEngine:
     return AnalyzerEngine(
         registry=RecognizerRegistry(recognizers=recognizers),
         nlp_engine=nlp_engine or no_op_nlp_engine(),
-        normalize_text=normalize_text,
+        text_normalizer=FullWidthAndInvisibleCharsNormalizer() if normalize else None,
     )
 
 
@@ -127,10 +129,23 @@ class FixedSpansRecognizer(LocalRecognizer):
         ]
 
 
-def test_normalize_text_is_off_by_default():
-    engine = make_engine([id_recognizer()], normalize_text=None)
+class DropHashNormalizer(TextNormalizer):
+    """A custom normalizer that removes '#' characters."""
 
-    assert engine.normalize_text is False
+    def normalize(self, text: str, language: str) -> NormalizedText:
+        kept = [i for i, char in enumerate(text) if char != "#"]
+        return NormalizedText(
+            original_text=text,
+            text="".join(text[i] for i in kept),
+            starts=kept,
+            ends=[i + 1 for i in kept],
+        )
+
+
+def test_text_is_not_normalized_by_default():
+    engine = make_engine([id_recognizer()], normalize=False)
+
+    assert isinstance(engine.text_normalizer, NoOpTextNormalizer)
     assert engine.analyze("ID " + to_fullwidth(DIGITS), language="en") == []
     assert engine.analyze("ID " + ZERO_WIDTH_ID, language="en") == []
 
@@ -210,7 +225,7 @@ def test_predefined_recognizers_detect_fullwidth_values(
     results = [
         r for r in engine.analyze(text, language="en") if r.entity_type == entity
     ]
-    off_results = make_engine([recognizer_class()], normalize_text=False).analyze(
+    off_results = make_engine([recognizer_class()], normalize=False).analyze(
         text, language="en"
     )
 
@@ -255,11 +270,37 @@ def test_results_with_invalid_spans_are_skipped(caplog):
     assert "OUT_OF_RANGE result with an invalid span (3, 30)" in caplog.text
 
 
+def test_results_with_invalid_spans_are_returned_as_before_without_normalization():
+    recognizer = FixedSpansRecognizer(
+        [("VALID", 6, 10), ("EMPTY", 5, 5), ("OUT_OF_RANGE", 3, 30)]
+    )
+
+    results = make_engine([recognizer], normalize=False).analyze(
+        "Name: John", language="en"
+    )
+
+    assert sorted((r.entity_type, r.start, r.end) for r in results) == [
+        ("EMPTY", 5, 5),
+        ("OUT_OF_RANGE", 3, 30),
+        ("VALID", 6, 10),
+    ]
+
+
 def test_allow_list_applies_to_the_normalized_text():
     text = "ID " + to_fullwidth(DIGITS)
 
     results = make_engine([id_recognizer()]).analyze(
         text, language="en", allow_list=[DIGITS]
+    )
+
+    assert results == []
+
+
+def test_exact_allow_list_entries_are_normalized():
+    text = "ID " + to_fullwidth(DIGITS)
+
+    results = make_engine([id_recognizer()]).analyze(
+        text, language="en", allow_list=[to_fullwidth(DIGITS)]
     )
 
     assert results == []
@@ -279,15 +320,17 @@ def test_explanation_notes_matches_changed_by_normalization():
     assert notes == {(3, 21): True, (29, 47): False}
 
 
-def test_engine_uses_the_registry_setting_unless_it_sets_its_own():
-    registry = RecognizerRegistry(recognizers=[id_recognizer()], normalize_text=True)
+def test_custom_normalizer_is_used():
+    text = "ID " + DIGITS[:4] + "#" + DIGITS[4:]
+    engine = AnalyzerEngine(
+        registry=RecognizerRegistry(recognizers=[id_recognizer()]),
+        nlp_engine=no_op_nlp_engine(),
+        text_normalizer=DropHashNormalizer(),
+    )
 
-    assert AnalyzerEngine(
-        registry=registry, nlp_engine=no_op_nlp_engine()
-    ).normalize_text
-    assert not AnalyzerEngine(
-        registry=registry, nlp_engine=no_op_nlp_engine(), normalize_text=False
-    ).normalize_text
+    results = engine.analyze(text, language="en")
+
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("ID_NUM", 3, 22)]
 
 
 def test_batch_analyzer_passes_original_text_and_normalized_artifacts(
@@ -317,6 +360,24 @@ def test_batch_analyzer_passes_original_text_and_normalized_artifacts(
     assert all(text == tokens for text, tokens in recognizer.calls)
 
 
+def test_batch_analyzer_uses_the_engine_normalizer(spacy_nlp_engine):
+    if spacy_nlp_engine is None:
+        pytest.skip("spaCy engine not available")
+    recognizer = RecordingRecognizer("John")
+    engine = AnalyzerEngine(
+        registry=RecognizerRegistry(recognizers=[recognizer]),
+        nlp_engine=spacy_nlp_engine,
+        text_normalizer=DropHashNormalizer(),
+    )
+
+    results = BatchAnalyzerEngine(analyzer_engine=engine).analyze_iterator(
+        ["Name: Jo#hn."], language="en"
+    )
+
+    assert [[(r.start, r.end) for r in res] for res in results] == [[(6, 11)]]
+    assert recognizer.calls == [("Name: John.", "Name: John.")]
+
+
 def test_spacy_ner_finds_fullwidth_name(spacy_nlp_engine):
     if spacy_nlp_engine is None:
         pytest.skip("spaCy engine not available")
@@ -326,7 +387,9 @@ def test_spacy_ner_finds_fullwidth_name(spacy_nlp_engine):
     text = "My name is " + to_fullwidth("Robert Brown") + "."
 
     results = AnalyzerEngine(
-        registry=registry, nlp_engine=spacy_nlp_engine, normalize_text=True
+        registry=registry,
+        nlp_engine=spacy_nlp_engine,
+        text_normalizer=FullWidthAndInvisibleCharsNormalizer(),
     ).analyze(text, language="en", entities=["PERSON"])
 
     assert [(r.entity_type, r.start, r.end) for r in results] == [("PERSON", 11, 23)]

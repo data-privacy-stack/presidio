@@ -9,7 +9,11 @@ from presidio_analyzer.score_thresholds import (
 )
 
 from . import validate_language_codes
-from .yaml_recognizer_models import ContextAwareEnhancerConfig, RecognizerRegistryConfig
+from .yaml_recognizer_models import (
+    ContextAwareEnhancerConfig,
+    RecognizerRegistryConfig,
+    TextNormalizerConfig,
+)
 
 
 class ConfigurationValidator:
@@ -141,6 +145,35 @@ class ConfigurationValidator:
         return validated_config.model_dump()
 
     @staticmethod
+    def validate_text_normalizer_configuration(
+        config: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Validate the text normalizer section of the analyzer configuration.
+
+        :param config: Text normalizer configuration to validate.
+        An empty section (None) is treated as {}, so the default normalizer is used.
+        :return: The validated configuration, with defaults filled in.
+        """
+        if config is None:
+            return TextNormalizerConfig().model_dump()
+        if not isinstance(config, dict):
+            raise ValueError("text_normalizer configuration must be a dictionary")
+        try:
+            validated_config = TextNormalizerConfig(**config)
+        except ValidationError as e:
+            errors = "; ".join(
+                f"{'.'.join(str(loc) for loc in error['loc'])}: {error['msg']}"
+                if error["loc"]
+                else error["msg"]
+                for error in e.errors()
+            )
+            raise ValueError(
+                f"Invalid text_normalizer configuration: {errors}. "
+                f"Valid keys are: {sorted(TextNormalizerConfig.model_fields)}"
+            ) from e
+        return validated_config.model_dump()
+
+    @staticmethod
     def validate_analyzer_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
         """Validate analyzer engine configuration."""
         if not isinstance(config, dict):
@@ -153,6 +186,7 @@ class ConfigurationValidator:
             "nlp_configuration",
             "recognizer_registry",
             "context_aware_enhancer",
+            "text_normalizer",
         }
 
         # Check for unknown keys
@@ -188,6 +222,11 @@ class ConfigurationValidator:
         if "context_aware_enhancer" in config:
             ConfigurationValidator.validate_context_aware_enhancer_configuration(
                 config["context_aware_enhancer"]
+            )
+
+        if "text_normalizer" in config:
+            ConfigurationValidator.validate_text_normalizer_configuration(
+                config["text_normalizer"]
             )
 
         return config

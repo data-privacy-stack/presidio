@@ -4,10 +4,6 @@ from typing import Any, Deque, Dict, Iterable, Iterator, List, Optional, Tuple, 
 
 from presidio_analyzer import AnalyzerEngine, DictAnalyzerResult, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpArtifacts
-from presidio_analyzer.text_normalization import (
-    build_normalized_view,
-    needs_normalized_view,
-)
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -50,13 +46,12 @@ class BatchAnalyzerEngine:
         # validate types
         texts = self._validate_types(texts)
 
-        # With normalize_text on, analyze() works on the normalized text, so the
-        # NLP engine has to process that text. The original values are queued
-        # to be passed to analyze() in the same order.
-        original_texts: Optional[Deque[Any]] = None
-        if getattr(self.analyzer_engine, "normalize_text", False):
-            original_texts = deque()
-            texts = self._normalize_texts(texts, original_texts)
+        # analyze() works on the normalized text, so the NLP engine has to process
+        # that text. The original values are queued to be passed to analyze() in
+        # the same order. analyze() normalizes each text again, which gives the
+        # same text the artifacts were computed on.
+        original_texts: Deque[Any] = deque()
+        texts = self._normalize_texts(texts, original_texts, language)
 
         # Process the texts as batch for improved performance
         nlp_artifacts_batch: Iterator[Tuple[str, NlpArtifacts]] = (
@@ -69,9 +64,8 @@ class BatchAnalyzerEngine:
         )
 
         list_results = []
-        for text, nlp_artifacts in nlp_artifacts_batch:
-            if original_texts is not None:
-                text = original_texts.popleft()
+        for _, nlp_artifacts in nlp_artifacts_batch:
+            text = original_texts.popleft()
             results = self.analyzer_engine.analyze(
                 text=str(text), nlp_artifacts=nlp_artifacts, language=language, **kwargs
             )
@@ -153,14 +147,14 @@ class BatchAnalyzerEngine:
 
             yield DictAnalyzerResult(key=key, value=value, recognizer_results=results)
 
-    @staticmethod
     def _normalize_texts(
-        texts: Iterable[Any], original_texts: Deque[Any]
+        self, texts: Iterable[Any], original_texts: Deque[Any], language: str
     ) -> Iterator[Any]:
+        text_normalizer = self.analyzer_engine.text_normalizer
         for text in texts:
             original_texts.append(text)
-            if isinstance(text, str) and needs_normalized_view(text):
-                text = build_normalized_view(text)[0]
+            if isinstance(text, str):
+                text = text_normalizer.normalize(text, language).text
             yield text
 
     @staticmethod

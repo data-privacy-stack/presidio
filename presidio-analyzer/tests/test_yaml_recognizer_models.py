@@ -512,41 +512,24 @@ def test_recognizer_registry_config_defaults():
     config = RecognizerRegistryConfig(recognizers=["CreditCardRecognizer"])
     assert config.supported_languages is None
     assert config.global_regex_flags == 26
-    assert config.normalize_text is False
     assert len(config.recognizers) == 1
 
 
-def test_recognizer_registry_config_normalize_text():
-    """The top-level normalize_text key is kept in the dumped config."""
-    config = RecognizerRegistryConfig(
-        normalize_text=True, recognizers=["CreditCardRecognizer"]
-    )
-    assert config.model_dump()["normalize_text"] is True
-
-
-def test_recognizer_level_normalize_text_points_to_registry_setting():
-    """normalize_text inside a recognizer entry fails with a pointer to the top level."""
+def test_recognizer_level_normalize_text_points_to_analyzer_setting():
+    """normalize_text in a recognizer entry fails with a pointer to text_normalizer."""
     with pytest.raises(
-        ValidationError, match="at the top level of the recognizer registry"
+        ValidationError, match="Add a 'text_normalizer' section to the analyzer configuration"
     ):
         PredefinedRecognizerConfig(name="UsPassportRecognizer", normalize_text=True)
 
     with pytest.raises(
-        ValidationError, match="at the top level of the recognizer registry"
+        ValidationError, match="Add a 'text_normalizer' section to the analyzer configuration"
     ):
         CustomRecognizerConfig(
             name="custom_norm",
             supported_entity="CUSTOM_ENTITY",
             patterns=[{"name": "id", "regex": r"[0-9]+", "score": 0.5}],
             normalize_text=True,
-        )
-
-
-def test_recognizer_registry_config_rejects_non_boolean_normalize_text():
-    """normalize_text must be a boolean."""
-    with pytest.raises(ValidationError, match="normalize_text"):
-        RecognizerRegistryConfig(
-            normalize_text="sometimes", recognizers=["CreditCardRecognizer"]
         )
 
 
