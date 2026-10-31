@@ -14,6 +14,7 @@ from .us_healthcare_admin_recognizers import (
     UsProviderTaxIdRecognizer,
     UsReferralNumberRecognizer,
 )
+from .us_icd10_cm_recognizer import UsIcd10CmRecognizer
 from .us_itin_recognizer import UsItinRecognizer
 from .us_mbi_recognizer import UsMbiRecognizer
 from .us_npi_recognizer import UsNpiRecognizer
@@ -27,6 +28,7 @@ __all__ = [
     "UsLicenseRecognizer",
     "UsClaimNumberRecognizer",
     "UsHealthInsuranceMemberIdRecognizer",
+    "UsIcd10CmRecognizer",
     "UsMbiRecognizer",
     "UsNpiRecognizer",
     "UsPassportRecognizer",

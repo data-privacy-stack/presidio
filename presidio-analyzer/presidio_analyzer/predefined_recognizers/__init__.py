@@ -167,6 +167,7 @@ from .country_specific.us.us_healthcare_admin_recognizers import (
     UsProviderTaxIdRecognizer,
     UsReferralNumberRecognizer,
 )
+from .country_specific.us.us_icd10_cm_recognizer import UsIcd10CmRecognizer
 from .country_specific.us.us_itin_recognizer import UsItinRecognizer
 from .country_specific.us.us_mbi_recognizer import UsMbiRecognizer
 from .country_specific.us.us_npi_recognizer import UsNpiRecognizer
@@ -241,6 +242,7 @@ __all__ = [
     "UsBankRecognizer",
     "UsClaimNumberRecognizer",
     "UsHealthInsuranceMemberIdRecognizer",
+    "UsIcd10CmRecognizer",
     "UsItinRecognizer",
     "UsLicenseRecognizer",
     "UsMbiRecognizer",
