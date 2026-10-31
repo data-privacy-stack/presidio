@@ -2528,7 +2528,7 @@ requires-dist = [
     { name = "onnxruntime", marker = "extra == 'gliner'", specifier = ">=1.19" },
     { name = "openai", marker = "extra == 'langextract'", specifier = ">=1.50.0,<3.0.0" },
     { name = "phonenumbers", specifier = ">=9.0.28,<10.0.0" },
-    { name = "preshed", specifier = "<3.0.14" },
+    { name = "preshed", specifier = "!=3.0.14" },
     { name = "pydantic", specifier = ">=2.12.5,<3.0.0" },
     { name = "pyyaml", specifier = ">=6.0.3,<7.0.0" },
     { name = "regex", specifier = ">=2023.0.0" },
