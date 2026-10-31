@@ -23,11 +23,12 @@ def entities():
         # Valid formatting but invalid ABNs
         ("52 824 753 556", 0, (), (),),
         ("52824753556", 0, (), (),),
-        # Leading-zero number: a valid ABN never starts with 0, and the ABR
-        # algorithm's literal "subtract 1 from the first digit" makes it fail.
-        # (A prior special case remapped the leading 0 to 9 and wrongly
-        # accepted this as valid.)
+        # Leading-zero numbers: a valid ABN never starts with 0. All but
+        # 00000000560 pass the mod 89 check when the leading 0 is taken as -1.
         ("00000000560", 0, (), (),),
+        ("05333450323", 0, (), (),),
+        ("05 333 450 323", 0, (), (),),
+        ("00000000019", 0, (), (),),
         # Invalid formatting and ABNs.  
         ("5282475355632", 0, (), (),),
         ("52824753556AF", 0, (), (),),
