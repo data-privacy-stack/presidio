@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from collections import deque
+from typing import Any, Deque, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from presidio_analyzer import AnalyzerEngine, DictAnalyzerResult, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpArtifacts
@@ -45,6 +46,13 @@ class BatchAnalyzerEngine:
         # validate types
         texts = self._validate_types(texts)
 
+        # analyze() works on the normalized text, so the NLP engine has to process
+        # that text. The original values are queued to be passed to analyze() in
+        # the same order. analyze() normalizes each text again, which gives the
+        # same text the artifacts were computed on.
+        original_texts: Deque[Any] = deque()
+        texts = self._normalize_texts(texts, original_texts, language)
+
         # Process the texts as batch for improved performance
         nlp_artifacts_batch: Iterator[Tuple[str, NlpArtifacts]] = (
             self.analyzer_engine.nlp_engine.process_batch(
@@ -56,7 +64,8 @@ class BatchAnalyzerEngine:
         )
 
         list_results = []
-        for text, nlp_artifacts in nlp_artifacts_batch:
+        for _, nlp_artifacts in nlp_artifacts_batch:
+            text = original_texts.popleft()
             results = self.analyzer_engine.analyze(
                 text=str(text), nlp_artifacts=nlp_artifacts, language=language, **kwargs
             )
@@ -137,6 +146,16 @@ class BatchAnalyzerEngine:
                 raise ValueError(f"type {type(value)} is unsupported.")
 
             yield DictAnalyzerResult(key=key, value=value, recognizer_results=results)
+
+    def _normalize_texts(
+        self, texts: Iterable[Any], original_texts: Deque[Any], language: str
+    ) -> Iterator[Any]:
+        text_normalizer = self.analyzer_engine.text_normalizer
+        for text in texts:
+            original_texts.append(text)
+            if isinstance(text, str):
+                text = text_normalizer.normalize(text, language).text
+            yield text
 
     @staticmethod
     def _validate_types(value_iterator: Iterable[Any]) -> Iterator[Any]:

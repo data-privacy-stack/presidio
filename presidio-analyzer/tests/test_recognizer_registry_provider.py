@@ -453,6 +453,27 @@ def test_text_chunker_config_rejects_character_params_for_tokenizer():
         TextChunkerConfig(chunker_type="tokenizer", chunk_size=300)
 
 
+def test_recognizer_registry_provider_rejects_recognizer_level_normalize_text():
+    configuration = {
+        "supported_languages": ["en"],
+        "recognizers": [
+            {
+                "name": "UsPassportRecognizer",
+                "type": "predefined",
+                "enabled": True,
+                "normalize_text": True,
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError) as exc_info:
+        RecognizerRegistryProvider(registry_configuration=configuration)
+
+    assert "Add a 'text_normalizer' section to the analyzer configuration" in str(
+        exc_info.value.__cause__
+    )
+
+
 # ---------------------------------------------------------------------------
 # Top-level ``supported_countries`` in a recognizer registry configuration
 # ---------------------------------------------------------------------------
