@@ -460,6 +460,9 @@ class AnalyzerEngine:
         :return: List[RecognizerResult]
         """
         new_results = []
+        # A bare string is a single term, not a sequence of one-character terms
+        if isinstance(allow_list, str):
+            allow_list = [allow_list]
         if allow_list_match == "regex":
             allow_list = [term for term in allow_list if term]
             if not allow_list:

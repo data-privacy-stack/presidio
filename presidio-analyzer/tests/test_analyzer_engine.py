@@ -1278,6 +1278,35 @@ def test_when_regex_allow_list_is_all_empty_entries_then_results_are_kept():
     assert filtered == results
 
 
+@pytest.mark.parametrize("allow_list_match", ["exact", "regex"])
+def test_when_allow_list_is_a_string_then_it_is_a_single_term(allow_list_match):
+    text = "Email john@contoso.com or contact Contoso"
+    results = [
+        RecognizerResult("EMAIL_ADDRESS", 6, 22, 1.0),
+        RecognizerResult("ORGANIZATION", 34, 41, 0.85),
+    ]
+
+    filtered = AnalyzerEngine._remove_allow_list(
+        results=results,
+        allow_list="Contoso and john@contoso.com",
+        text=text,
+        regex_flags=re.DOTALL | re.MULTILINE | re.IGNORECASE,
+        allow_list_match=allow_list_match,
+    )
+
+    assert filtered == results
+
+    filtered = AnalyzerEngine._remove_allow_list(
+        results=results,
+        allow_list="Contoso",
+        text=text,
+        regex_flags=re.DOTALL | re.MULTILINE,
+        allow_list_match=allow_list_match,
+    )
+
+    assert filtered == [results[0]]
+
+
 @pytest.mark.parametrize(
     "entities",
     [["CREDIT_CARD"], ["CREDIT_CARD", "UNSUPPORTED_ENTITY"]],
