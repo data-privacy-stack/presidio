@@ -86,6 +86,22 @@ class BaseRecognizerConfig(BaseModel):
         description="Default and entity-specific score thresholds",
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_recognizer_level_normalize_text(cls, data: Any) -> Any:
+        """Point to the analyzer setting when a recognizer sets normalize_text.
+
+        Text normalization is applied by the analyzer engine to all recognizers,
+        so it is configured once, in the analyzer configuration.
+        """
+        if isinstance(data, dict) and "normalize_text" in data:
+            raise ValueError(
+                f"Recognizer '{data.get('name')}' sets 'normalize_text', which is "
+                "not a recognizer setting. Add a 'text_normalizer' section to the "
+                "analyzer configuration instead, next to 'context_aware_enhancer'."
+            )
+        return data
+
     @field_validator("supported_language")
     @classmethod
     def validate_single_language(cls, v: Optional[str]) -> Optional[str]:
@@ -270,6 +286,24 @@ class ContextAwareEnhancerConfig(ContextAwareEnhancerSettingsConfig):
             ]
         ]
     ] = Field(None, min_length=1, description="Enhancers to run in order")
+
+
+class TextNormalizerConfig(BaseModel):
+    """Validated configuration for the analyzer's text normalizer.
+
+    With this section in the analyzer configuration, the analyzer normalizes
+    the text before analyzing it; without it, the text is not normalized.
+
+    :param type: The text normalizer. "full_width_and_invisible_chars" (the
+    default) folds full-width characters to ASCII and removes invisible
+    characters.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["full_width_and_invisible_chars"] = Field(
+        default="full_width_and_invisible_chars", description="Text normalizer"
+    )
 
 
 class PredefinedRecognizerConfig(BaseRecognizerConfig):
