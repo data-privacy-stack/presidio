@@ -397,6 +397,17 @@ def test_when_all_ibans_then_succeed(
         assert_result(res, entities[0], start, end, max_score)
 
 
+@pytest.mark.parametrize("separator", ["\u00a0", "\u2007", "\u2009", "\u202f"])
+def test_when_groups_are_separated_by_a_unicode_space_then_succeed(
+    separator, recognizer, entities, max_score
+):
+    """An IBAN grouped with a no-break, figure or thin space is found."""
+    iban = separator.join(["DE89", "3704", "0044", "0532", "0130", "00"])
+    results = recognizer.analyze(f"IBAN {iban}", entities)
+    assert len(results) == 1
+    assert_result(results[0], entities[0], 5, 5 + len(iban), max_score)
+
+
 def test_when_finditer_times_out_then_returns_empty_results(recognizer, entities):
     """Test that a TimeoutError from re.finditer is caught and returns no results."""
     with patch(
