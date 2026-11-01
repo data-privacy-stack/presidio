@@ -358,12 +358,13 @@ def test_context_window_covers_the_tokens_of_the_lemma_context(
         context_prefix_count=prefix_count, context_suffix_count=suffix_count
     )
     start = text.index("ABC12345")
+    keywords = set(nlp_artifacts.keywords)
 
     first, last = PhraseContextAwareEnhancer(**settings)._get_context_window(
-        nlp_artifacts, start
+        nlp_artifacts, start, keywords
     )
     words = LemmaContextAwareEnhancer(**settings)._extract_surrounding_words(
-        nlp_artifacts, "ABC12345", start
+        nlp_artifacts, start, keywords
     )
 
     in_window = {nlp_artifacts.lemmas[i].lower() for i in range(first, last + 1)} & set(
