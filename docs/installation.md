@@ -17,7 +17,6 @@ Presidio suite using `pip` (as Python packages) or using `Docker` (As containeri
 
 Presidio is supported for the following python versions:
 
-* 3.10
 * 3.11
 * 3.12
 * 3.13
@@ -169,7 +168,7 @@ docker build ./presidio-anonymizer -t presidio/presidio-anonymizer
 And run:
 
 ```sh
-docker run -d -p 5001:5001 presidio/presidio-anonymizer
+docker run -d -p 5001:3000 presidio/presidio-anonymizer
 ```
 
 ---
