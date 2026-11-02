@@ -1,0 +1,25 @@
+# Distroless variant of presidio-anonymizer: no shell, package manager, pip or uv in the final image.
+# Differences from ./Dockerfile:
+#   - No shell, so entrypoint.sh is not used; PORT and WORKERS have no effect.
+#     Gunicorn is invoked directly: configure it with GUNICORN_CMD_ARGS.
+#   - Python 3.12 (the version Azure Linux distroless ships) and UID 65532.
+FROM ghcr.io/astral-sh/uv:0.11.15@sha256:e590846f4776907b254ac0f44b5b380347af5d90d668138ca7938d1b0c2f98d3 AS uv
+
+FROM mcr.microsoft.com/azurelinux/base/python:3.12@sha256:9343005b72a7cc34847dcb8d09bb8a0c145311eff88c151c60d9c4904edaf6e9 AS builder
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv UV_PYTHON_DOWNLOADS=never
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-cache --no-default-groups --extra server --no-install-project
+
+FROM mcr.microsoft.com/azurelinux/distroless/python:3.12-nonroot@sha256:f5b31eb11254a444ba92837d788c349344cde899110f629100f8ca1efd49ade3
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    GUNICORN_CMD_ARGS="--workers=1 --bind=0.0.0.0:3000"
+COPY --from=builder /opt/venv/lib/python3.12/site-packages /usr/lib/python3.12/site-packages
+WORKDIR /app
+COPY . /app/
+USER 65532
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+    CMD ["/usr/bin/python3", "-c", "import urllib.request as u; u.build_opener(u.ProxyHandler({})).open('http://localhost:3000/health', timeout=2)"]
+ENTRYPOINT ["/usr/bin/python3", "-m", "gunicorn", "app:create_app()"]
