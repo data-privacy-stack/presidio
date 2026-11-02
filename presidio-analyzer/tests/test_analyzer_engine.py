@@ -1018,6 +1018,36 @@ def test_when_ad_hoc_deny_list_recognizer_contains_both_regex_and_deny_list(
     assert len(detected_zips) == 2
 
 
+class EntityFilteringRecognizer(EntityRecognizer, ABC):
+    """Ad-hoc recognizer that only returns the entities it is asked for."""
+
+    def __init__(self):
+        """Support a single entity that no predefined recognizer supports."""
+        super().__init__(supported_entities=["AD_HOC_ENTITY"])
+
+    def load(self):
+        """Keep the test recognizer lightweight."""
+        return None
+
+    def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
+        """Return a result only when AD_HOC_ENTITY is requested."""
+        if "AD_HOC_ENTITY" not in entities:
+            return []
+        return [RecognizerResult("AD_HOC_ENTITY", 0, 4, 0.8)]
+
+
+def test_when_entities_omitted_then_ad_hoc_recognizer_entities_are_requested(
+    analyzer_engine_simple,
+):
+    results = analyzer_engine_simple.analyze(
+        text="John lives here",
+        language="en",
+        ad_hoc_recognizers=[EntityFilteringRecognizer()],
+    )
+
+    assert "AD_HOC_ENTITY" in [result.entity_type for result in results]
+
+
 def test_entities_filter_for_ad_hoc_removes_recognizer(loaded_analyzer_engine):
     text = "Mr. John Smith's zip code is 10002"
 
