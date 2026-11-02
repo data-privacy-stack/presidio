@@ -723,3 +723,71 @@ def test_hf_recognizer_resolves_deferred_tokenizer_chunker(mock_pipeline):
     assert chunker.tokenizer is mock_tokenizer
     assert chunker.max_tokens == 128
     assert chunker.overlap_tokens == 16
+
+
+def test_hf_recognizer_fail_closed_raises_on_inference_failure(
+    mock_recognizer,
+):
+    """Test that recognizer raises RuntimeError when fail_closed=True on pipeline failure."""
+    rec = mock_recognizer(model_name="test-model", fail_closed=True)
+    rec.ner_pipeline.side_effect = RuntimeError("CUDA out of memory")
+
+    with pytest.raises(
+        RuntimeError, match="NER prediction failed for chunk in HuggingFaceNerRecognizer"
+    ):
+        rec.analyze("test text", entities=["PERSON"])
+
+
+def test_hf_recognizer_fail_closed_raises_on_malformed_pipeline_output(
+    mock_recognizer,
+):
+    """Test that recognizer raises RuntimeError when fail_closed=True on malformed pipeline output."""
+    rec = mock_recognizer(model_name="test-model", fail_closed=True)
+    rec.ner_pipeline.return_value = {"not": "a list"}
+
+    with pytest.raises(
+        RuntimeError, match="Unexpected pipeline output type in HuggingFaceNerRecognizer"
+    ):
+        rec.analyze("test text", entities=["PERSON"])
+
+def test_hf_recognizer_fail_closed_raises_on_non_dict_item(mock_recognizer):
+    """Test that recognizer raises RuntimeError when fail_closed=True on non-dict prediction item."""
+    rec = mock_recognizer(model_name="test-model", fail_closed=True)
+    rec.ner_pipeline.return_value = ["not a dict"]
+
+    with pytest.raises(
+        RuntimeError, match="Unexpected prediction item type in HuggingFaceNerRecognizer"
+    ):
+        rec.analyze("test text", entities=["PERSON"])
+
+
+def test_hf_recognizer_fail_closed_raises_on_invalid_score(mock_recognizer):
+    """Test that recognizer raises RuntimeError when fail_closed=True on unparseable score."""
+    rec = mock_recognizer(model_name="test-model", fail_closed=True)
+    rec.ner_pipeline.return_value = [{"entity": "PER", "score": "invalid", "start": 0, "end": 4}]
+
+    with pytest.raises(
+        RuntimeError, match="Failed to convert score to float in HuggingFaceNerRecognizer"
+    ):
+        rec.analyze("test text", entities=["PERSON"])
+
+
+def test_hf_recognizer_fail_closed_raises_on_missing_offsets(mock_recognizer):
+    """Test that recognizer raises RuntimeError when fail_closed=True on missing start/end offsets."""
+    rec = mock_recognizer(model_name="test-model", fail_closed=True)
+    rec.ner_pipeline.return_value = [{"entity": "PER", "score": 0.95, "start": 0}]  # missing end
+
+    with pytest.raises(
+        RuntimeError, match="Prediction item missing start or end offset in HuggingFaceNerRecognizer"
+    ):
+        rec.analyze("test text", entities=["PERSON"])
+
+def test_hf_recognizer_fail_closed_raises_on_missing_label(mock_recognizer):
+    """Test that recognizer raises RuntimeError when fail_closed=True on missing label."""
+    rec = mock_recognizer(model_name="test-model", fail_closed=True)
+    rec.ner_pipeline.return_value = [{"score": 0.9, "start": 0, "end": 4}]  # missing entity/entity_group
+
+    with pytest.raises(
+        RuntimeError, match="Prediction item missing entity label in HuggingFaceNerRecognizer"
+    ):
+        rec.analyze("test text", entities=["PERSON"])
