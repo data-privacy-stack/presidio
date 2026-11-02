@@ -138,6 +138,10 @@ recognizer_registry:
       type: predefined
       enabled: false
 
+    - name: KzIinRecognizer
+      type: predefined
+      enabled: false
+
     - name: CryptoRecognizer
       type: predefined
 

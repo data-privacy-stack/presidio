@@ -121,6 +121,12 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | KR_RRN     | The Korean Resident Registration Number (RRN) is a 13-digit number issued to all Korean residents. | Pattern match, context and custom logic. |
 
 
+### Kazakhstan
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| KZ_IIN    | The Kazakhstan Individual Identification Number (IIN) is a 12-digit number: the first six digits encode the holder's date of birth (YYMMDD), the seventh digit encodes gender and century of birth, the next four digits are a serial number, and the last digit is a check digit. | Pattern match, context and sanity checks. |
+
+
 ### Nigeria
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
