@@ -44,10 +44,41 @@ jobs:
           echo "image-version=$imageVer" >> $GITHUB_OUTPUT
           echo "Image-redactor version: $imageVer"
 
+  test-latest-deps:
+    name: Test with latest dependencies (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: get-version
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.14']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install analyzer and anonymizer with plain pip
+        run: |
+          # No lockfile: resolve the newest releases, as a user installing
+          # from PyPI would, so a broken upstream release blocks the release.
+          pip install -e "./presidio-analyzer[langextract]" -e ./presidio-anonymizer pytest requests
+          python -m spacy download en_core_web_lg
+
+      - name: Run package-level e2e tests
+        working-directory: e2e-tests
+        # The Ollama recognizer test needs a running Ollama server.
+        run: pytest -vv --tb=short -m package -k "not ollama"
+
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-slim
-    needs: get-version
+    needs: [get-version, test-latest-deps]
     permissions:
       contents: write
     continue-on-error: true
@@ -70,7 +101,7 @@ jobs:
   publish-to-pypi:
     name: Publish ${{ matrix.package.name }} to PyPI
     runs-on: ubuntu-latest 
-    needs: get-version
+    needs: [get-version, test-latest-deps]
     permissions:
       id-token: write  # Required for trusted publishing to PyPI
     strategy:
@@ -116,7 +147,7 @@ jobs:
   build-and-push-containers:
     name: Build and Push ${{ matrix.image }} (${{ matrix.platform }}${{ matrix.variant && format(', {0}', matrix.variant) }})
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
-    needs: get-version
+    needs: [get-version, test-latest-deps]
     permissions:
       contents: read
       packages: write
