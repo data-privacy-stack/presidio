@@ -14,6 +14,7 @@ from .yaml_recognizer_models import (
     PhraseContextAwareEnhancerConfig,
     PredefinedRecognizerConfig,
     RecognizerRegistryConfig,
+    TextNormalizerConfig,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "PhraseContextAwareEnhancerConfig",
     "PredefinedRecognizerConfig",
     "RecognizerRegistryConfig",
+    "TextNormalizerConfig",
 ]

@@ -94,6 +94,8 @@ context_aware_enhancer:
       context_matching_mode: whole_word
 ```
 
+- `text_normalizer` (optional): Normalizes the text before it is analyzed, so entities written with full-width or invisible characters are found. `type` is `full_width_and_invisible_chars`, the default. Without this section the text is not normalized. See [Full-width and invisible characters](text_normalization.md).
+
 !!! note "Defining confidence thresholds"
     Presidio supports multiple types of score thresholds: default ones (for the analyzer and each recognizer), per-request thresholds, and per-entity thresholds. Supplying `analyzer.analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request and applies the supplied threshold to every result. The order of importance is: `analyzer.analyze(score_threshold=...)` > an entity specific threshold > a recognizer default threshold (`default`) > the Presidio Analyzer `default_score_threshold`.
 
