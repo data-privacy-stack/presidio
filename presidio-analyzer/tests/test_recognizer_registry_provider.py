@@ -562,3 +562,38 @@ def test_recognizer_registry_config_rejects_invalid_supported_countries():
             recognizers=COUNTRY_FILTER_RECOGNIZERS,
             supported_countries=["  "],
         )
+
+
+def test_recognizer_registry_provider_email_offline_and_supported_entities():
+    """Test that offline and supported_entities in YAML are correctly configured and detect emails."""
+    from presidio_analyzer.predefined_recognizers import EmailRecognizer
+
+    provider = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [
+                {
+                    "name": "EmailRecognizer",
+                    "type": "predefined",
+                    "supported_entities": ["CUSTOM_EMAIL"],
+                    "offline": True,
+                }
+            ],
+        }
+    )
+    registry = provider.create_recognizer_registry()
+
+    email_recognizers = [
+        r for r in registry.recognizers if isinstance(r, EmailRecognizer)
+    ]
+    assert len(email_recognizers) == 1
+    recognizer = email_recognizers[0]
+    assert recognizer.offline is True
+    assert recognizer.supported_entities == ["CUSTOM_EMAIL"]
+
+    # Verify end-to-end detection with the YAML-constructed recognizer
+    results = recognizer.analyze("Reach us at contact@presidio.org", ["CUSTOM_EMAIL"])
+    assert len(results) == 1
+    assert results[0].entity_type == "CUSTOM_EMAIL"
+    assert results[0].start == 12
+    assert results[0].end == 32
