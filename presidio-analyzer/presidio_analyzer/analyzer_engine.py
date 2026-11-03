@@ -25,6 +25,7 @@ from presidio_analyzer.nlp_engine import (
     NlpEngineProvider,
     NoOpNlpEngine,
 )
+from presidio_analyzer.score_thresholds import validate_score_threshold
 from presidio_analyzer.recognizer_registry import (
     RecognizerRegistry,
     RecognizerRegistryProvider,
@@ -79,6 +80,8 @@ class AnalyzerEngine:
         context_aware_enhancer: Optional[ContextAwareEnhancer] = None,
         text_normalizer: Optional[TextNormalizer] = None,
     ):
+        default_score_threshold = validate_score_threshold(default_score_threshold)
+
         if not supported_languages:
             supported_languages = ["en"]
 
@@ -497,6 +500,9 @@ class AnalyzerEngine:
         :param recognizers: recognizers selected for this request
         :return: List[RecognizerResult]
         """
+        if score_threshold is not None:
+            score_threshold = validate_score_threshold(score_threshold)
+
         if score_threshold is None:
             recognizers_by_id: Dict[str, Dict[str, float]] = {
                 recognizer.id: recognizer.score_thresholds
