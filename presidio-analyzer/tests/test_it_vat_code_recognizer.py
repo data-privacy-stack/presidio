@@ -28,6 +28,8 @@ def entities():
         ("00000000000 and 01333550323", 1, ((16, 27),), ((0.9, 1.0),)),
         # Test with a valid VAT Code and a character that needs to be replaced
         ("01333550_323", 1, ((0, 12),), ((0.9, 1.0),),),
+        # Test with a valid VAT Code followed by a word
+        ("01333550323 grazie", 1, ((0, 11),), ((0.9, 1.0),),),
         # fmt: on
     ],
 )
