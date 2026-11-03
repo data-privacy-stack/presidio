@@ -1311,3 +1311,23 @@ def test_when_analyze_with_supported_entities_then_return_exact_results(
         assert "get_supported_entities" in warnings[0]
     else:
         assert warnings == []
+
+
+@pytest.mark.parametrize("threshold", ["0.5", None, [0.5]])
+def test_a_non_numeric_score_threshold_is_rejected(threshold):
+    with pytest.raises(ValueError, match="Score threshold must be numeric"):
+        AnalyzerEngine(
+            default_score_threshold=threshold,
+            nlp_engine=NlpEngineMock(),
+            registry=RecognizerRegistryMock(),
+        )
+
+
+@pytest.mark.parametrize("threshold", [-0.1, 1.5, 7])
+def test_a_score_threshold_outside_the_range_is_rejected(threshold):
+    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+        AnalyzerEngine(
+            default_score_threshold=threshold,
+            nlp_engine=NlpEngineMock(),
+            registry=RecognizerRegistryMock(),
+        )
