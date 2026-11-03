@@ -26,10 +26,25 @@ class TrNationalIdRecognizer(PatternRecognizer):
 
     COUNTRY_CODE = "tr"
 
+    DEFAULT_REPLACEMENT_PAIRS = [
+        ("-", ""),
+        (" ", ""),
+        (",", ""),
+    ]
+
     PATTERNS = [
         Pattern(
             "TR_NATIONAL_ID",
             r"\b[1-9][0-9]{10}\b",
+            0.3,
+        ),
+        Pattern(
+            "TR_NATIONAL_ID (delimited)",
+            r"(?<![0-9][ ,-])(?<![0-9], )\b(?:"
+            r"[1-9][0-9]{2}(?:(?:[ -]|, ?)[0-9]{3}){2}(?:[ -]|, ?)[0-9]{2}"
+            r"|[1-9][0-9]{2}(?:(?:[ -]|, ?)[0-9]{2}){4}"
+            r"|[1-9][0-9]{3}(?:[ -]|, ?)[0-9]{4}(?:[ -]|, ?)[0-9]{3}"
+            r")\b(?!(?:[ -]|, ?)[0-9])",
             0.3,
         ),
     ]
@@ -55,7 +70,11 @@ class TrNationalIdRecognizer(PatternRecognizer):
         replacement_pairs: Optional[List[Tuple[str, str]]] = None,
         name: Optional[str] = None,
     ):
-        self.replacement_pairs = replacement_pairs if replacement_pairs else []
+        self.replacement_pairs = (
+            replacement_pairs
+            if replacement_pairs is not None
+            else self.DEFAULT_REPLACEMENT_PAIRS
+        )
 
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -75,6 +94,9 @@ class TrNationalIdRecognizer(PatternRecognizer):
         Only the part in text that was detected by the regex engine
         :return: A bool or None, indicating whether the validation was successful.
         """
+        if self._has_inconsistent_delimiters(pattern_text):
+            return False
+
         sanitized_value = EntityRecognizer.sanitize_value(
             pattern_text, self.replacement_pairs
         )
@@ -85,7 +107,47 @@ class TrNationalIdRecognizer(PatternRecognizer):
         if sanitized_value[0] == "0":
             return False
 
+        if len(set(sanitized_value[:10])) == 1:
+            return False
+
         return self._validate_checksum(sanitized_value)
+
+    def invalidate_result(self, pattern_text: str) -> bool:
+        """
+        Check if the pattern text cannot be validated as a TR_NATIONAL_ID entity.
+
+        Rejects mismatched delimiters and dummy repeated-digit sequences
+        (e.g. 11111111110) that mathematically satisfy the modulo checksum.
+
+        :param pattern_text: Text detected as pattern by regex.
+        :return: True if invalidated, False otherwise.
+        """
+        if self._has_inconsistent_delimiters(pattern_text):
+            return True
+
+        sanitized_value = EntityRecognizer.sanitize_value(
+            pattern_text, self.replacement_pairs
+        )
+        if len(sanitized_value) == 11 and sanitized_value.isdigit():
+            if len(set(sanitized_value[:10])) == 1:
+                return True
+
+        return False
+
+    @staticmethod
+    def _has_inconsistent_delimiters(pattern_text: str) -> bool:
+        has_hyphen = "-" in pattern_text
+        has_space = " " in pattern_text
+        has_comma = "," in pattern_text
+
+        if has_hyphen and (has_space or has_comma):
+            return True
+
+        if has_comma and has_space:
+            if pattern_text.count(",") != pattern_text.count(", "):
+                return True
+
+        return False
 
     def _validate_checksum(self, tckn: str) -> bool:
         """
