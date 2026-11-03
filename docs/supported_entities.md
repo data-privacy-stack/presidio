@@ -171,6 +171,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
 | TR_NATIONAL_ID    | The Turkish National Identification Number (TCKN) is a unique 11-digit number issued to all Turkish citizens. | Pattern match, context and checksum. |
 | TR_LICENSE_PLATE  | Turkish vehicle license plate (plaka): 2-digit province code (01–81), 1–3 letters (A–Z, excluding Q, W, X), and 2–4 digits. Standard civilian format only. Legal basis: KTK Madde 23. | Pattern match, context and province code validation. |
+| TR_TAX_ID         | Turkish Tax Identification Number (Vergi Kimlik Numarası / VKN) is a 10-digit number assigned to legal entities and individual taxpayers in Turkey. Legal basis: Vergi Kimlik Numarası Genel Tebliği (Sıra No: 2). | Pattern match, context and GİB Modulo-10 checksum validation (syntactic). |
 
 ### Philippines
 
