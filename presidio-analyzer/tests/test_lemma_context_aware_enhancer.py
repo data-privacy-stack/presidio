@@ -1,18 +1,64 @@
-from presidio_analyzer import LemmaContextAwareEnhancer
+from presidio_analyzer import LemmaContextAwareEnhancer, Pattern, PatternRecognizer
+from presidio_analyzer.nlp_engine import NlpArtifacts
 
 
 def test_when_index_finding_then_succeed():
     # This test uses a simulated recognize result for the following
     # text: "my phone number is:(425) 882-9090"
-    match = "(425) 882-9090"
-    # the start index of the match
+    # the start index of the match "(425) 882-9090"
     start = 19
     tokens = ["my", "phone", "number", "is:(425", ")", "882", "-", "9090"]
     tokens_indices = [0, 3, 9, 16, 23, 25, 28, 29]
-    index = LemmaContextAwareEnhancer._find_index_of_match_token(
-        match, start, tokens, tokens_indices
+    nlp_artifacts = NlpArtifacts(
+        entities=[],
+        tokens=tokens,
+        tokens_indices=tokens_indices,
+        lemmas=tokens,
+        nlp_engine=None,
+        language="en",
     )
+    index = LemmaContextAwareEnhancer._find_entity_first_token(nlp_artifacts, start)
     assert index == 3
+
+
+def test_when_many_results_then_each_gets_its_context_word():
+    """Each of many results gets the context word of its own line."""
+    count = 10000
+    lines = [f"email user{i}@example.com" for i in range(count)]
+    text = "\n".join(lines)
+    tokens = []
+    tokens_indices = []
+    offset = 0
+    for line in lines:
+        for token in line.split(" "):
+            tokens.append(token)
+            tokens_indices.append(offset)
+            offset += len(token) + 1
+    nlp_artifacts = NlpArtifacts(
+        entities=[],
+        tokens=tokens,
+        tokens_indices=tokens_indices,
+        lemmas=tokens,
+        nlp_engine=None,
+        language="en",
+    )
+    nlp_artifacts.keywords = tokens
+    recognizer = PatternRecognizer(
+        supported_entity="TEST_EMAIL",
+        context=["email"],
+        patterns=[Pattern("test_email", r"user\d+@example\.com", 0.3)],
+    )
+    results = recognizer.analyze(text, ["TEST_EMAIL"])
+
+    enhanced = LemmaContextAwareEnhancer().enhance_using_context(
+        text, results, nlp_artifacts, [recognizer]
+    )
+
+    assert len(enhanced) == count
+    assert all(
+        result.analysis_explanation.supportive_context_word == "email"
+        for result in enhanced
+    )
 
 
 def test_when_context_word_substring_then_no_false_match():

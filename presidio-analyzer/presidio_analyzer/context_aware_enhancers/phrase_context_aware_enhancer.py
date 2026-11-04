@@ -158,6 +158,7 @@ class PhraseContextAwareEnhancer(ContextAwareEnhancer):
             ]
             for recognizer in recognizers
         }
+        keywords = set(nlp_artifacts.keywords)
         for i, result in enumerate(results):
             metadata = result.recognition_metadata or {}
             phrases = phrases_dict.get(
@@ -168,7 +169,7 @@ class PhraseContextAwareEnhancer(ContextAwareEnhancer):
                 RecognizerResult.IS_SCORE_ENHANCED_BY_CONTEXT_KEY
             ):
                 continue
-            window = self._get_context_window(nlp_artifacts, result.start)
+            window = self._get_context_window(nlp_artifacts, result.start, keywords)
             if not window:
                 continue
             phrase = self._find_supportive_phrase_in_window(
