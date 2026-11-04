@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [unreleased]
+### Analyzer
+#### Fixed
+- `ItVatCodeRecognizer` no longer includes the space after an Italian VAT number in the match when a word follows it, so anonymizing such a number no longer removes that space.
 
 ## [2.2.366] - 2026-10-27
 ### General
