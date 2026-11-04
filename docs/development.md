@@ -109,6 +109,13 @@ For example for analyzer service:
 docker-compose up --build -d presidio-analyzer
 ```
 
+To run the distroless analyzer and anonymizer images (built from `Dockerfile.distroless`) instead of the default ones,
+layer the override file on top. It starts only these two services, on the same host ports:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.distroless.yml up --build -d
+```
+
 ### Testing
 
 We strive to have a full test coverage in Presidio, and expect every pull request to
@@ -199,6 +206,9 @@ Running the e2e-tests locally can be done in two ways:
 
 !!! note "Note"
     The e2e tests require a Presidio cluster to be up, for example using the containerized cluster with docker-compose.
+    To test the distroless images, start the cluster with `docker-compose.distroless.yml` (see above) and run
+    `pytest -m "not package" --ignore=tests/test_api_image_redactor.py`, as there is no distroless image-redactor.
+    CI runs the e2e tests against both the default and the distroless images.
 
 ### Linting
 

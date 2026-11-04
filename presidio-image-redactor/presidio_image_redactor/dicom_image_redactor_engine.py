@@ -378,7 +378,7 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
         # Get background color
         if is_greyscale:
             # Select most common color as color
-            bg_color = int(np.bincount(list(image.getdata())).argmax())
+            bg_color = int(np.bincount(list(image.get_flattened_data())).argmax())
         else:
             # Reduce size of image to 1 pixel to get dominant color
             tmp_image = image.copy()

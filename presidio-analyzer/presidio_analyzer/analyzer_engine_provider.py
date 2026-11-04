@@ -5,9 +5,19 @@ from typing import Any, Dict, List, Optional, Union
 import yaml
 
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+from presidio_analyzer.context_aware_enhancers import (
+    CompositeContextAwareEnhancer,
+    ContextAwareEnhancer,
+    LemmaContextAwareEnhancer,
+    PhraseContextAwareEnhancer,
+)
 from presidio_analyzer.input_validation import ConfigurationValidator
 from presidio_analyzer.nlp_engine import NlpEngine, NlpEngineProvider
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+from presidio_analyzer.text_normalizers import (
+    FullWidthAndInvisibleCharsNormalizer,
+    TextNormalizer,
+)
 
 logger = logging.getLogger("presidio-analyzer")
 
@@ -93,14 +103,73 @@ class AnalyzerEngineProvider:
             supported_languages=supported_languages, nlp_engine=nlp_engine
         )
 
+        context_aware_enhancer = self._load_context_aware_enhancer()
+        text_normalizer = self._load_text_normalizer()
+
         analyzer = AnalyzerEngine(
             nlp_engine=nlp_engine,
             registry=registry,
             supported_languages=supported_languages,
             default_score_threshold=default_score_threshold,
+            context_aware_enhancer=context_aware_enhancer,
+            text_normalizer=text_normalizer,
         )
 
         return analyzer
+
+    def _load_context_aware_enhancer(self) -> Optional[ContextAwareEnhancer]:
+        """Load the context-aware enhancer from the ``context_aware_enhancer`` section.
+
+        Returns None when the section is absent, so that AnalyzerEngine
+        creates its default enhancer. Otherwise returns a composite of the
+        listed ``enhancers``, or of a lemma and a phrase enhancer. The section's
+        settings apply to every enhancer, and an entry's own settings override
+        them.
+        """
+        if "context_aware_enhancer" not in self.configuration:
+            return None
+
+        enhancer_configuration = (
+            ConfigurationValidator.validate_context_aware_enhancer_configuration(
+                self.configuration["context_aware_enhancer"]
+            )
+        )
+        entries = enhancer_configuration.pop("enhancers", None) or [
+            {"type": "lemma"},
+            {"type": "phrase"},
+        ]
+        enhancer_classes = {
+            "lemma": LemmaContextAwareEnhancer,
+            "phrase": PhraseContextAwareEnhancer,
+        }
+        enhancers = []
+        for entry in entries:
+            enhancer_class = enhancer_classes[entry.pop("type")]
+            # an entry's own settings override the section's settings
+            enhancers.append(
+                enhancer_class(**{**enhancer_configuration, **entry})
+                if entry
+                else enhancer_class
+            )
+        return CompositeContextAwareEnhancer(enhancers, **enhancer_configuration)
+
+    def _load_text_normalizer(self) -> Optional[TextNormalizer]:
+        """Load the text normalizer from the ``text_normalizer`` section.
+
+        Returns None when the section is absent, so the text is not normalized.
+        """
+        if "text_normalizer" not in self.configuration:
+            return None
+
+        normalizer_configuration = (
+            ConfigurationValidator.validate_text_normalizer_configuration(
+                self.configuration["text_normalizer"]
+            )
+        )
+        normalizer_classes = {
+            "full_width_and_invisible_chars": FullWidthAndInvisibleCharsNormalizer,
+        }
+        return normalizer_classes[normalizer_configuration["type"]]()
 
     def _load_recognizer_registry(
         self,

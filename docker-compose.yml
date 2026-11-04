@@ -25,12 +25,6 @@ services:
       - PORT=5001
     ports:
       - "5001:5001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
-      interval: 30s
-      timeout: 3s
-      start_period: 30s
-      retries: 3
     restart: unless-stopped
 
   presidio-analyzer:
@@ -47,12 +41,6 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
-      interval: 30s
-      timeout: 3s
-      start_period: 30s
-      retries: 3
     restart: unless-stopped
 
   presidio-image-redactor:
