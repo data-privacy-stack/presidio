@@ -2,6 +2,7 @@
 
 import pytest
 from presidio_analyzer.text_normalizers import (
+    CjkSpacingNormalizer,
     FullWidthAndInvisibleCharsNormalizer,
     NoOpTextNormalizer,
     NormalizedText,
@@ -189,3 +190,30 @@ def test_composition_maps_to_both_original_characters():
 def test_normalized_text_checks_its_alignment(text, starts, ends, message):
     with pytest.raises(ValueError, match=message):
         NormalizedText(original_text="abc", text=text, starts=starts, ends=ends)
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("号码4111111111111111结束", "号码 4111111111111111 结束"),
+        ("番号jane@example.comです", "番号 jane@example.com です"),
+        ("번호는192.168.0.1입니다", "번호는 192.168.0.1 입니다"),
+        # Full-width digits are folded first, then spaced out.
+        ("电话１３８００１３８０００", "电话 13800138000"),
+        ("号码 123 结束", "号码 123 结束"),
+        ("你好，世界", "你好，世界"),
+        ("ID 123, mail test@example.com", "ID 123, mail test@example.com"),
+    ],
+)
+def test_cjk_spacing_separates_cjk_text_from_ascii_letters_and_digits(text, expected):
+    assert CjkSpacingNormalizer().normalize(text, "en").text == expected
+
+
+def test_cjk_spacing_maps_values_and_spaces_to_the_original_text():
+    text = "号码" + to_fullwidth("4111111111111111") + "\u200b结束"
+    normalized = CjkSpacingNormalizer().normalize(text, "en")
+    assert normalized.text == "号码 4111111111111111 结束"
+    assert normalized.to_original(3, 19) == (2, 18)
+    # Each space maps to the CJK character next to it.
+    assert normalized.to_original(2, 3) == (1, 2)
+    assert normalized.to_original(19, 20) == (19, 20)
