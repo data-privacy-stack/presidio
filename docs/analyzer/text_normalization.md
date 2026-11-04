@@ -23,6 +23,23 @@ The text is not normalized unless a text normalizer is given.
 
 Nothing else changes. In particular there is no Unicode compatibility (NFKC) normalization, which would rewrite characters such as `①`, `²` or half-width katakana.
 
+## Values written next to CJK text
+
+Chinese, Japanese and Korean text often has no spaces around numbers, emails and other values, as in `号码4111111111111111结束`.
+Patterns that use `\b` treat CJK characters as word characters, so they find no word boundary there and miss the value.
+`CjkSpacingNormalizer` does what `FullWidthAndInvisibleCharsNormalizer` does, and also puts a space between a Han, Hiragana, Katakana or Hangul character and an ASCII letter or digit next to it:
+
+```python
+from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.text_normalizers import CjkSpacingNormalizer
+
+analyzer = AnalyzerEngine(text_normalizer=CjkSpacingNormalizer())
+results = analyzer.analyze(text="我的邮箱是john@example.com谢谢", language="en")
+print(results)
+```
+
+Each added space is mapped to the CJK character next to it, so the results keep the offsets of the value in the original text.
+
 ## How the analyzer uses it
 
 With a text normalizer, the analyzer:
@@ -44,6 +61,7 @@ text_normalizer:
 ```
 
 `type` defaults to `full_width_and_invisible_chars`, so an empty `text_normalizer:` section turns on the same normalizer.
+Use `type: cjk_spacing` for `CjkSpacingNormalizer`.
 
 ## Writing your own normalizer
 
