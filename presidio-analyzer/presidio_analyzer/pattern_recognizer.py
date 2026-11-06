@@ -107,7 +107,8 @@ class PatternRecognizer(LocalRecognizer):
         :param text: Text to be analyzed
         :param entities: Entities this recognizer can detect
         :param nlp_artifacts: Output values from the NLP engine
-        :param regex_flags: regex flags to be used in regex matching
+        :param regex_flags: Regex flags to use instead of the recognizer's defaults.
+        ``None`` uses ``global_regex_flags``. ``0`` disables the default flags.
         :return:
         """
         results = []
@@ -202,7 +203,7 @@ class PatternRecognizer(LocalRecognizer):
         :param flags: regex flags
         :return: A list of RecognizerResult
         """
-        flags = flags if flags else self.global_regex_flags
+        flags = flags if flags is not None else self.global_regex_flags
         results = []
         for pattern in self.patterns:
             match_start_time = datetime.datetime.now()
