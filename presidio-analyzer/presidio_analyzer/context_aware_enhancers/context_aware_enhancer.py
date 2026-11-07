@@ -7,6 +7,35 @@ from presidio_analyzer.nlp_engine import NlpArtifacts
 
 logger = logging.getLogger("presidio-analyzer")
 
+#: The context matching modes a recognizer or an enhancer may use.
+CONTEXT_MATCHING_MODES = ("substring", "whole_word")
+
+
+def resolve_context_matching_mode(
+    recognizer: Optional[EntityRecognizer], default: str
+) -> str:
+    """
+    Return the context matching mode to use for a recognizer's results.
+
+    A recognizer may opt into a mode of its own through its
+    ``CONTEXT_MATCHING_MODE`` class attribute; otherwise the enhancer's
+    configured mode applies. This lets one recognizer match its context
+    words as whole tokens only (e.g. ``"sin"`` must not match inside
+    ``"business"``) without changing the default for every recognizer.
+
+    :param recognizer: the recognizer the result belongs to, or None
+    :param default: the enhancer's configured ``context_matching_mode``
+    :return: ``"substring"`` or ``"whole_word"``
+    :raises ValueError: if the recognizer declares an unknown mode
+    """
+    mode = getattr(recognizer, "CONTEXT_MATCHING_MODE", None) or default
+    if mode not in CONTEXT_MATCHING_MODES:
+        raise ValueError(
+            f"context_matching_mode must be one of: 'substring', 'whole_word'. "
+            f"Got: {mode!r} from {type(recognizer).__name__}."
+        )
+    return mode
+
 
 class ContextAwareEnhancer:
     """
