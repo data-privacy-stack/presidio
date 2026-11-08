@@ -526,6 +526,11 @@ recognizers:
     enabled: false
     country_code: in
 
+  - name: InDrivingLicenceRecognizer
+    type: predefined
+    enabled: false
+    country_code: in
+
   - name: InGstinRecognizer
     supported_languages: 
     - en
