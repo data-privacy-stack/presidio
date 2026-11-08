@@ -174,6 +174,32 @@ def test_given_decrypt_called_with_invalid_key_then_invalid_input_response_retur
 
 
 @pytest.mark.api
+def test_given_decrypt_called_without_deanonymizer_for_entity_then_invalid_input_response_returned():
+    text = (
+        "My name is S184CMt9Drj7QaKQ21JTrpYzghnboTF9pn/neN8JME0= and I live in Seattle"
+    )
+    request_body = {
+        "text": text,
+        "deanonymizers": {"PERSON": {"type": "decrypt", "key": "WmZq4t7w!z%C&F)J"}},
+        "anonymizer_results": [
+            {"start": 11, "end": 55, "entity_type": "PERSON"},
+            {"start": 70, "end": 77, "entity_type": "LOCATION"},
+        ],
+    }
+
+    response_status, response_content = deanonymize(json.dumps(request_body))
+
+    expected_response = """
+    {
+        "error": "Invalid input, no operator was given for entity type 'LOCATION' and there is no DEFAULT operator"
+    }
+    """
+
+    assert response_status == 422
+    assert equal_json_strings(expected_response, response_content)
+
+
+@pytest.mark.api
 def test_given_decrypt_called_with_missing_key_then_invalid_input_response_returned():
     request_body = """
     {
