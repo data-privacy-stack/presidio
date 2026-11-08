@@ -778,7 +778,7 @@ wheels = [
 
 [[package]]
 name = "presidio-anonymizer"
-version = "2.2.365"
+version = "2.2.366"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },

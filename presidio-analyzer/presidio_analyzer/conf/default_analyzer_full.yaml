@@ -8,6 +8,12 @@ default_score_threshold: 0
 #   context_prefix_count: 5
 #   context_suffix_count: 0
 #   context_matching_mode: substring # or whole_word
+#   # Optional: the enhancers to run, in order. The keys above apply to each
+#   # of them, and an entry's own keys override them.
+#   enhancers:
+#     - type: lemma
+#     - type: phrase
+#       context_matching_mode: whole_word
 nlp_configuration:
   nlp_engine_name: spacy
   models:

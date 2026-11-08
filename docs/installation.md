@@ -168,7 +168,7 @@ docker build ./presidio-anonymizer -t presidio/presidio-anonymizer
 And run:
 
 ```sh
-docker run -d -p 5001:5001 presidio/presidio-anonymizer
+docker run -d -p 5001:3000 presidio/presidio-anonymizer
 ```
 
 ---

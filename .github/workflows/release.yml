@@ -114,7 +114,7 @@ jobs:
           skip-existing: true
 
   build-and-push-containers:
-    name: Build and Push ${{ matrix.image }} (${{ matrix.platform }})
+    name: Build and Push ${{ matrix.image }} (${{ matrix.platform }}${{ matrix.variant && format(', {0}', matrix.variant) }})
     runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     needs: get-version
     permissions:
@@ -126,6 +126,12 @@ jobs:
       matrix:
         image: [presidio-anonymizer, presidio-analyzer, presidio-image-redactor]
         platform: [linux/amd64, linux/arm64]
+        # '' is the default (slim) image; distroless images are built from Dockerfile.distroless
+        # and published to the same repositories with a -distroless tag suffix.
+        variant: ['', distroless]
+        exclude:
+          - image: presidio-image-redactor
+            variant: distroless
         include:
           - platform: linux/amd64
             platform_tag: linux-amd64
@@ -155,12 +161,17 @@ jobs:
             version_tag="${IMAGE_VERSION}"
           fi
 
+          # Default image: Dockerfile and unsuffixed tags. Distroless: Dockerfile.distroless and -distroless tags.
+          dockerfile="Dockerfile${VARIANT:+.${VARIANT}}"
+          tag_suffix="${VARIANT:+-${VARIANT}}"
+
           docker buildx build \
             --platform ${{ matrix.platform }} \
-            --cache-from type=registry,ref=${repo}:latest \
+            --cache-from "type=registry,ref=${repo}:latest${tag_suffix}" \
             --cache-to type=inline \
-            --tag "${repo}:latest-${{ matrix.platform_tag }}" \
-            --tag "${repo}:${version_tag}-${{ matrix.platform_tag }}" \
+            --file "./${{ matrix.image }}/${dockerfile}" \
+            --tag "${repo}:latest${tag_suffix}-${{ matrix.platform_tag }}" \
+            --tag "${repo}:${version_tag}${tag_suffix}-${{ matrix.platform_tag }}" \
             --attest type=sbom \
             --attest type=provenance,mode=max \
             --push \
@@ -168,6 +179,7 @@ jobs:
         env:
           VERSION: ${{ needs.get-version.outputs.version }}
           IMAGE_VERSION: ${{ needs.get-version.outputs.image-version }}
+          VARIANT: ${{ matrix.variant }}
 
   create-container-manifests:
     name: Create Multi-Platform Container Manifests
@@ -190,6 +202,8 @@ jobs:
         run: |
           images=(presidio-anonymizer presidio-analyzer presidio-image-redactor)
           platform_tags=(linux-amd64 linux-arm64)
+          # '' is the default (slim) image, so `latest` stays slim; distroless images are tagged -distroless.
+          tag_suffixes=("" "-distroless")
 
           for image in "${images[@]}"; do
             repo="${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/${image}"
@@ -198,15 +212,22 @@ jobs:
               version_tag="${IMAGE_VERSION}"
             fi
 
-            for tag in latest "${version_tag}"; do
-              platform_refs=()
-              for platform_tag in "${platform_tags[@]}"; do
-                platform_refs+=("${repo}:${tag}-${platform_tag}")
-              done
+            for tag_suffix in "${tag_suffixes[@]}"; do
+              # There is no distroless image-redactor.
+              if [ "${image}" = "presidio-image-redactor" ] && [ -n "${tag_suffix}" ]; then
+                continue
+              fi
 
-              docker buildx imagetools create \
-                --tag "${repo}:${tag}" \
-                "${platform_refs[@]}"
+              for tag in latest "${version_tag}"; do
+                platform_refs=()
+                for platform_tag in "${platform_tags[@]}"; do
+                  platform_refs+=("${repo}:${tag}${tag_suffix}-${platform_tag}")
+                done
+
+                docker buildx imagetools create \
+                  --tag "${repo}:${tag}${tag_suffix}" \
+                  "${platform_refs[@]}"
+              done
             done
           done
         env:

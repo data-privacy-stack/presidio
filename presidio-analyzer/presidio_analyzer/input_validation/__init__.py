@@ -5,12 +5,16 @@ from .schemas import ConfigurationValidator
 from .yaml_recognizer_models import (
     BaseRecognizerConfig,
     ContextAwareEnhancerConfig,
+    ContextAwareEnhancerSettingsConfig,
     CustomRecognizerConfig,
     GLiNERRecognizerConfig,
     HuggingFaceRecognizerConfig,
     LanguageContextConfig,
+    LemmaContextAwareEnhancerConfig,
+    PhraseContextAwareEnhancerConfig,
     PredefinedRecognizerConfig,
     RecognizerRegistryConfig,
+    TextNormalizerConfig,
 )
 
 __all__ = [
@@ -18,10 +22,14 @@ __all__ = [
     "ConfigurationValidator",
     "BaseRecognizerConfig",
     "ContextAwareEnhancerConfig",
+    "ContextAwareEnhancerSettingsConfig",
     "CustomRecognizerConfig",
     "GLiNERRecognizerConfig",
     "HuggingFaceRecognizerConfig",
     "LanguageContextConfig",
+    "LemmaContextAwareEnhancerConfig",
+    "PhraseContextAwareEnhancerConfig",
     "PredefinedRecognizerConfig",
     "RecognizerRegistryConfig",
+    "TextNormalizerConfig",
 ]

@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Iterator
 
 import pytest
@@ -7,9 +8,12 @@ from presidio_analyzer import (
     AnalyzerEngine,
     AnalyzerEngineProvider,
     BatchAnalyzerEngine,
+    CompositeContextAwareEnhancer,
+    ContextAwareEnhancer,
     LemmaContextAwareEnhancer,
     Pattern,
     PatternRecognizer,
+    PhraseContextAwareEnhancer,
 )
 from presidio_analyzer.nlp_engine import NlpEngineProvider, NoOpNlpEngine
 from presidio_analyzer.predefined_recognizers import SpacyRecognizer
@@ -372,6 +376,49 @@ class TestNoOpNlpEngineAnalyzerIntegration:
             AnalyzerEngine(
                 nlp_engine=no_op_nlp_engine,
                 context_aware_enhancer=LemmaContextAwareEnhancer(),
+            )
+
+    @pytest.mark.parametrize(
+        "enhancers, expected_class",
+        [
+            (["phrase"], "PhraseContextAwareEnhancer"),
+            (["custom", "lemma", "phrase"], "LemmaContextAwareEnhancer"),
+        ],
+    )
+    def test_when_analyzer_uses_no_op_with_composite_context_enhancer_then_warns(
+        self, no_op_nlp_engine, enhancers, expected_class
+    ):
+        enhancer_classes = {
+            "custom": ContextAwareEnhancer,
+            "lemma": LemmaContextAwareEnhancer,
+            "phrase": PhraseContextAwareEnhancer,
+        }
+        composite = CompositeContextAwareEnhancer(
+            [
+                enhancer_classes[name](0.35, 0.4, 5, 0)
+                if name == "custom"
+                else enhancer_classes[name]()
+                for name in enhancers
+            ]
+        )
+
+        with pytest.warns(UserWarning, match=f"{expected_class} cannot use") as record:
+            AnalyzerEngine(
+                nlp_engine=no_op_nlp_engine, context_aware_enhancer=composite
+            )
+        assert len([w for w in record if "NoOpNlpEngine" in str(w.message)]) == 1
+
+    def test_when_analyzer_uses_no_op_with_custom_context_enhancer_then_no_warning(
+        self, no_op_nlp_engine
+    ):
+        composite = CompositeContextAwareEnhancer(
+            [ContextAwareEnhancer(0.35, 0.4, 5, 0)]
+        )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            AnalyzerEngine(
+                nlp_engine=no_op_nlp_engine, context_aware_enhancer=composite
             )
 
     def test_when_provider_uses_no_op_then_spacy_recognizer_is_not_added(
