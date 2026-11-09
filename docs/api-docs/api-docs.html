@@ -11,61 +11,34 @@
             margin: 0;
             padding: 0;
         }
+
+        :root {
+            --font-family-base: Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+            --heading-font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+            --font-size-base: 16px;
+        }
+
+        :root:has(.redoc.light) {
+            --color-primary-base: #4f46e5;
+            --sidebar-bg-color: #fbfbfd;
+        }
+
+        :root:has(.redoc.dark) {
+            --color-primary-base: #7c7ff2;
+        }
     </style>
 </head>
 <body>
 <div id="redoc-container"></div>
-<script src="https://unpkg.com/redoc@2.5.0/bundles/redoc.standalone.js"></script>
-<script type="text/javascript">
-    (function() {
-        Redoc.init(
-            "./api-docs.yml",
-            {
-                "untrustedSpec": true,
-                "theme": {
-                    "colors": {
-                        "primary": {
-                            "main": "#4f46e5"
-                        },
-                        "success": {
-                            "main": "#22c55e"
-                        },
-                        "http": {
-                            "get": "#4f46e5",
-                            "post": "#7c3aed",
-                            "put": "#8957e8",
-                            "delete": "#e5484d"
-                        }
-                    },
-                    "typography": {
-                        "fontSize": "16px",
-                        "fontFamily": "Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif",
-                        "headings": {
-                            "fontFamily": "'Plus Jakarta Sans', Inter, sans-serif",
-                            "fontWeight": "700",
-                            "lineHeight": "1.3em"
-                        },
-                        "links": {
-                            "color": "#4f46e5"
-                        },
-                        "code": {
-                            "color": "#7c3aed",
-                            "backgroundColor": "rgba(124, 58, 237, 0.08)"
-                        }
-                    },
-                    "sidebar": {
-                        "backgroundColor": "#fbfbfd",
-                        "textColor": "#11131a",
-                        "activeTextColor": "#4f46e5"
-                    },
-                    "rightPanel": {
-                        "backgroundColor": "#131d4a",
-                        "textColor": "#ffffff"
-                    }
-                }
-            },
-            document.getElementById('redoc-container'));
-    })();
+<script type="module">
+    import { init } from 'https://unpkg.com/redoc@3.1.0/bundles/redoc.standalone.js';
+
+    init(
+        "./api-docs.yml",
+        {
+            "sanitize": true
+        },
+        document.getElementById('redoc-container'));
 </script>
 </body>
 </html>
