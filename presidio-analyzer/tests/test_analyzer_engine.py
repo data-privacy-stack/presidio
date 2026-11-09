@@ -1072,6 +1072,30 @@ def test_ad_hoc_when_no_other_recognizers_are_requested_returns_only_ad_hoc_resu
     assert "ZIP" in [resp.entity_type for resp in responses]
 
 
+def test_ad_hoc_recognizer_filtering_by_entities_analyzed_when_entities_omitted(
+    loaded_analyzer_engine,
+):
+    class EntityFilteredAdHocRecognizer(EntityRecognizer):
+        def __init__(self):
+            super().__init__(supported_entities=["CUSTOM_ADHOC"])
+
+        def load(self):
+            pass
+
+        def analyze(self, text: str, entities: List[str], nlp_artifacts=None):
+            if "CUSTOM_ADHOC" not in entities:
+                return []
+            return [RecognizerResult("CUSTOM_ADHOC", 0, 4, 0.8)]
+
+    results = loaded_analyzer_engine.analyze(
+        text="John lives here",
+        language="en",
+        ad_hoc_recognizers=[EntityFilteredAdHocRecognizer()],
+    )
+
+    assert "CUSTOM_ADHOC" in [r.entity_type for r in results]
+
+
 def test_when_recognizer_doesnt_return_recognizer_name_no_exception(spacy_nlp_engine):
     class MockRecognizer1(EntityRecognizer, ABC):
         def analyze(self, text: str, entities: List[str], nlp_artifacts: NlpArtifacts):
