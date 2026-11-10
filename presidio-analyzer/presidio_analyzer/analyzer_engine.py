@@ -387,6 +387,18 @@ class AnalyzerEngine:
         """Map results found on the raw text to normalized-text offsets."""
         mapped_results = []
         for result in results:
+            if not AnalyzerEngine._has_valid_span(
+                result, len(normalized.original_text)
+            ):
+                logger.warning(
+                    "Skipping a %s result with an invalid span (%d, %d) for an "
+                    "original text of length %d",
+                    result.entity_type,
+                    result.start,
+                    result.end,
+                    len(normalized.original_text),
+                )
+                continue
             span = normalized.to_normalized(result.start, result.end)
             if span is None:
                 # The match only covers characters that normalization removed.
