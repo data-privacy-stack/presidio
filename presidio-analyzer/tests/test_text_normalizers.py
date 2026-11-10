@@ -126,6 +126,17 @@ def test_to_normalized():
     assert normalized.to_normalized(1, 2) is None
 
 
+@pytest.mark.parametrize(
+    "start,end",
+    [(-1, 1), (0, 4), (2, 2), (2, 1), (3, 4)],
+)
+def test_to_normalized_rejects_invalid_original_spans(start, end):
+    normalized = normalize("abc")
+
+    with pytest.raises(ValueError, match="Invalid original span"):
+        normalized.to_normalized(start, end)
+
+
 def test_spans_round_trip():
     text = "pay " + to_fullwidth("DE89370400440532013000") + "\u200b now"
     normalized = normalize(text)
