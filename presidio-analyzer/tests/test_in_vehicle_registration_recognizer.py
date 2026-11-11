@@ -36,13 +36,13 @@ def entities():
         # Plates are commonly written with spaces or hyphens between groups.
         # Separated forms stay at the weak pattern score: validation only
         # drops an unknown state or district, and context lifts real plates.
-        ("MH 12 AB 1234", 1, (0, 13), 0.30),
-        ("KA-01-EA-1234", 1, (0, 13), 0.30),
-        ("DL 3C AB 1234", 1, (0, 13), 0.30),
-        ("DL-3C-AB-1234", 1, (0, 13), 0.30),
-        ("DL 3 CAB 1234", 1, (0, 13), 0.30),
-        ("mh 12 ab 1234", 1, (0, 13), 0.30),
-        ("RTA: vehicle MH 12 AB 1234 vs two-wheeler", 1, (13, 26), 0.30),
+        ("MH 12 AB 1234", 1, (0, 13), 0.20),
+        ("KA-01-EA-1234", 1, (0, 13), 0.20),
+        ("DL 3C AB 1234", 1, (0, 13), 0.20),
+        ("DL-3C-AB-1234", 1, (0, 13), 0.20),
+        ("DL 3 CAB 1234", 1, (0, 13), 0.20),
+        ("mh 12 ab 1234", 1, (0, 13), 0.20),
+        ("RTA: vehicle MH 12 AB 1234 vs two-wheeler", 1, (13, 26), 0.20),
         # Unknown state or district code: dropped.
         ("XY 99 AB 1234", 0, (), (),),
         ("MH 99 AB 1234", 0, (), (),),
@@ -55,9 +55,11 @@ def entities():
         ("PO 10 MG 1000", 0, (), (),),
         ("IV 12 MG 1234", 0, (), (),),
         ("SC 5 MG 2000", 0, (), (),),
-        ("GIVE 5 OR 10 MG 1000 UNITS", 1, (7, 20), 0.30),
-        ("HR 12 BP 1234", 1, (0, 13), 0.30),
-        ("give 5 or 10 mg 1000 units", 1, (7, 20), 0.30),
+        ("GIVE 5 OR 10 MG 1000 UNITS", 1, (7, 20), 0.20),
+        ("HR 12 BP 1234", 1, (0, 13), 0.20),
+        ("give 5 or 10 mg 1000 units", 1, (7, 20), 0.20),
+        # English words that are also state codes ("up" for Uttar Pradesh).
+        ("The index went up 12 to 1234 points.", 1, (15, 28), 0.20),
         # fmt: on
     ],
 )
@@ -157,8 +159,8 @@ recognizers:
     "text, expected_start, expected_end, expected_score",
     [
         # Context word before the plate lifts the weak separated match.
-        ("Vehicle no. MH 12 AB 1234 was involved", 12, 25, 0.65),
-        ("RTO registration KA-01-EA-1234 noted.", 17, 30, 0.65),
+        ("Vehicle no. MH 12 AB 1234 was involved", 12, 25, 0.55),
+        ("RTO registration KA-01-EA-1234 noted.", 17, 30, 0.55),
         # Unseparated plates are unchanged: validated to the maximum score.
         ("Vehicle no. MH12AB1234 was involved", 12, 22, 1.0),
     ],
@@ -184,6 +186,7 @@ def test_when_enabled_in_yaml_then_plate_with_context_scores_high(
         "GIVE 5 OR 10 MG 1000 UNITS",
         "HR 12 BP 1234",
         "PO 1 BD 1000",
+        "The index went up 12 to 1234 points.",
         "Ambulance KA-01-EA-1234 brought the patient in.",
     ],
 )

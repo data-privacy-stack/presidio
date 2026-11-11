@@ -70,21 +70,23 @@ class InVehicleRegistrationRecognizer(PatternRecognizer):
         #   "DL 3C AB 1234" / "DL-3C-AB-1234"  (one-digit district + series)
         #   "DL 3 CAB 1234" / "DL-3-CAB-1234"  (one-digit district)
         # This shape also occurs in clinical and pharmacy text ("OR 10 MG 1000",
-        # "HR 12 BP 1234"), so these patterns are weak: validate_result does not
-        # promote them, and context words lift real plates. Matching follows the
-        # recognizer's case-insensitive default, since the low score rather than
-        # letter case is what keeps coincidental matches below a threshold.
+        # "HR 12 BP 1234") and in plain English ("up 12 to 1234", where "UP" is
+        # the Uttar Pradesh state code), so these patterns are weak:
+        # validate_result does not promote them, and context words lift real
+        # plates. Matching follows the recognizer's case-insensitive default,
+        # since the low score rather than letter case is what keeps coincidental
+        # matches below a threshold.
         Pattern(
             "India Vehicle Registration (separated, weak)",
             r"\b[A-Z]{2}([- ])\d{1}"
             r"(?:[A-Z]{1,3}|\1[A-Z]{1,3}|[A-Z]\1[A-Z]{1,2})"
             r"\1(?!0000)\d{4}\b",
-            0.30,
+            0.20,
         ),
         Pattern(
             "India Vehicle Registration (separated, weak)",
             r"\b[A-Z]{2}([- ])\d{2}\1[A-Z]{1,2}\1(?!0000)\d{4}\b",
-            0.30,
+            0.20,
         ),
         Pattern(
             "India Vehicle Registration",
