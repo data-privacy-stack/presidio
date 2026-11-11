@@ -149,7 +149,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 ### Norway
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
-| NO_FODSELSNUMMER | The Norwegian national identity number (fødselsnummer) is an 11-digit number with a birth date and two control digits. The recognizer also supports D-nummer, H-nummer, synthetic test numbers and the control digit rule for numbers issued from 2032. | Pattern match, context, and checksum. |
+| NO_FODSELSNUMMER | The Norwegian national identity number (fødselsnummer) is an 11-digit number with a birth date and two control digits. The recognizer also supports D-nummer, H-nummer, synthetic test numbers and the control digit rule for numbers issued from 2032. Disabled by default, and only loaded when `nb` is in `supported_languages`. | Pattern match, context, and checksum. |
 
 ### South Africa
 | FieldType  | Description                                                                                             | Detection Method                         |
