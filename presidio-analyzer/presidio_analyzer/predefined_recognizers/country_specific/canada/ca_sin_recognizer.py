@@ -31,14 +31,14 @@ class CaSinRecognizer(PatternRecognizer):
         Pattern("SIN (medium)", r"\b[1-79]\d{2}([- ])\d{3}\1\d{3}\b", 0.5),
     ]
 
+    # The abbreviations "sin" and "nas" appear only inside phrases: on their
+    # own they would match as substrings of "business", "cousin" or "dynasty".
     CONTEXT = [
-        "sin",
         "sin number",
         "social insurance",
         "social insurance number",
         "canada",
         # French equivalents
-        "nas",
         "numéro nas",
         "numéro d'assurance sociale",
         "assurance sociale",
