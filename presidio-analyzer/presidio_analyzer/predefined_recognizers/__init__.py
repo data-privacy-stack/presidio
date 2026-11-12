@@ -12,6 +12,7 @@ from .country_specific.australia.au_tfn_recognizer import AuTfnRecognizer
 
 # Canada recognizers
 from .country_specific.canada.ca_postal_code_recognizer import CaPostalCodeRecognizer
+from .country_specific.canada.ca_ramq_recognizer import CaRamqRecognizer
 from .country_specific.canada.ca_sin_recognizer import CaSinRecognizer
 
 # Finland recognizers
@@ -224,6 +225,7 @@ NLP_RECOGNIZERS = {
 __all__ = [
     "AbaRoutingRecognizer",
     "CaPostalCodeRecognizer",
+    "CaRamqRecognizer",
     "CaSinRecognizer",
     "CreditCardRecognizer",
     "CryptoRecognizer",
