@@ -326,3 +326,41 @@ def test_batch_analyze_iterator_returns_list_of_recognizer_results(
     assert len(results) == len(expected_output)
     for result, expected_result in zip(results, expected_output):
         assert result == expected_result
+
+
+
+def _analyzed_contexts(batch_analyzer_engine, mocker, input_dict, **kwargs):
+    spy = mocker.spy(batch_analyzer_engine.analyzer_engine, "analyze")
+
+    def consume(results):
+        # nested dicts are analyzed lazily
+        for result in results:
+            if not isinstance(result.recognizer_results, list):
+                consume(result.recognizer_results)
+
+    consume(batch_analyzer_engine.analyze_dict(input_dict, language="en", **kwargs))
+    return {call.kwargs["text"]: call.kwargs["context"] for call in spy.call_args_list}
+
+
+def test_analyze_dict_scalar_gets_same_context_as_list(
+    batch_analyzer_engine_simple, mocker
+):
+    input_dict = {"a": "2121551234", "b": ["3131551234"]}
+
+    contexts = _analyzed_contexts(
+        batch_analyzer_engine_simple, mocker, input_dict, context=["phone"]
+    )
+
+    assert contexts["2121551234"] == ["phone", "a"]
+    assert contexts["3131551234"] == ["phone", "b"]
+
+
+def test_analyze_dict_nested_scalar_gets_parent_keys(
+    batch_analyzer_engine_simple, mocker
+):
+    input_dict = {"contact": {"phone": {"home": "2121551234", "work": 2121551235}}}
+
+    contexts = _analyzed_contexts(batch_analyzer_engine_simple, mocker, input_dict)
+
+    assert contexts["2121551234"] == ["contact", "phone", "home"]
+    assert contexts["2121551235"] == ["contact", "phone", "work"]
