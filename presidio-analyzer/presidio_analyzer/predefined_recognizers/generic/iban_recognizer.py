@@ -12,6 +12,7 @@ from presidio_analyzer import (
     RecognizerResult,
 )
 from presidio_analyzer.nlp_engine import NlpArtifacts
+from presidio_analyzer.pattern_recognizer import to_ascii_digits
 from presidio_analyzer.predefined_recognizers.generic.iban_patterns import (
     BOS,
     EOS,
@@ -124,7 +125,7 @@ class IbanRecognizer(PatternRecognizer):
         results = []
 
         if self.patterns:
-            pattern_result = self.__analyze_patterns(text)
+            pattern_result = self.__analyze_patterns(to_ascii_digits(text))
             results.extend(pattern_result)
 
         return results
