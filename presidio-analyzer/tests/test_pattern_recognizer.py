@@ -8,6 +8,7 @@ import pytest
 import regex as regex_module
 from presidio_analyzer import Pattern, PatternRecognizer, RecognizerResult
 from presidio_analyzer.pattern_recognizer import REGEX_TIMEOUT_SECONDS
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 from tests import assert_result
 
@@ -181,7 +182,11 @@ def test_deny_list_score_change():
 
 @pytest.mark.parametrize(
     "text,flag,expected_len",
-    [("mrs. Kennedy", re.IGNORECASE, 1), ("mrs. Kennedy", re.DOTALL, 0)],
+    [
+        ("mrs. Kennedy", re.IGNORECASE, 1),
+        ("mrs. Kennedy", re.DOTALL, 0),
+        ("mrs. Kennedy", 0, 0),
+    ],
 )
 def test_deny_list_regex_flags(text, flag, expected_len):
     deny_list = ["Mr.", "Mrs."]
@@ -391,6 +396,58 @@ def test_pattern_recognizer_analyze_with_custom_regex_flags():
     # Should match with IGNORECASE flag
     results = recognizer.analyze("TEST", ["TEST"], regex_flags=re.IGNORECASE)
     assert len(results) == 1
+
+
+@pytest.mark.parametrize(
+    "pattern,text,start,end",
+    [
+        ("A", "a", 0, 1),
+        ("^A", "\nA", 1, 2),
+        ("A.B", "A\nB", 0, 3),
+    ],
+)
+def test_call_regex_flags_override_defaults(pattern, text, start, end):
+    """An explicit zero disables each default regex flag."""
+    recognizer = PatternRecognizer(
+        supported_entity="CODE", patterns=[Pattern("code", pattern, 0.7)]
+    )
+
+    # IGNORECASE, MULTILINE, and DOTALL are enabled by default.
+    results = recognizer.analyze(text, ["CODE"])
+    assert len(results) == 1
+    assert_result(results[0], "CODE", start, end, 0.7)
+
+    assert recognizer.analyze(text, ["CODE"], regex_flags=0) == []
+
+
+def test_yaml_recognizer_call_zero_flags_override_defaults(tmp_path):
+    """A YAML-loaded recognizer honors an explicit zero at analysis time."""
+    conf = tmp_path / "recognizers.yaml"
+    conf.write_text(
+        """
+        supported_languages: [en]
+        recognizers:
+          - name: UppercaseCode
+            type: custom
+            enabled: true
+            supported_languages: [en]
+            supported_entity: CODE
+            patterns:
+              - name: uppercase
+                regex: 'A'
+                score: 0.7
+        """,
+        encoding="utf-8",
+    )
+    registry = RecognizerRegistryProvider(conf_file=conf).create_recognizer_registry()
+    [recognizer] = registry.get_recognizers(language="en", entities=["CODE"])
+
+    default_results = recognizer.analyze("A a", ["CODE"])
+    assert len(default_results) == 2
+
+    [result] = recognizer.analyze("A a", ["CODE"], regex_flags=0)
+    assert_result(result, "CODE", 0, 1, 0.7)
+    assert result.analysis_explanation.regex_flags == 0
 
 
 def test_pattern_recognizer_multiple_patterns():
