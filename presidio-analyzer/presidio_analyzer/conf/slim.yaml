@@ -119,6 +119,10 @@ recognizer_registry:
       type: predefined
       enabled: false
 
+    - name: InDrivingLicenceRecognizer
+      type: predefined
+      enabled: false
+
     - name: InGstinRecognizer
       type: predefined
       enabled: false
