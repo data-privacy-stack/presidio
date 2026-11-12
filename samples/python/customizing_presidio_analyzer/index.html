@@ -1723,6 +1723,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../analyzer/text_normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Full-width and invisible characters
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
     
     
     
@@ -1735,10 +1762,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_3_4_2_5" id="__nav_3_4_2_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_4_2_6" id="__nav_3_4_2_6_label" tabindex="0">
             
   
   
@@ -1756,8 +1783,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_3_4_2_5">
+          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3_4_2_6">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -5155,7 +5182,7 @@ Results from English request:
 <span class="p">)</span>
 </code></pre></div>
 <p>When creating an <code>AnalyzerEngine</code> we can provide our own context enhancement logic by passing it to <code>context_aware_enhancer</code> parameter.
-<code>AnalyzerEngine</code> will create <code>LemmaContextAwareEnhancer</code> by default if not passed, which will enhance score of each matched result if it's recognizer holds context words and those words are found in context of the matched entity.</p>
+<code>AnalyzerEngine</code> will create the composite of <code>LemmaContextAwareEnhancer</code> and <code>PhraseContextAwareEnhancer</code> by default if not passed, which will enhance score of each matched result if its recognizer holds context words and the lemma of those words, or a context phrase, are found in the surroundings of the matched entity.</p>
 <div class="highlight"><pre><span></span><code><span class="n">registry</span> <span class="o">=</span> <span class="n">RecognizerRegistry</span><span class="p">()</span>
 <span class="n">registry</span><span class="o">.</span><span class="n">add_recognizer</span><span class="p">(</span><span class="n">zipcode_recognizer</span><span class="p">)</span>
 <span class="n">analyzer</span> <span class="o">=</span> <span class="n">AnalyzerEngine</span><span class="p">(</span><span class="n">registry</span><span class="o">=</span><span class="n">registry</span><span class="p">)</span>
@@ -5169,7 +5196,7 @@ Results from English request:
 Result 0:
  type: US_ZIP_CODE, start: 15, end: 20, score: 0.4, text: 90210
 </code></pre></div>
-<p>The confidence score is now 0.4, instead of 0.01. because <code>LemmaContextAwareEnhancer</code> default context similarity factor is 0.35 and default minimum score with context similarity is 0.4, we can change that by passing <code>context_similarity_factor</code> and <code>min_score_with_context_similarity</code> parameters of <code>LemmaContextAwareEnhancer</code> to other than values, for example:</p>
+<p>The confidence score is now 0.4, instead of 0.01, because the default context similarity factor is 0.35 and the default minimum score with context similarity is 0.4. We can change that by passing other values to the <code>context_similarity_factor</code> and <code>min_score_with_context_similarity</code> parameters of the <code>LemmaContextAwareEnhancer</code> object, for example:</p>
 <div class="highlight"><pre><span></span><code><span class="n">registry</span> <span class="o">=</span> <span class="n">RecognizerRegistry</span><span class="p">()</span>
 <span class="n">registry</span><span class="o">.</span><span class="n">add_recognizer</span><span class="p">(</span><span class="n">zipcode_recognizer</span><span class="p">)</span>
 <span class="n">analyzer</span> <span class="o">=</span> <span class="n">AnalyzerEngine</span><span class="p">(</span>

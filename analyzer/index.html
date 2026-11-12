@@ -1989,6 +1989,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="./text_normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Full-width and invisible characters
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
     
     
     
@@ -2001,10 +2028,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_3_4_2_5" id="__nav_3_4_2_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_4_2_6" id="__nav_3_4_2_6_label" tabindex="0">
             
   
   
@@ -2022,8 +2049,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_3_4_2_5">
+          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3_4_2_6">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -5112,7 +5139,7 @@ It is possible to mix multiple NER models in Presidio, for instance, one model a
 <p>Presidio has an off-the-shelf support for multiple NLP packages, such as spaCy, stanza, and huggingface. The simplest way to integrate a model from these packages is through the <code>NlpEngine</code>. More information on this <a href="customizing_nlp_models/">can be found in the NlpEngine documentation</a>. The samples gallery has several examples of leveraging NER models as new <code>EntityRecognizer</code> objects. For example, <a href="../samples/python/flair_recognizer.py">flair</a> and <a href="../samples/python/span_marker_recognizer.py">spanmarker</a>.
 For a detailed flow of Named Entities within presidio, see the diagram <a href="nlp_engines/transformers/#how-ner-results-flow-within-presidio">in this document</a>.</p>
 <h3 id="context-aware-enhancer"><code>Context Aware Enhancer</code></h3>
-<p>The <code>ContextAwareEnhancer</code> is a module that enhances the detection of entities by using the context of the text. The <code>ContextAwareEnhancer</code> can be used to improve the detection of entities that are dependent on the context of the text, such as dates, locations, and more. The default implementation is the <code>LemmaContextAwareEnhancer</code> which uses the lemmas of the tokens in the text to enhance the detection of entities. Note that it's possible (and sometimes recommended) to create custom <code>ContextAwareEnhancer</code> objects to fit the specific needs of the user, for example if the context should support more than one word, which is currently not supported by the default Lemma based enhancer.
+<p>The <code>ContextAwareEnhancer</code> is a module that enhances the detection of entities by using the context of the text. The <code>ContextAwareEnhancer</code> can be used to improve the detection of entities that are dependent on the context of the text, such as dates, locations, and more. The default implementation is a <code>CompositeContextAwareEnhancer</code> that runs the <code>LemmaContextAwareEnhancer</code>, which uses the lemmas of the tokens in the text to enhance the detection of entities, and then the <code>PhraseContextAwareEnhancer</code>, which finds context terms of several words such as <code>driving licence</code>. A match is enhanced by the first of them that finds a context term. Note that it's possible (and sometimes recommended) to create custom <code>ContextAwareEnhancer</code> objects to fit the specific needs of the user.
 More information on this can be found <a href="../samples/python/customizing_presidio_analyzer/">in this sample</a>.</p>
 <h2 id="creating-pii-recognizers">Creating PII recognizers</h2>
 <p>Presidio analyzer can be easily extended to support additional PII entities.

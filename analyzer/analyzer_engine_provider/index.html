@@ -1732,6 +1732,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../text_normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Full-width and invisible characters
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
     
     
     
@@ -1744,10 +1771,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_3_4_2_5" id="__nav_3_4_2_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_4_2_6" id="__nav_3_4_2_6_label" tabindex="0">
             
   
   
@@ -1765,8 +1792,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_3_4_2_5">
+          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3_4_2_6">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -4781,7 +4808,18 @@ Configuration can be loaded in three different ways:</p>
 <li><code>default_score_threshold</code>: A score that determines the minimal threshold for detection.</li>
 <li><code>nlp_configuration</code>: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.</li>
 <li><code>recognizer_registry</code>: All the recognizers that will be used by the analyzer. Each recognizer entry can define <code>score_thresholds</code>, using <code>default</code> as its fallback and entity names for overrides.</li>
-<li><code>context_aware_enhancer</code> (optional): Parameters for the <code>LemmaContextAwareEnhancer</code> that boosts scores when context words appear around a match. Supported keys are <code>context_similarity_factor</code> (default <code>0.35</code>) and <code>min_score_with_context_similarity</code> (default <code>0.4</code>), both between 0 and 1; <code>context_prefix_count</code> (default <code>5</code>) and <code>context_suffix_count</code> (default <code>0</code>), the number of words before and after the match to search for context, both non-negative integers; and <code>context_matching_mode</code>, either <code>substring</code> (default) or <code>whole_word</code>. Omitted keys keep their defaults, unknown keys are rejected, and leaving out the whole section keeps the default enhancer. Setting <code>context_suffix_count</code> helps languages that often place the context word after the value, such as German or Turkish ("05xx xxx xx xx numaralı telefonum").</li>
+<li><code>context_aware_enhancer</code> (optional): Parameters for the enhancer that boosts scores when context words appear around a match: <code>context_similarity_factor</code>, <code>min_score_with_context_similarity</code>, <code>context_prefix_count</code>, <code>context_suffix_count</code> and <code>context_matching_mode</code>. They apply to the default lemma and phrase enhancers. To choose the enhancers, or to give one enhancer its own parameters, list them under <code>enhancers</code>:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nt">context_aware_enhancer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">context_prefix_count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">enhancers</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lemma</span>
+<span class="w">      </span><span class="nt">context_suffix_count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">phrase</span>
+<span class="w">      </span><span class="nt">context_matching_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">whole_word</span>
+</code></pre></div>
+<ul>
+<li><code>text_normalizer</code> (optional): Normalizes the text before it is analyzed, so entities written with full-width or invisible characters are found. <code>type</code> is <code>full_width_and_invisible_chars</code>, the default. Without this section the text is not normalized. See <a href="../text_normalization/">Full-width and invisible characters</a>.</li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Defining confidence thresholds</p>

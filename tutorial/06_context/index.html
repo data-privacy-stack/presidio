@@ -1788,6 +1788,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../analyzer/text_normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Full-width and invisible characters
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
     
     
     
@@ -1800,10 +1827,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_3_4_2_5" id="__nav_3_4_2_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_4_2_6" id="__nav_3_4_2_6_label" tabindex="0">
             
   
   
@@ -1821,8 +1848,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_3_4_2_5">
+          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3_4_2_6">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -4584,7 +4611,11 @@
 
 <h1 id="example-6-leveraging-context-words">Example 6: Leveraging context words</h1>
 <p>Presidio has an internal mechanism for leveraging context words. This mechanism would increase the detection confidence of a PII entity in case a specific word appears before or after it.</p>
-<p>Furthermore, it is possible to create your own context enhancer, if you require a different logic for identifying context terms. The default context-aware enhancer in Presidio is the <code>LemmaContextAwareEnhancer</code> which compares each recognizer's context terms with the lemma of each token in the sentence.</p>
+<p>Furthermore, it is possible to create your own context enhancer, if you require a different logic for identifying context terms. The default context-aware enhancer in Presidio is a <code>CompositeContextAwareEnhancer</code> that runs two enhancers in order, and the first one that finds a context term enhances the score:</p>
+<ul>
+<li><code>LemmaContextAwareEnhancer</code> compares each recognizer's context terms with the lemma of each token in the sentence.</li>
+<li><code>PhraseContextAwareEnhancer</code> handles context terms of several words, such as <code>zip code</code>, which cannot equal the lemma of one token. It looks for them in the original text of the context window, outside the entity itself. The words of such a term may be separated by whitespace, a hyphen or a slash (<code>zip code</code>, <code>zip-code</code>, <code>zip/code</code>), and each word may also match a token's lemma (<code>woman driver</code> matches <code>women drivers</code>).</li>
+</ul>
 <p>In this example we would first implement a zip code recognizer without context, and then add context to see how the confidence changes. Zip regex patterns (essentially 5 digits) are very weak, so we would want the initial confidence to be low, and increased with the existence of context words.</p>
 <h2 id="example-adding-context-words-support-to-recognizers">Example: Adding context words support to recognizers</h2>
 <p>First, let's create a simple <code>US_ZIP_CODE</code> recognizer:</p>
@@ -4626,7 +4657,7 @@
 <span class="p">)</span>
 </code></pre></div>
 <p>When creating an <code>AnalyzerEngine</code> we can provide our own context enhancement logic by passing it to <code>context_aware_enhancer</code> parameter.
-<code>AnalyzerEngine</code> will create <code>LemmaContextAwareEnhancer</code> by default if not passed, which will enhance score of each matched result if its recognizer holds context words and the lemma of those words are found in the surroundings of the matched entity.</p>
+<code>AnalyzerEngine</code> will create the composite of <code>LemmaContextAwareEnhancer</code> and <code>PhraseContextAwareEnhancer</code> by default if not passed, which will enhance score of each matched result if its recognizer holds context words and the lemma of those words, or a context phrase, are found in the surroundings of the matched entity.</p>
 <p>Creating the <code>AnalyzerEngine</code> and adding the new recognizer:</p>
 <!--pytest-codeblocks:cont-->
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">presidio_analyzer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalyzerEngine</span><span class="p">,</span> <span class="n">RecognizerRegistry</span>
@@ -4640,7 +4671,7 @@
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Result:"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </code></pre></div>
-<p>The confidence score is now 0.4, instead of 0.01, since the <code>LemmaContextAwareEnhancer</code> default context similarity factor is 0.35 and default minimum score with context similarity is 0.4. We can change that by passing other values to the <code>context_similarity_factor</code> and <code>min_score_with_context_similarity</code> parameters of the <code>LemmaContextAwareEnhancer</code> object. For example:</p>
+<p>The confidence score is now 0.4, instead of 0.01, since the default context similarity factor is 0.35 and default minimum score with context similarity is 0.4. We can change that by passing other values to the <code>context_similarity_factor</code> and <code>min_score_with_context_similarity</code> parameters of the <code>LemmaContextAwareEnhancer</code> object. For example:</p>
 <!--pytest-codeblocks:cont-->
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">presidio_analyzer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalyzerEngine</span><span class="p">,</span> <span class="n">RecognizerRegistry</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">presidio_analyzer.context_aware_enhancers</span><span class="w"> </span><span class="kn">import</span> <span class="n">LemmaContextAwareEnhancer</span>

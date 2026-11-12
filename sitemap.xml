@@ -43,6 +43,9 @@
         <loc>https://presidio.dataprivacystack.org/analyzer/recognizer_registry_provider/</loc>
       </url>
       <url>
+        <loc>https://presidio.dataprivacystack.org/analyzer/text_normalization/</loc>
+      </url>
+      <url>
         <loc>https://presidio.dataprivacystack.org/anonymizer/</loc>
       </url>
       <url>

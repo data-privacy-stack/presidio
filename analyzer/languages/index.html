@@ -19,7 +19,7 @@
         <link rel="prev" href="../filtering_by_country/">
       
       
-        <link rel="next" href="../customizing_nlp_models/">
+        <link rel="next" href="../text_normalization/">
       
       
         
@@ -1829,6 +1829,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../text_normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Full-width and invisible characters
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
     
     
     
@@ -1841,10 +1868,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_3_4_2_5" id="__nav_3_4_2_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_4_2_6" id="__nav_3_4_2_6_label" tabindex="0">
             
   
   
@@ -1862,8 +1889,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_3_4_2_5">
+          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3_4_2_6">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -4675,6 +4702,10 @@ lemmatization, Named Entity Recognition and other NLP tasks.</li>
 <p class="admonition-title">Note</p>
 <p>While different detection mechanisms such as regular expressions are language agnostic, the context words used to increase the PII detection confidence aren't. Consider updating the list of context words for each recognizer to leverage context words in additional languages.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Full-width and invisible characters</p>
+<p>Text typed with Chinese or Japanese input methods often contains full-width letters and digits (<code>１２３</code>), which ASCII patterns and models do not match. See <a href="../text_normalization/">Full-width and invisible characters</a> to normalize the text before it is analyzed.</p>
+</div>
 <h2 id="table-of-contents">Table of contents</h2>
 <ul>
 <li><a href="#configuring-the-nlp-engine">Configuring the NLP Engine</a></li>
@@ -4785,13 +4816,13 @@ A docker file supporting transformers models <a href="https://github.com/data-pr
         
         
           
-          <a href="../customizing_nlp_models/" class="md-footer__link md-footer__link--next" aria-label="Next: Home">
+          <a href="../text_normalization/" class="md-footer__link md-footer__link--next" aria-label="Next: Full-width and invisible characters">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Home
+                Full-width and invisible characters
               </div>
             </div>
             <div class="md-footer__button md-icon">

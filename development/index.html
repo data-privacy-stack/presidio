@@ -1723,6 +1723,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../analyzer/text_normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Full-width and invisible characters
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
     
     
     
@@ -1735,10 +1762,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4_2_6" >
         
           
-          <label class="md-nav__link" for="__nav_3_4_2_5" id="__nav_3_4_2_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_4_2_6" id="__nav_3_4_2_6_label" tabindex="0">
             
   
   
@@ -1756,8 +1783,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_3_4_2_5">
+          <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_3_4_2_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3_4_2_6">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -2623,6 +2650,34 @@
       </span>
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Local build process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-the-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Building the documentation
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-the-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Building the services
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -4759,6 +4814,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Local build process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-the-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Building the documentation
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-the-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Building the services
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -4928,6 +5011,20 @@ Follow these steps when starting to work on a Presidio service with uv:</p>
 <li>PRs should be small and solve/improve one issue at a time. If you have multiple suggestions for improvement, please open multiple PRs.</li>
 </ul>
 <h3 id="local-build-process">Local build process</h3>
+<h4 id="building-the-documentation">Building the documentation</h4>
+<p>Install the documentation dependencies and build the site from the repository root:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/requirements-docs.txt
+python<span class="w"> </span>scripts/zensical_build.py<span class="w"> </span>build
+</code></pre></div>
+<p>Run these commands in an activated virtual environment. The build converts notebook
+samples before generating the site in <code>site/</code>. Python API references are collected
+from the checked-out source directories configured in <code>mkdocs.yml</code>, not the installed
+Presidio release, so newly added APIs can be documented before they are published
+to PyPI. The REST API reference uses a pinned ReDoc version; verify that
+<code>site/api-docs/api-docs.html</code> renders after changing that version.</p>
+<p>The Release Documentation workflow publishes the generated site to GitHub Pages
+when run manually. Merging a documentation fix does not publish it automatically.</p>
+<h4 id="building-the-services">Building the services</h4>
 <p>After modifying presidio codebase, you might want to build presidio cluster locally, and run tests to spot regressions.
 The recommended way of doing so is using docker-compose (bundled with 'Docker Desktop' for Windows and Mac systems,
 more information can be found <a href="https://docs.docker.com/compose/install/">here</a>).
