@@ -79,14 +79,16 @@ class AuAbnRecognizer(PatternRecognizer):
         text = EntityRecognizer.sanitize_value(pattern_text, self.replacement_pairs)
         abn_list = [int(digit) for digit in text if not digit.isspace()]
 
+        # Valid ABNs never start with 0. A leading 0 would become -1 below,
+        # which still passes the mod 89 check for 1 in 89 such numbers.
+        if abn_list[0] == 0:
+            return False
+
         # Set weights based on digit position
         weight = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
 
         # Perform checksums. The ABR algorithm subtracts 1 from the first
-        # (left-most) digit; a leading 0 therefore becomes -1 (which makes the
-        # weighted sum non-zero mod 89 and correctly fails — valid ABNs never
-        # start with 0). The previous special case remapped 0 to 9, which
-        # admitted some invalid leading-zero numbers as valid.
+        # (left-most) digit.
         abn_list[0] = abn_list[0] - 1
         sum_product = 0
         for i in range(11):
