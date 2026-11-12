@@ -139,6 +139,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |--- |--- |--- |
 |CA_SIN|A Canadian Social Insurance Number (SIN) is a 9-digit number issued by Employment and Social Development Canada (ESDC) to administer government programs. The last digit is a Luhn check digit. SINs starting with 0 or 8 are reserved and not issued.|Pattern match, context, and checksum|
 |CA_POSTAL_CODE|A Canadian postal code in the standard A1A 1A1 format (letter-digit-letter, space, digit-letter-digit). The letters D, F, I, O, Q, U are never used in any letter position; W and Z are additionally excluded from the first letter position.|Pattern match and context|
+|CA_RAMQ|A Quebec health insurance number (RAMQ, "NAM"): 4 letters (first 3 of the surname, first of the first name) followed by 8 digits (birth year, birth month with 50 added for women, birth day, 2 administrative digits), optionally separated by spaces or dashes. No check digit is published, so detection is by format and context only; a plausible birth date (month 01-12 or 51-62, day 01-31) scores higher than other numbers of the same shape.|Pattern match and context|
 
 ### Sweden
 | FieldType  | Description                                                                                             | Detection Method                         |
