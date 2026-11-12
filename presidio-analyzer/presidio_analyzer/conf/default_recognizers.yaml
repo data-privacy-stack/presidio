@@ -216,6 +216,14 @@ recognizers:
     enabled: false
     country_code: au
 
+  - name: MaRibRecognizer
+    supported_languages:
+    - ar
+    - fr
+    type: predefined
+    enabled: false
+    country_code: ma
+
   - name: NgNinRecognizer
     supported_languages:
     - en
