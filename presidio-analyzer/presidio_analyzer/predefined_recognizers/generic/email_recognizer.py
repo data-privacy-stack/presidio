@@ -13,6 +13,10 @@ class EmailRecognizer(PatternRecognizer):
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
     :param supported_entity: The entity this recognizer can detect
+    :param name: Name of the recognizer
+    :param offline: If True, uses tldextract in offline mode with bundled PSL
+        snapshot data only (no external network calls to publicsuffix.org).
+        Defaults to False.
     """
 
     # The domain part allows internal hyphen groups inside each label, including
@@ -37,6 +41,7 @@ class EmailRecognizer(PatternRecognizer):
         supported_language: str = "en",
         supported_entity: str = "EMAIL_ADDRESS",
         name: Optional[str] = None,
+        offline: bool = False,
     ):
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
@@ -47,7 +52,12 @@ class EmailRecognizer(PatternRecognizer):
             supported_language=supported_language,
             name=name,
         )
+        self.offline = offline
+        if offline:
+            self._extract = tldextract.TLDExtract(suffix_list_urls=())
+        else:
+            self._extract = tldextract.extract
 
     def validate_result(self, pattern_text: str):  # noqa: D102
-        result = tldextract.extract(pattern_text)
+        result = self._extract(pattern_text)
         return result.fqdn != ""

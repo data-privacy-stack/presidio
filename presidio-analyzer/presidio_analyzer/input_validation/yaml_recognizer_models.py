@@ -789,7 +789,25 @@ class RecognizerRegistryConfig(BaseModel):
 
 # Map specific recognizer classes to their dedicated config models
 # This allows for modular expansion without polluting the base config
+
+class EmailRecognizerConfig(PredefinedRecognizerConfig):
+    """Configuration specifically for EmailRecognizer."""
+
+    model_config = ConfigDict(extra="allow")
+
+    offline: Optional[bool] = Field(
+        default=None,
+        description="Whether to run tldextract in offline mode using bundled snapshot",
+    )
+
+    def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        """Serialize the config without None values by default."""
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(*args, **kwargs)
+
+
 CONFIG_MODEL_MAP: Dict[str, Type[BaseModel]] = {
+    "EmailRecognizer": EmailRecognizerConfig,
     "HuggingFaceNerRecognizer": HuggingFaceRecognizerConfig,
     "GLiNERRecognizer": GLiNERRecognizerConfig,
     "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
