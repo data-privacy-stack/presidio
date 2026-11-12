@@ -1,5 +1,6 @@
 """Text normalizers for the analyzer."""
 
+from .cjk_spacing_normalizer import CjkSpacingNormalizer
 from .full_width_and_invisible_chars_normalizer import (
     FullWidthAndInvisibleCharsNormalizer,
 )
@@ -12,4 +13,5 @@ __all__ = [
     "NormalizedText",
     "NoOpTextNormalizer",
     "FullWidthAndInvisibleCharsNormalizer",
+    "CjkSpacingNormalizer",
 ]
