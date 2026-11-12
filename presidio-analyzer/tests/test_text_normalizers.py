@@ -124,11 +124,13 @@ def test_to_normalized():
     assert normalized.to_normalized(1, 5) == (1, 3)
     # A span of removed characters only has no normalized counterpart.
     assert normalized.to_normalized(1, 2) is None
+    # Empty in-bounds spans have no normalized counterpart.
+    assert normalized.to_normalized(2, 2) is None
 
 
 @pytest.mark.parametrize(
     "start,end",
-    [(-1, 1), (0, 4), (2, 2), (2, 1), (3, 4)],
+    [(-1, 1), (0, 4), (2, 1), (3, 4)],
 )
 def test_to_normalized_rejects_invalid_original_spans(start, end):
     normalized = normalize("abc")
