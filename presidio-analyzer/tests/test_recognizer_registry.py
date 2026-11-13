@@ -892,7 +892,9 @@ def test_default_recognizers_yaml_declares_languages_not_countries():
     """
     # ISO 639-1 codes the shipped recognizers are written against. Adding one
     # here should be a deliberate decision, not a side effect of a new entry.
-    known_languages = {"de", "en", "es", "fi", "fr", "it", "ko", "pl", "sv", "th", "tr"}
+    known_languages = {
+        "de", "en", "es", "fi", "fr", "it", "ja", "ko", "pl", "sv", "th", "tr"
+    }
 
     # ``kr`` survives on these two entries as a backward-compatibility alias,
     # not as a language. Both classes defaulted to ``supported_language="kr"``
