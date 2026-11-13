@@ -78,6 +78,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 
 |Entity Type|Description|Detection Method|
 |--- |--- |--- |
+|PL_ID_CARD|Polish identity card number. Disabled by default.|Pattern match, context and checksum|
 |PL_PESEL|Polish PESEL number|Pattern match, context and checksum|
 
 ### Singapore
