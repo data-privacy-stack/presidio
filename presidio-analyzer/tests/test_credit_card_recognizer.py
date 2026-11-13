@@ -61,3 +61,14 @@ def test_when_all_credit_cards_then_succeed(
         assert res.score == expected_score
     for res, (start, end) in zip(results, expected_res):
         assert_result(res, entities[0], start, end, max_score)
+
+
+@pytest.mark.parametrize("separator", ["\u00a0", "\u2007", "\u2009", "\u202f"])
+def test_when_groups_are_separated_by_a_unicode_space_then_succeed(
+    separator, cc_recognizer, entities, max_score
+):
+    """A card number grouped with a no-break, figure or thin space is found."""
+    number = separator.join(["4111", "1111", "1111", "1111"])
+    results = cc_recognizer.analyze(f"card {number}", entities)
+    assert len(results) == 1
+    assert_result(results[0], entities[0], 5, 5 + len(number), max_score)

@@ -46,6 +46,8 @@ class IbanRecognizer(PatternRecognizer):
     # - ((?:[ -]?[A-Z0-9]{4})?): Second optional capture group for 1 more group of 4
     # - ((?:[ -]?[A-Z0-9]{1,3})?): Third optional capture group for trailing 1-3 chars
     # - (?![A-Z0-9]): Negative lookahead - ensures we don't end mid-IBAN
+    # - [ -]? above also accepts a no-break, figure, thin or narrow no-break
+    #   space (U+00A0, U+2007, U+2009, U+202F)
     #
     # Multiple capture groups enable validation fallback: the __analyze_patterns method
     # iterates through groups in reverse order (3→2→1), trying progressively shorter
@@ -54,8 +56,10 @@ class IbanRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "IBAN Generic",
-            r"(?<![A-Z0-9])([A-Z]{2}[0-9]{2}(?:[ -]?[A-Z0-9]{4}){2,6})"
-            r"((?:[ -]?[A-Z0-9]{4})?)((?:[ -]?[A-Z0-9]{1,3})?)(?![A-Z0-9])",
+            r"(?<![A-Z0-9])([A-Z]{2}[0-9]{2}"
+            r"(?:[ \u00a0\u2007\u2009\u202f-]?[A-Z0-9]{4}){2,6})"
+            r"((?:[ \u00a0\u2007\u2009\u202f-]?[A-Z0-9]{4})?)"
+            r"((?:[ \u00a0\u2007\u2009\u202f-]?[A-Z0-9]{1,3})?)(?![A-Z0-9])",
             0.5,
         ),
     ]
@@ -78,7 +82,14 @@ class IbanRecognizer(PatternRecognizer):
         replacement_pairs: Optional[List[Tuple[str, str]]] = None,
         name: Optional[str] = None,
     ):
-        self.replacement_pairs = replacement_pairs or [("-", ""), (" ", "")]
+        self.replacement_pairs = replacement_pairs or [
+            ("-", ""),
+            (" ", ""),
+            ("\u00a0", ""),
+            ("\u2007", ""),
+            ("\u2009", ""),
+            ("\u202f", ""),
+        ]
         self.exact_match = exact_match
         self.BOSEOS = bos_eos if exact_match else ()
         patterns = patterns if patterns else self.PATTERNS
