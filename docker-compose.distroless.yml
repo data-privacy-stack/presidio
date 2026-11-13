@@ -1,0 +1,35 @@
+# Runs the distroless analyzer and anonymizer images instead of the default (slim) ones.
+# Layer it on top of docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.distroless.yml up --build -d
+#
+# Only presidio-analyzer and presidio-anonymizer are started: ollama and presidio-image-redactor
+# (which has no distroless image) are moved to the "slim-only" profile, so they are skipped.
+#
+# The distroless images have no shell, so PORT and WORKERS are ignored: gunicorn listens on
+# container port 3000 (configure it with GUNICORN_CMD_ARGS). The host ports are unchanged
+# (anonymizer 5001, analyzer 5002), so the e2e tests run as-is against this stack.
+# Requires Docker Compose >= 2.24.4 (for the !reset and !override tags).
+services:
+  ollama:
+    profiles: [slim-only]
+
+  presidio-image-redactor:
+    profiles: [slim-only]
+
+  presidio-anonymizer:
+    image: ${REGISTRY_NAME}/${IMAGE_PREFIX}presidio-anonymizer${TAG}-distroless
+    build:
+      dockerfile: Dockerfile.distroless
+    environment: !reset []
+    ports: !override
+      - "5001:3000"
+
+  presidio-analyzer:
+    image: ${REGISTRY_NAME}/${IMAGE_PREFIX}presidio-analyzer${TAG}-distroless
+    build:
+      dockerfile: Dockerfile.distroless
+    environment: !reset []
+    ports: !override
+      - "5002:3000"
+    depends_on: !reset []

@@ -551,7 +551,7 @@ components:
           description: "Difference from the original score"
         supportive_context_word:
           type: string
-          description: "The context word which helped increase the score"
+          description: "The context word or phrase which helped increase the score"
         validation_result:
           type: boolean
           nullable: true
