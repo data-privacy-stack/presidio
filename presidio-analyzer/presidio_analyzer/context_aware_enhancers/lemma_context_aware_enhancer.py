@@ -110,6 +110,7 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
             logger.warning("NLP artifacts were not provided")
             return matched
 
+        keywords = set(nlp_artifacts.keywords)
         for i, result in enumerate(results):
             recognizer = None
             # get recognizer matching the result, if found.
@@ -148,10 +149,8 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
                 continue
 
             # extract lemmatized context from the surrounding of the match
-            word = text[result.start : result.end]
-
             surrounding_words = self._extract_surrounding_words(
-                nlp_artifacts=nlp_artifacts, word=word, start=result.start
+                nlp_artifacts=nlp_artifacts, start=result.start, keywords=keywords
             )
 
             # combine other sources of context with surrounding words
@@ -234,7 +233,7 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         return word
 
     def _extract_surrounding_words(
-        self, nlp_artifacts: NlpArtifacts, word: str, start: int
+        self, nlp_artifacts: NlpArtifacts, start: int, keywords: Set[str]
     ) -> List[str]:
         """Extract words surrounding another given word.
 
@@ -244,8 +243,8 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         :param nlp_artifacts: An abstraction layer which holds different
                               items which are the result of a NLP pipeline
                               execution on a given text
-        :param word: The word to look for context around
         :param start: The start index of the word in the original text
+        :param keywords: the keywords of nlp_artifacts as a set
         """
         if not nlp_artifacts.tokens:
             logger.info("Skipping context extraction due to lack of NLP artifacts")
@@ -254,16 +253,10 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
             # context
             return [""]
 
-        # Get the already prepared words in the given text, in their
-        # LEMMATIZED version
-        lemmatized_keywords = nlp_artifacts.keywords
-
         # since the list of tokens is not necessarily aligned
         # with the actual index of the match, we look for the
         # token index which corresponds to the match
-        token_index = self._find_index_of_match_token(
-            word, start, nlp_artifacts.tokens, nlp_artifacts.tokens_indices
-        )
+        token_index = self._find_entity_first_token(nlp_artifacts, start)
 
         # index i belongs to the PII entity, take the preceding n words
         # and the successing m words into a context list
@@ -272,13 +265,13 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
             token_index,
             self.context_prefix_count,
             nlp_artifacts.lemmas,
-            lemmatized_keywords,
+            keywords,
         )
         forward_context = self._add_n_words_forward(
             token_index,
             self.context_suffix_count,
             nlp_artifacts.lemmas,
-            lemmatized_keywords,
+            keywords,
         )
 
         context_list = []
@@ -289,45 +282,11 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         return context_list
 
     @staticmethod
-    def _find_index_of_match_token(
-        word: str,
-        start: int,
-        tokens,
-        tokens_indices: List[int],
-    ) -> int:
-        found = False
-        # we use the known start index of the original word to find the actual
-        # token at that index, we are not checking for equivalence since the
-        # token might be just a substring of that word (e.g. for phone number
-        # 555-124564 the first token might be just '555' or for a match like '
-        # rocket' the actual token will just be 'rocket' hence the misalignment
-        # of indices)
-        # Note: we are iterating over the original tokens (not the lemmatized)
-        i = -1
-        for i, token in enumerate(tokens, 0):
-            # Either we found a token with the exact location, or
-            # we take a token which its characters indices covers
-            # the index we are looking for.
-            if (tokens_indices[i] == start) or (start < tokens_indices[i] + len(token)):
-                # found the interesting token, the one that around it
-                # we take n words, we save the matching lemma
-                found = True
-                break
-
-        if not found:
-            raise ValueError(
-                "Did not find word '" + word + "' "
-                "in the list of tokens although it "
-                "is expected to be found"
-            )
-        return i
-
-    @staticmethod
     def _add_n_words(
         index: int,
         n_words: int,
         lemmas: List[str],
-        lemmatized_filtered_keywords: List[str],
+        lemmatized_filtered_keywords: Set[str],
         is_backward: bool,
     ) -> List[str]:
         """
@@ -339,7 +298,7 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         :param index: index of the lemma that its surrounding words we want
         :param n_words: number of words to take
         :param lemmas: array of lemmas
-        :param lemmatized_filtered_keywords: the array of filtered
+        :param lemmatized_filtered_keywords: the set of filtered
                lemmas from the original sentence,
         :param is_backward: if true take the preceeding words, if false,
                             take the successing words
@@ -366,7 +325,7 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         index: int,
         n_words: int,
         lemmas: List[str],
-        lemmatized_filtered_keywords: List[str],
+        lemmatized_filtered_keywords: Set[str],
     ) -> List[str]:
         return self._add_n_words(
             index, n_words, lemmas, lemmatized_filtered_keywords, False
@@ -377,7 +336,7 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         index: int,
         n_words: int,
         lemmas: List[str],
-        lemmatized_filtered_keywords: List[str],
+        lemmatized_filtered_keywords: Set[str],
     ) -> List[str]:
         return self._add_n_words(
             index, n_words, lemmas, lemmatized_filtered_keywords, True

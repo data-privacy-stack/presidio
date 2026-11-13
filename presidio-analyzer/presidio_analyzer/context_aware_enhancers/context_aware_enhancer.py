@@ -114,7 +114,7 @@ class ContextAwareEnhancer:
         return {i for i, result in enumerate(results) if state(result) != before[i]}
 
     def _get_context_window(
-        self, nlp_artifacts: NlpArtifacts, start: int
+        self, nlp_artifacts: NlpArtifacts, start: int, keywords: Set[str]
     ) -> Optional[Tuple[int, int]]:
         """Return the indices of the first and last token of the context window.
 
@@ -126,13 +126,13 @@ class ContextAwareEnhancer:
 
         :param nlp_artifacts: the NLP artifacts of the analyzed text
         :param start: the start index of the entity in the original text
+        :param keywords: the keywords of nlp_artifacts as a set
         :return: None when the text has no tokens or the window is empty
         """
         if not nlp_artifacts.tokens:
             return None
         first = self._find_entity_first_token(nlp_artifacts, start)
         lemmas = nlp_artifacts.lemmas
-        keywords = nlp_artifacts.keywords
         visited = [
             *self._walk_context_tokens(
                 first, self.context_prefix_count, lemmas, keywords, -1
@@ -170,7 +170,7 @@ class ContextAwareEnhancer:
 
     @staticmethod
     def _walk_context_tokens(
-        index: int, n_words: int, lemmas: List[str], keywords: List[str], step: int
+        index: int, n_words: int, lemmas: List[str], keywords: Set[str], step: int
     ) -> Iterator[int]:
         """Yield the token indices from index until n_words + 1 keywords are seen.
 
