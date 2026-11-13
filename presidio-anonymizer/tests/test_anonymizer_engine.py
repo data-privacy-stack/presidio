@@ -277,6 +277,27 @@ def test_given_unsorted_input_then_merged_correctly():
     assert anonymizer_result.text == "<PERSON> is a person"
 
 
+def test_given_overlapping_results_then_space_merge_leaves_no_text_in_clear():
+    """Results separated by a space are not merged around a result between them."""
+    engine = AnonymizerEngine()
+    text = "Visit Oct 08 1958 09:46."
+    # What the default analyzer returns with a custom year pattern added: the
+    # date and the year overlap, so conflict resolution moves the merged date
+    # after the phone number, which covers the space between date and time.
+    analyzer_results = [
+        RecognizerResult(start=6, end=17, entity_type="DATE_TIME", score=0.85),
+        RecognizerResult(start=10, end=20, entity_type="PHONE_NUMBER", score=0.4),
+        RecognizerResult(start=13, end=17, entity_type="DATE_TIME", score=0.9),
+        RecognizerResult(start=18, end=23, entity_type="DATE_TIME", score=0.85),
+    ]
+
+    anonymizer_result = engine.anonymize(text, analyzer_results)
+
+    # Date and time must not be merged around the phone number, which left
+    # ":46" in clear.
+    assert anonymizer_result.text == "Visit <DATE_TIME><PHONE_NUMBER><DATE_TIME>."
+
+
 def _operate(
     text: str,
     pii_entities: List[PIIEntity],
