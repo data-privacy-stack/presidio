@@ -45,7 +45,7 @@ class Mask(Operator):
         """
         masking_char = params.get(self.MASKING_CHAR)
         validate_parameter(masking_char, self.MASKING_CHAR, str)
-        if len(masking_char) > 1:
+        if len(masking_char) != 1:
             raise InvalidParamError(
                 f"Invalid input, {self.MASKING_CHAR} must be a character"
             )
