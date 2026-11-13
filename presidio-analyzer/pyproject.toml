@@ -19,7 +19,7 @@ classifiers = [
 keywords = ["presidio_analyzer"]
 urls = {Homepage = "https://github.com/data-privacy-stack/presidio"}
 readme = "README.md"
-include = ["conf/*",]
+include = ["conf/*", "predefined_recognizers/generic/tlds.txt"]
 
 requires-python = ">=3.11,<3.15"
 dependencies = [
