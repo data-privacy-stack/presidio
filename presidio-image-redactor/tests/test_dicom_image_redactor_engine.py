@@ -1,6 +1,7 @@
 """Test suite for dicom_image_redactor_engine.py"""
 
 from pathlib import Path
+import shutil
 import tempfile
 import os
 import json
@@ -8,6 +9,7 @@ import numpy as np
 from PIL import Image
 import pydicom
 from presidio_image_redactor.dicom_image_redactor_engine import DicomImageRedactorEngine
+from presidio_image_redactor.entities import ImageRecognizerResult
 from presidio_analyzer import PatternRecognizer
 from typing import Union, List, Tuple, Dict, TypeVar, Optional
 import pytest
@@ -1632,6 +1634,10 @@ def test_DicomImageRedactorEngine_redact_multiple_dicom_images_happy_path(
         "presidio_image_redactor.dicom_image_redactor_engine.DicomImageRedactorEngine._get_all_dcm_files",
         return_value=mock_dcm_files,
     )
+    mocker.patch(
+        "presidio_image_redactor.dicom_image_redactor_engine.DicomImageRedactorEngine._has_pixel_data",
+        return_value=True,
+    )
     mock_redact_single = mocker.patch(
         "presidio_image_redactor.dicom_image_redactor_engine.DicomImageRedactorEngine._redact_single_dicom_image",
         return_value=None,
@@ -1861,3 +1867,131 @@ def test_DicomImageRedactorEngine_redact_from_directory_exceptions(
 
     # Assert
     assert expected_error_type == exc_info.typename
+
+
+# ------------------------------------------------------
+# DicomImageRedactorEngine redact_from_directory() file selection
+# ------------------------------------------------------
+@pytest.fixture
+def mock_detected_text(mocker):
+    """Report one fixed text region for every image, so no OCR engine is needed"""
+    mocker.patch(
+        "presidio_image_redactor.dicom_image_redactor_engine.ImageAnalyzerEngine.analyze",
+        return_value=[ImageRecognizerResult("PERSON", 0, 4, 1.0, 100, 100, 200, 50)],
+    )
+
+
+def copy_test_dicom_as(input_dir: Path, file_names: List[str]) -> None:
+    """Fill a directory with copies of one test DICOM image under the given names
+
+    Args:
+        input_dir (pathlib.Path): Directory to create the files in.
+        file_names (list): File names, relative to input_dir.
+    """
+    for file_name in file_names:
+        (input_dir / file_name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(Path(TEST_DICOM_DIR_2, "2_ORIGINAL.dicom"), input_dir / file_name)
+
+
+def is_redacted(input_file: Path, output_file: Path) -> bool:
+    """Tell if the pixels of an output DICOM file differ from the input file
+
+    Args:
+        input_file (pathlib.Path): Path to the original DICOM file.
+        output_file (pathlib.Path): Path to the same file in the output directory.
+    """
+    input_pixels = pydicom.dcmread(input_file).pixel_array
+    output_pixels = pydicom.dcmread(output_file).pixel_array
+
+    return not np.array_equal(input_pixels, output_pixels)
+
+
+@pytest.mark.parametrize(
+    "file_name",
+    [
+        "IM000001",
+        "image.IMA",
+        "1.2.840.113619.2.55.3.604688119.971.1449857543.1",
+        "series_1/IM000001",
+    ],
+)
+def test_DicomImageRedactorEngine_redact_from_directory_redacts_dicom_files_with_any_name(
+    mock_engine: DicomImageRedactorEngine,
+    mock_detected_text,
+    tmp_path: Path,
+    file_name: str,
+):
+    """Test that redact_from_directory() redacts DICOM files that have no DICOM extension
+
+    Args:
+        mock_engine (DicomImageRedactorEngine): DicomImageRedactorEngine object.
+        mock_detected_text: Fixed text region reported for every image.
+        tmp_path (pathlib.Path): Temporary directory for input and output.
+        file_name (str): Name of a DICOM file without a DICOM extension.
+    """
+    # Arrange
+    input_dir = tmp_path / "input"
+    file_names = ["control.dcm", file_name]
+    copy_test_dicom_as(input_dir, file_names)
+
+    # Act
+    mock_engine.redact_from_directory(str(input_dir), str(tmp_path / "output"))
+
+    # Assert
+    for name in file_names:
+        assert is_redacted(input_dir / name, tmp_path / "output" / "input" / name), name
+
+
+def test_DicomImageRedactorEngine_redact_from_directory_copies_non_dicom_files_unchanged(
+    mock_engine: DicomImageRedactorEngine,
+    mock_detected_text,
+    tmp_path: Path,
+):
+    """Test that redact_from_directory() copies files that are not DICOM as they are
+
+    Args:
+        mock_engine (DicomImageRedactorEngine): DicomImageRedactorEngine object.
+        mock_detected_text: Fixed text region reported for every image.
+        tmp_path (pathlib.Path): Temporary directory for input and output.
+    """
+    # Arrange
+    input_dir = tmp_path / "input"
+    copy_test_dicom_as(input_dir, ["control.dcm"])
+    (input_dir / "notes.txt").write_bytes(b"Not a DICOM file")
+
+    # Act
+    mock_engine.redact_from_directory(str(input_dir), str(tmp_path / "output"))
+
+    # Assert
+    assert (tmp_path / "output" / "input" / "notes.txt").read_bytes() == b"Not a DICOM file"
+    assert is_redacted(input_dir / "control.dcm", tmp_path / "output" / "input" / "control.dcm")
+
+
+@pytest.mark.parametrize("file_name", ["DICOMDIR", "report.dcm"])
+def test_DicomImageRedactorEngine_redact_from_directory_copies_dicom_files_without_pixel_data_unchanged(
+    mock_engine: DicomImageRedactorEngine,
+    mock_detected_text,
+    tmp_path: Path,
+    file_name: str,
+):
+    """Test that redact_from_directory() copies DICOM files without pixel data as they are
+
+    Args:
+        mock_engine (DicomImageRedactorEngine): DicomImageRedactorEngine object.
+        mock_detected_text: Fixed text region reported for every image.
+        tmp_path (pathlib.Path): Temporary directory for input and output.
+        file_name (str): Name of a DICOM file without pixel data.
+    """
+    # Arrange
+    input_dir = tmp_path / "input"
+    image_names = ["image_1.dcm", "series_1/image_2.dcm"]
+    copy_test_dicom_as(input_dir, image_names)
+    shutil.copyfile(Path(TEST_DICOM_PARENT_DIR, "0_ORIGINAL_no_pixels.dcm"), input_dir / file_name)
+
+    # Act
+    mock_engine.redact_from_directory(str(input_dir), str(tmp_path / "output"))
+
+    # Assert
+    assert (tmp_path / "output" / "input" / file_name).read_bytes() == (input_dir / file_name).read_bytes()
+    for name in image_names:
+        assert is_redacted(input_dir / name, tmp_path / "output" / "input" / name), name
