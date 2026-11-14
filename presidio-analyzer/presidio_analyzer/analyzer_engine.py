@@ -546,6 +546,21 @@ class AnalyzerEngine:
         return self.default_score_threshold
 
     @staticmethod
+    def _regex_search_with_timeout(compiled_term, word: str) -> bool:
+        """Search word with an allow list term; a timeout counts as no match."""
+        try:
+            return bool(compiled_term.search(word, timeout=REGEX_TIMEOUT_SECONDS))
+        except TimeoutError:
+            logger.warning(
+                "Allow list regex timed out after %s seconds"
+                " (word length: %d), term not applied.",
+                REGEX_TIMEOUT_SECONDS,
+                len(word),
+                exc_info=True,
+            )
+            return False
+
+    @staticmethod
     def _remove_allow_list(
         results: List[RecognizerResult],
         allow_list: List[str],
@@ -569,24 +584,21 @@ class AnalyzerEngine:
             allow_list = [term for term in allow_list if term]
             if not allow_list:
                 return list(results)
-            pattern = "|".join(allow_list)
-            re_compiled = re.compile(pattern, flags=regex_flags)
+            # Compile each term on its own: joining the terms into one pattern
+            # renumbers capture groups, so a backreference in a later term would
+            # point at a group of an earlier term.
+            compiled_terms = [
+                re.compile(term, flags=regex_flags) for term in allow_list
+            ]
 
             for result in results:
                 word = text[result.start : result.end]
 
                 # if the word is not specified to be allowed, keep in the PII entities
-                try:
-                    if not re_compiled.search(word, timeout=REGEX_TIMEOUT_SECONDS):
-                        new_results.append(result)
-                except TimeoutError:
-                    logger.warning(
-                        "Allow list regex timed out after %s seconds"
-                        " (word length: %d), keeping result.",
-                        REGEX_TIMEOUT_SECONDS,
-                        len(word),
-                        exc_info=True,
-                    )
+                if not any(
+                    AnalyzerEngine._regex_search_with_timeout(term, word)
+                    for term in compiled_terms
+                ):
                     new_results.append(result)
         elif allow_list_match == "exact":
             for result in results:
