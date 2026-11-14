@@ -1,6 +1,11 @@
 import pytest
 
-from tests import assert_result
+from tests import (
+    BENGALI_DIGITS,
+    DEVANAGARI_DIGITS,
+    ODIA_DIGITS,
+    assert_result,
+)
 from presidio_analyzer.predefined_recognizers import InAadhaarRecognizer
 
 
@@ -98,3 +103,26 @@ def test_is_verhoeff(input_number, is_verhoeff) -> None:
     :return: True/False
     """
     assert InAadhaarRecognizer._is_verhoeff_number(input_number) == is_verhoeff
+
+
+@pytest.mark.parametrize(
+    "table",
+    [DEVANAGARI_DIGITS, BENGALI_DIGITS, ODIA_DIGITS],
+    ids=["devanagari", "bengali", "odia"],
+)
+def test_when_aadhaar_indic_digits_then_matches_valid_and_rejects_invalid(
+    recognizer: InAadhaarRecognizer,
+    entities: list[str],
+    table: dict[int, int],
+) -> None:
+    valid_ascii = "My Aadhaar is 3123 4567 8909."
+    invalid_ascii = "My Aadhaar is 1234 5678 9012."
+
+    expected = recognizer.analyze(valid_ascii, entities)
+    actual = recognizer.analyze(valid_ascii.translate(table), entities)
+
+    assert [(r.start, r.end, r.score) for r in expected] == [(14, 28, 1.0)]
+    assert [(r.start, r.end, r.score) for r in actual] == [
+        (r.start, r.end, r.score) for r in expected
+    ]
+    assert recognizer.analyze(invalid_ascii.translate(table), entities) == []

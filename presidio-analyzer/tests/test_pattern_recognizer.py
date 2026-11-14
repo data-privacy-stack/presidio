@@ -1,15 +1,16 @@
 import importlib
 import os
 import re
+import sys
 from typing import List
 from unittest.mock import MagicMock, patch
 
 import pytest
 import regex as regex_module
 from presidio_analyzer import Pattern, PatternRecognizer, RecognizerResult
-from presidio_analyzer.pattern_recognizer import REGEX_TIMEOUT_SECONDS
+from presidio_analyzer.pattern_recognizer import REGEX_TIMEOUT_SECONDS, _to_ascii_digits
 
-from tests import assert_result
+from tests import ARABIC_INDIC_DIGITS, PERSIAN_DIGITS, assert_result
 
 
 class MockRecognizer(PatternRecognizer):
@@ -565,3 +566,87 @@ def test_regex_timeout_seconds_env_var_override():
     # Restore the module to default state
     importlib.reload(pr_module)
 
+
+class AsciiOnlyValidatedRecognizer(PatternRecognizer):
+    def validate_result(self, pattern_text):
+        return pattern_text.isascii()
+
+
+@pytest.mark.parametrize(
+    "table", [ARABIC_INDIC_DIGITS, PERSIAN_DIGITS], ids=["arabic-indic", "persian"]
+)
+def test_when_digits_non_ascii_then_same_span_as_ascii_and_validation_sees_ascii(table):
+    recognizer = AsciiOnlyValidatedRecognizer(
+        supported_entity="PHONE_NUMBER",
+        patterns=[Pattern(name="digits", regex=r"\d{3}-\d{4}", score=0.5)],
+    )
+    ascii_text = "call 555-1234 now"
+
+    expected = recognizer.analyze(ascii_text, ["PHONE_NUMBER"])
+    actual = recognizer.analyze(ascii_text.translate(table), ["PHONE_NUMBER"])
+
+    assert [(r.start, r.end) for r in expected] == [(5, 13)]
+    assert [(r.start, r.end, r.score) for r in actual] == [
+        (r.start, r.end, r.score) for r in expected
+    ]
+
+
+def test_when_digits_mixed_scripts_then_each_span_found():
+    recognizer = AsciiOnlyValidatedRecognizer(
+        supported_entity="PHONE_NUMBER",
+        patterns=[Pattern(name="digits", regex=r"\d{3}-\d{4}", score=0.5)],
+    )
+    text = "555-1234 and " + "555-1234".translate(ARABIC_INDIC_DIGITS)
+
+    results = recognizer.analyze(text, ["PHONE_NUMBER"])
+
+    assert [(r.start, r.end) for r in results] == [(0, 8), (13, 21)]
+
+
+def test_to_ascii_digits_keeps_every_code_point_length():
+    text = "".join(
+        chr(cp) for cp in range(sys.maxunicode + 1) if not 0xD800 <= cp <= 0xDFFF
+    )
+
+    result = _to_ascii_digits(text)
+
+    assert len(result) == len(text)
+    assert _to_ascii_digits("٤٥ ۴۵ 45") == "45 45 45"
+
+
+def test_when_pattern_written_with_non_ascii_digits_then_matches_same_span():
+    pattern = Pattern("p", r"۰۹[۰-۹]{9}", 0.6)
+    recognizer = PatternRecognizer(supported_entity="IR_MOBILE", patterns=[pattern])
+    text = "شماره من ۰۹۱۲۳۴۵۶۷۸۹ است"
+
+    results = recognizer.analyze(text, ["IR_MOBILE"])
+
+    assert [(r.start, r.end) for r in results] == [(9, 20)]
+    assert recognizer.patterns[0].regex == r"۰۹[۰-۹]{9}"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "المريض في غرفة ١٢ الآن",
+        "المريض في غرفة 12 الآن",
+    ],
+)
+def test_when_deny_list_written_with_non_ascii_digits_then_matches(text):
+    recognizer = PatternRecognizer(supported_entity="ROOM", deny_list=["غرفة ١٢"])
+
+    results = recognizer.analyze(text, ["ROOM"])
+
+    start = text.index("غرفة")
+    assert [(r.start, r.end) for r in results] == [(start, start + len("غرفة 12"))]
+    assert recognizer.deny_list == ["غرفة ١٢"]
+    assert recognizer.patterns[0].regex.count("١٢") == 1
+
+
+@pytest.mark.parametrize("text", ["غرفة ١ الآن", "غرفة 1 الآن"])
+def test_when_deny_list_single_non_ascii_digit_then_no_backreference_bug(text):
+    recognizer = PatternRecognizer(supported_entity="ROOM", deny_list=["غرفة ١"])
+
+    results = recognizer.analyze(text, ["ROOM"])
+
+    assert [(r.start, r.end) for r in results] == [(0, len("غرفة 1"))]

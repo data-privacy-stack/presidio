@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tests import assert_result
+from tests import ARABIC_INDIC_DIGITS, PERSIAN_DIGITS, assert_result
 from presidio_analyzer.predefined_recognizers.generic.iban_recognizer import IbanRecognizer
 
 
@@ -432,3 +432,18 @@ def test_when_iban_match_group_is_empty_string_then_skips(recognizer, entities):
         results = recognizer.analyze("AL47212110090000000235698741", entities)
 
     assert results == []
+
+
+@pytest.mark.parametrize(
+    "table", [ARABIC_INDIC_DIGITS, PERSIAN_DIGITS], ids=["arabic-indic", "persian"]
+)
+def test_when_iban_non_ascii_digits_then_same_span_as_ascii(recognizer, entities, table):
+    ascii_text = "my IBAN DE89370400440532013000 ok"
+
+    expected = recognizer.analyze(ascii_text, entities)
+    actual = recognizer.analyze(ascii_text.translate(table), entities)
+
+    assert [(r.start, r.end) for r in expected] == [(8, 30)]
+    assert [(r.start, r.end, r.score) for r in actual] == [
+        (r.start, r.end, r.score) for r in expected
+    ]

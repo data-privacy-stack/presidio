@@ -1,6 +1,6 @@
 import pytest
 
-from tests import assert_result
+from tests import ARABIC_INDIC_DIGITS, PERSIAN_DIGITS, assert_result
 from presidio_analyzer.predefined_recognizers import CreditCardRecognizer
 
 # https://www.datatrans.ch/showcase/test-cc-numbers
@@ -61,3 +61,20 @@ def test_when_all_credit_cards_then_succeed(
         assert res.score == expected_score
     for res, (start, end) in zip(results, expected_res):
         assert_result(res, entities[0], start, end, max_score)
+
+
+@pytest.mark.parametrize(
+    "table", [ARABIC_INDIC_DIGITS, PERSIAN_DIGITS], ids=["arabic-indic", "persian"]
+)
+def test_when_card_number_non_ascii_digits_then_same_span_as_ascii(
+    cc_recognizer, entities, table
+):
+    ascii_text = "My card is 4012888888881881 thanks"
+
+    expected = cc_recognizer.analyze(ascii_text, entities)
+    actual = cc_recognizer.analyze(ascii_text.translate(table), entities)
+
+    assert [(r.start, r.end) for r in expected] == [(11, 27)]
+    assert [(r.start, r.end, r.score) for r in actual] == [
+        (r.start, r.end, r.score) for r in expected
+    ]
