@@ -7,6 +7,7 @@ from typing import Dict, List
 from presidio_anonymizer.core.text_replace_builder import TextReplaceBuilder
 from presidio_anonymizer.entities import (
     EngineResult,
+    InvalidParamError,
     OperatorConfig,
     OperatorResult,
     PIIEntity,
@@ -118,5 +119,10 @@ class EngineBase(ABC):
         operator = operators_metadata.get(entity_type)
         if operator:
             return operator
-        else:
-            return operators_metadata.get("DEFAULT")
+        default_operator = operators_metadata.get("DEFAULT")
+        if default_operator is None:
+            raise InvalidParamError(
+                "Invalid input, no operator was given for entity type "
+                f"'{entity_type}' and there is no DEFAULT operator"
+            )
+        return default_operator
