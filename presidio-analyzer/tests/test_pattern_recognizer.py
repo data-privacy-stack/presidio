@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import regex as regex_module
 from presidio_analyzer import Pattern, PatternRecognizer, RecognizerResult
-from presidio_analyzer.pattern_recognizer import REGEX_TIMEOUT_SECONDS, to_ascii_digits
+from presidio_analyzer.pattern_recognizer import REGEX_TIMEOUT_SECONDS, _to_ascii_digits
 
 from tests import ARABIC_INDIC_DIGITS, PERSIAN_DIGITS, assert_result
 
@@ -608,7 +608,45 @@ def test_to_ascii_digits_keeps_every_code_point_length():
         chr(cp) for cp in range(sys.maxunicode + 1) if not 0xD800 <= cp <= 0xDFFF
     )
 
-    result = to_ascii_digits(text)
+    result = _to_ascii_digits(text)
 
     assert len(result) == len(text)
-    assert to_ascii_digits("٤٥ ۴۵ 45") == "45 45 45"
+    assert _to_ascii_digits("٤٥ ۴۵ 45") == "45 45 45"
+
+
+def test_when_pattern_written_with_non_ascii_digits_then_matches_same_span():
+    pattern = Pattern("p", r"۰۹[۰-۹]{9}", 0.6)
+    recognizer = PatternRecognizer(supported_entity="IR_MOBILE", patterns=[pattern])
+    text = "شماره من ۰۹۱۲۳۴۵۶۷۸۹ است"
+
+    results = recognizer.analyze(text, ["IR_MOBILE"])
+
+    assert [(r.start, r.end) for r in results] == [(9, 20)]
+    assert recognizer.patterns[0].regex == r"۰۹[۰-۹]{9}"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "المريض في غرفة ١٢ الآن",
+        "المريض في غرفة 12 الآن",
+    ],
+)
+def test_when_deny_list_written_with_non_ascii_digits_then_matches(text):
+    recognizer = PatternRecognizer(supported_entity="ROOM", deny_list=["غرفة ١٢"])
+
+    results = recognizer.analyze(text, ["ROOM"])
+
+    start = text.index("غرفة")
+    assert [(r.start, r.end) for r in results] == [(start, start + len("غرفة 12"))]
+    assert recognizer.deny_list == ["غرفة ١٢"]
+    assert recognizer.patterns[0].regex.count("١٢") == 1
+
+
+@pytest.mark.parametrize("text", ["غرفة ١ الآن", "غرفة 1 الآن"])
+def test_when_deny_list_single_non_ascii_digit_then_no_backreference_bug(text):
+    recognizer = PatternRecognizer(supported_entity="ROOM", deny_list=["غرفة ١"])
+
+    results = recognizer.analyze(text, ["ROOM"])
+
+    assert [(r.start, r.end) for r in results] == [(0, len("غرفة 1"))]

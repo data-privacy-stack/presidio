@@ -31,7 +31,7 @@ def _ascii_digit(match: "re.Match[str]") -> str:
     return match[0] if value is None else str(value)
 
 
-def to_ascii_digits(text: str) -> str:
+def _to_ascii_digits(text: str) -> str:
     """Replace Unicode decimal digits (e.g. Arabic-Indic, Persian) with ASCII.
 
     Each digit is one code point mapped to one code point, so match offsets
@@ -134,7 +134,9 @@ class PatternRecognizer(LocalRecognizer):
         results = []
 
         if self.patterns:
-            pattern_result = self.__analyze_patterns(to_ascii_digits(text), regex_flags)
+            pattern_result = self.__analyze_patterns(
+                _to_ascii_digits(text), regex_flags
+            )
             results.extend(pattern_result)
 
         return results
@@ -231,7 +233,12 @@ class PatternRecognizer(LocalRecognizer):
             # Compile regex if flags differ from flags the regex was compiled with
             if not pattern.compiled_regex or pattern.compiled_with_flags != flags:
                 pattern.compiled_with_flags = flags
-                pattern.compiled_regex = re.compile(pattern.regex, flags=flags)
+                # Fold digits in the regex itself so patterns and deny-list
+                # entries written with Arabic/Persian digits match folded text.
+                # pattern.regex stays as the caller wrote it.
+                pattern.compiled_regex = re.compile(
+                    _to_ascii_digits(pattern.regex), flags=flags
+                )
 
             try:
                 matches = pattern.compiled_regex.finditer(
