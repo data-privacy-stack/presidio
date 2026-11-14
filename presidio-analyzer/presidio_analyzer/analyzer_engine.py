@@ -66,6 +66,12 @@ class AnalyzerEngine:
     normalized text, and the results are mapped back to offsets in the original
     text (for example FullWidthAndInvisibleCharsNormalizer). Unlike
     context_aware_enhancer, None (the default) means the text is not normalized.
+    :param allow_list: Terms that are allowed in every request, in addition to
+    the per-request allow_list of analyze(). Results matching them are not returned.
+    :param allow_list_match: How allow_list is interpreted, "exact" or "regex".
+    The per-request allow_list_match only applies to the per-request allow_list.
+    :param allow_list_ignore_case: Match allow_list case-insensitively
+    when allow_list_match is "exact".
     """
 
     def __init__(
@@ -78,7 +84,18 @@ class AnalyzerEngine:
         supported_languages: List[str] = None,
         context_aware_enhancer: Optional[ContextAwareEnhancer] = None,
         text_normalizer: Optional[TextNormalizer] = None,
+        allow_list: Optional[List[str]] = None,
+        allow_list_match: str = "exact",
+        allow_list_ignore_case: bool = False,
     ):
+        if allow_list_match not in ("exact", "regex"):
+            raise ValueError(
+                "allow_list_match must either be set to 'exact' or 'regex'."
+            )
+        self.allow_list = list(allow_list) if allow_list else []
+        self.allow_list_match = allow_list_match
+        self.allow_list_ignore_case = allow_list_ignore_case
+
         if not supported_languages:
             supported_languages = ["en"]
 
@@ -338,16 +355,21 @@ class AnalyzerEngine:
         results = self.__remove_low_scores(results, score_threshold, recognizers)
         results = EntityRecognizer.remove_duplicates(results)
 
-        if allow_list:
-            if allow_list_match == "exact":
+        for terms, match, ignore_case in (
+            (self.allow_list, self.allow_list_match, self.allow_list_ignore_case),
+            (allow_list, allow_list_match, False),
+        ):
+            if not terms:
+                continue
+            if match == "exact":
                 # Exact entries are compared with the normalized text, so they are
                 # normalized the same way.
-                allow_list = [
+                terms = [
                     self.text_normalizer.normalize(term, language).text
-                    for term in allow_list
+                    for term in terms
                 ]
             results = self._remove_allow_list(
-                results, allow_list, analyzed_text, regex_flags, allow_list_match
+                results, terms, analyzed_text, regex_flags, match, ignore_case
             )
 
         # Results are already in original-text offsets when nothing changed.
@@ -552,6 +574,7 @@ class AnalyzerEngine:
         text: str,
         regex_flags: Optional[int],
         allow_list_match: str,
+        ignore_case: bool = False,
     ) -> List[RecognizerResult]:
         """
         Remove results which are part of the allow list.
@@ -562,6 +585,7 @@ class AnalyzerEngine:
         :param regex_flags: regex flags to be used for when allow_list_match is "regex"
         :param allow_list_match: How the allow_list
         should be interpreted; either as "exact" or as "regex"
+        :param ignore_case: compare case-insensitively when allow_list_match is "exact"
         :return: List[RecognizerResult]
         """
         new_results = []
@@ -589,11 +613,13 @@ class AnalyzerEngine:
                     )
                     new_results.append(result)
         elif allow_list_match == "exact":
+            if ignore_case:
+                allow_list = [term.casefold() for term in allow_list]
             for result in results:
                 word = text[result.start : result.end]
 
                 # if the word is not specified to be allowed, keep in the PII entities
-                if word not in allow_list:
+                if (word.casefold() if ignore_case else word) not in allow_list:
                     new_results.append(result)
         else:
             raise ValueError(
