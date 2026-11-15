@@ -12,6 +12,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 
 |Entity Type | Description | Detection Method |
 | --- | --- | --- |
+|CARD_TRACK_DATA|Payment card magnetic stripe track 1 or track 2 data (ISO/IEC 7813), sensitive authentication data under PCI DSS. <https://en.wikipedia.org/wiki/ISO/IEC_7813>|Pattern match, Luhn checksum, expiry month and service code checks|
 |CREDIT_CARD |A credit card number is between 12 to 19 digits. <https://en.wikipedia.org/wiki/Payment_card_number>|Pattern match and checksum|
 |CRYPTO|A Crypto wallet number. Currently only Bitcoin address is supported|Pattern match, context and checksum|
 |DATE_TIME|Absolute or relative dates or periods or times smaller than a day.|Pattern match and context|
