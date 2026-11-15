@@ -1,5 +1,6 @@
 """Test suite for dicom_image_redactor_engine.py"""
 
+import logging
 from pathlib import Path
 import shutil
 import tempfile
@@ -1995,3 +1996,46 @@ def test_DicomImageRedactorEngine_redact_from_directory_copies_dicom_files_witho
     assert (tmp_path / "output" / "input" / file_name).read_bytes() == (input_dir / file_name).read_bytes()
     for name in image_names:
         assert is_redacted(input_dir / name, tmp_path / "output" / "input" / name), name
+
+
+def test_DicomImageRedactorEngine_redact_from_directory_warns_about_dicom_file_without_file_header(
+    mock_engine: DicomImageRedactorEngine,
+    mock_detected_text,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test that redact_from_directory() names a DICOM file without the file header in a warning
+
+    A DICOM data set can be written without the 128-byte preamble and the "DICM"
+    prefix. Such a file is not recognized by its content, so without a DICOM
+    extension it is copied as it is. The warning must name it.
+
+    Args:
+        mock_engine (DicomImageRedactorEngine): DicomImageRedactorEngine object.
+        mock_detected_text: Fixed text region reported for every image.
+        tmp_path (pathlib.Path): Temporary directory for input and output.
+        caplog (pytest.LogCaptureFixture): Captured log records.
+    """
+    # Arrange
+    input_dir = tmp_path / "input"
+    copy_test_dicom_as(input_dir, ["control.dcm"])
+    dicom_bytes = (input_dir / "control.dcm").read_bytes()
+    assert dicom_bytes[128:132] == b"DICM"
+    (input_dir / "IM000001").write_bytes(dicom_bytes[132:])
+    assert "PixelData" in pydicom.dcmread(input_dir / "IM000001", force=True)
+
+    # Act
+    with caplog.at_level(logging.WARNING, logger="presidio-image-redactor"):
+        mock_engine.redact_from_directory(str(input_dir), str(tmp_path / "output"))
+
+    # Assert
+    assert (tmp_path / "output" / "input" / "IM000001").read_bytes() == dicom_bytes[132:]
+    warnings = [
+        record.getMessage()
+        for record in caplog.records
+        if "copied without redaction" in record.getMessage()
+    ]
+    assert len(warnings) == 1
+    assert warnings[0].startswith("1 file(s) in ")
+    assert warnings[0].endswith(": IM000001")
+    assert is_redacted(input_dir / "control.dcm", tmp_path / "output" / "input" / "control.dcm")
