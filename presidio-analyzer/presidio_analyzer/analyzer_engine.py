@@ -277,7 +277,10 @@ class AnalyzerEngine:
         if all_fields:
             # Since all_fields=True, list all entities by iterating
             # over all recognizers
-            entities = self.get_supported_entities(language=language)
+            supported_entities = set()
+            for recognizer in recognizers:
+                supported_entities.update(recognizer.get_supported_entities() or [])
+            entities = list(supported_entities)
 
         # Everything up to the end of this method runs on the normalized text, and
         # the results are mapped back to the original text at the end.
