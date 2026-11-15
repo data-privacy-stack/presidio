@@ -1031,3 +1031,25 @@ def test_registry_model_does_not_mutate_recognizer_input_when_inferring_type():
     RecognizerRegistryConfig(recognizers=[recognizer])
 
     assert recognizer == original
+
+
+def test_huggingface_recognizer_config_fail_closed():
+    """Test that HuggingFaceRecognizerConfig supports fail_closed field."""
+    from presidio_analyzer.input_validation.yaml_recognizer_models import (
+        HuggingFaceRecognizerConfig,
+    )
+
+    config_default = HuggingFaceRecognizerConfig(
+        name="HuggingFaceNerRecognizer",
+        model_name="custom/ner-model",
+    )
+    assert config_default.fail_closed is None
+    assert "fail_closed" not in config_default.model_dump()
+
+    config_enabled = HuggingFaceRecognizerConfig(
+        name="HuggingFaceNerRecognizer",
+        model_name="custom/ner-model",
+        fail_closed=True,
+    )
+    assert config_enabled.fail_closed is True
+    assert config_enabled.model_dump()["fail_closed"] is True
