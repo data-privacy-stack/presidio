@@ -2,6 +2,8 @@ from typing import List, Optional, Tuple
 
 from presidio_analyzer import Pattern, PatternRecognizer
 
+from .digits import DIGIT_CLASS
+
 
 class InPanRecognizer(PatternRecognizer):
     """
@@ -14,6 +16,8 @@ class InPanRecognizer(PatternRecognizer):
     Reference: https://en.wikipedia.org/wiki/Permanent_account_number,
                https://incometaxindia.gov.in/Forms/tps/1.Permanent%20Account%20Number%20(PAN).pdf
 
+    The digits are matched in ASCII and in the nine Indic digit blocks, since
+    Indian-language text writes the same number in the script it is written in.
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
@@ -28,17 +32,18 @@ class InPanRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "PAN (High)",
-            r"\b([A-Za-z]{3}[AaBbCcFfGgHhJjLlPpTt]{1}[A-Za-z]{1}[0-9]{4}[A-Za-z]{1})\b",
+            rf"\b([A-Za-z]{{3}}[AaBbCcFfGgHhJjLlPpTt]{{1}}[A-Za-z]{{1}}"
+            rf"{DIGIT_CLASS}{{4}}[A-Za-z]{{1}})\b",
             0.5,
         ),
         Pattern(
             "PAN (Medium)",
-            r"\b([A-Za-z]{5}[0-9]{4}[A-Za-z]{1})\b",
+            rf"\b([A-Za-z]{{5}}{DIGIT_CLASS}{{4}}[A-Za-z]{{1}})\b",
             0.1,
         ),
         Pattern(
             "PAN (Low)",
-            r"\b((?=.*?[a-zA-Z])(?=.*?[0-9]{4})[\w@#$%^?~-]{10})\b",
+            rf"\b((?=.*?[a-zA-Z])(?=.*?{DIGIT_CLASS}{{4}})[\w@#$%^?~-]{{10}})\b",
             0.01,
         ),
     ]
