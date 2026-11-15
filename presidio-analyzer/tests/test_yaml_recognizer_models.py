@@ -1031,3 +1031,23 @@ def test_registry_model_does_not_mutate_recognizer_input_when_inferring_type():
     RecognizerRegistryConfig(recognizers=[recognizer])
 
     assert recognizer == original
+
+
+def test_email_recognizer_config_offline():
+    """Test that EmailRecognizerConfig supports offline field and excludes None."""
+    from presidio_analyzer.input_validation.yaml_recognizer_models import (
+        EmailRecognizerConfig,
+    )
+
+    config_default = EmailRecognizerConfig(
+        name="EmailRecognizer",
+    )
+    assert config_default.offline is None
+    assert "offline" not in config_default.model_dump()
+
+    config_offline = EmailRecognizerConfig(
+        name="EmailRecognizer",
+        offline=True,
+    )
+    assert config_offline.offline is True
+    assert config_offline.model_dump()["offline"] is True
