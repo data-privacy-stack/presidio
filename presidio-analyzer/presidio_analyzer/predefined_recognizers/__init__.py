@@ -41,6 +41,10 @@ from .country_specific.germany.de_social_security_recognizer import (
 from .country_specific.germany.de_tax_id_recognizer import DeTaxIdRecognizer
 from .country_specific.germany.de_tax_number_recognizer import DeTaxNumberRecognizer
 from .country_specific.germany.de_vat_id_recognizer import DeVatIdRecognizer
+
+# Egypt recognizers
+from .country_specific.egypt.eg_national_id_recognizer import EgNationalIdRecognizer
+
 from .country_specific.india import (
     InVehicleRegistrationRecognizer,
 )
@@ -270,6 +274,7 @@ __all__ = [
     "HuggingFaceNerRecognizer",
     "PhTinRecognizer",
     "PlPeselRecognizer",
+    "EgNationalIdRecognizer",
     "PhUmidRecognizer",
     "AzureAILanguageRecognizer",
     "InAadhaarRecognizer",
