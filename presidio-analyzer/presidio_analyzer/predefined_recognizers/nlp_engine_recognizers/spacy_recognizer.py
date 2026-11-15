@@ -2,6 +2,9 @@ import logging
 import warnings
 from typing import List, Optional, Set, Tuple
 
+import phonenumbers
+from phonenumbers.phonenumberutil import NumberParseException
+
 from presidio_analyzer import (
     AnalysisExplanation,
     LocalRecognizer,
@@ -115,6 +118,15 @@ class SpacyRecognizer(LocalRecognizer):
                 )
                 continue
 
+            if ner_entity.label_ == "DATE_TIME" and self._is_phone_number(
+                text[ner_entity.start_char : ner_entity.end_char]
+            ):
+                logger.debug(
+                    "Skipping DATE_TIME entity %r: the span is a valid phone number",
+                    text[ner_entity.start_char : ner_entity.end_char],
+                )
+                continue
+
             textual_explanation = self.DEFAULT_EXPLANATION.format(ner_entity.label_)
             explanation = self.build_explanation(ner_score, textual_explanation)
             spacy_result = RecognizerResult(
@@ -131,6 +143,31 @@ class SpacyRecognizer(LocalRecognizer):
             results.append(spacy_result)
 
         return results
+
+    @staticmethod
+    def _is_phone_number(span_text: str) -> bool:
+        """Return True if the span is a phone number valid for a known region.
+
+        spaCy labels bare phone numbers as DATE. Such a span is not a date, so
+        dropping the DATE_TIME result lets PHONE_NUMBER win the anonymizer's
+        highest-score decision without raising its score above the value
+        pinned in #775.
+
+        :param span_text: The text of the DATE/TIME entity
+        """
+        # Imported here because this module is loaded while
+        # presidio_analyzer.predefined_recognizers is still initialising.
+        from presidio_analyzer.predefined_recognizers.generic.phone_recognizer import (
+            PhoneRecognizer,
+        )
+
+        for region in PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS:
+            try:
+                if phonenumbers.is_valid_number(phonenumbers.parse(span_text, region)):
+                    return True
+            except NumberParseException:
+                continue
+        return False
 
     @staticmethod
     def __check_label(
