@@ -25,5 +25,6 @@ This section collects different resources developed with Presidio.
 | [Extending Power BI with Python and R](https://github.com/PacktPublishing/Extending-Power-BI-with-Python-and-R) | Code repository for [Extending Power BI with Python and R](https://www.packtpub.com/product/extending-power-bi-with-python-and-r/9781801078207), published by Packt. |
 | [HebSafeHarbor](https://github.com/8400TheHealthNetwork/HebSafeHarbor) | Clinical notes anonymization in Hebrew. |
 | [Presidio GitHub Action](https://github.com/marketplace/actions/presidio-action) | GitHub Action that analyzes text for PII entities with the Presidio framework. |
+| [newmean-pii](https://github.com/newmean-ai/pii/blob/main/python/README.md#integrations) | A Presidio recognizer backed by small multilingual token-classification models (54 languages, 2.6 to 15.5 MB) that run on CPU in the same process. |
 
 * Please create a PR if you're interested in adding your tool to this list.
