@@ -76,17 +76,17 @@ class PatternRecognizer(LocalRecognizer):
             version=version,
             country_code=country_code,
         )
-        if patterns is None:
-            self.patterns = []
-        else:
-            self.patterns = patterns
+        # Copy, so the deny-list pattern added below does not end up in the
+        # caller's list (or in a class-level PATTERNS list).
+        self.patterns = list(patterns) if patterns else []
         self.context = context
         self.deny_list_score = deny_list_score
         self.global_regex_flags = global_regex_flags
 
+        self._deny_list_pattern = None
         if deny_list:
-            deny_list_pattern = self._deny_list_to_regex(deny_list)
-            self.patterns.append(deny_list_pattern)
+            self._deny_list_pattern = self._deny_list_to_regex(deny_list)
+            self.patterns.append(self._deny_list_pattern)
             self.deny_list = deny_list
         else:
             self.deny_list = []
@@ -284,8 +284,13 @@ class PatternRecognizer(LocalRecognizer):
         """Serialize instance into a dictionary."""
         return_dict = super().to_dict()
 
-        return_dict["patterns"] = [pat.to_dict() for pat in self.patterns]
+        # The deny-list pattern is rebuilt from deny_list by from_dict,
+        # so it is not serialized as a regular pattern.
+        return_dict["patterns"] = [
+            pat.to_dict() for pat in self.patterns if pat is not self._deny_list_pattern
+        ]
         return_dict["deny_list"] = self.deny_list
+        return_dict["deny_list_score"] = self.deny_list_score
         return_dict["context"] = self.context
         return_dict["supported_entity"] = return_dict["supported_entities"][0]
         del return_dict["supported_entities"]
