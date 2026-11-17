@@ -7,6 +7,10 @@ class EsNieRecognizer(PatternRecognizer):
     """
     Recognize NIE number using regex and checksum.
 
+    The prefix letter may be followed by a hyphen, or by a space when it is
+    uppercase (``X-1234567-L``, ``X 1234567L``), so the conjunction ``y``
+    before a NIF is not read as a prefix.
+
     Reference(s):
     https://es.wikipedia.org/wiki/N%C3%BAmero_de_identidad_de_extranjero
     https://www.interior.gob.es/opencms/ca/servicios-al-ciudadano/tramites-y-gestiones/dni/calculo-del-digito-de-control-del-nif-nie/
@@ -26,7 +30,7 @@ class EsNieRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "NIE",
-            r"\b[X-Z]?[0-9]?[0-9]{7}[-]?[A-Z]\b",
+            r"\b(?:[X-Z]-?|(?-i:[X-Z]) )[0-9]{7}-?[A-Z]\b",
             0.5,
         ),
     ]

@@ -7,6 +7,14 @@ class EsNifRecognizer(PatternRecognizer):
     """
     Recognize NIF number using regex and checksum.
 
+    The number may be written with dots as thousands separators
+    (``12.345.678-Z``), and with a hyphen before the control letter. The
+    seven digits that follow an NIE prefix written with a separator
+    (``X-1234567-L``, ``X 1234567L``) are left to ``EsNieRecognizer``.
+
+    Reference(s):
+    https://www.interior.gob.es/opencms/ca/servicios-al-ciudadano/tramites-y-gestiones/dni/calculo-del-digito-de-control-del-nif-nie/
+
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
@@ -21,7 +29,8 @@ class EsNifRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "NIF",
-            r"\b[0-9]?[0-9]{7}[-]?[A-Z]\b",
+            r"(?:(?<!\b(?:[X-Z]-|(?-i:[X-Z]) ))\b[0-9]|\b[0-9]{2})"
+            r"(?:\.[0-9]{3}\.[0-9]{3}|[0-9]{6})-?[A-Z]\b",
             0.5,
         ),
     ]
