@@ -283,6 +283,13 @@ recognizers:
     type: predefined
     enabled: false
     country_code: es
+
+  - name: EsNssRecognizer
+    supported_languages:
+    - es
+    type: predefined
+    enabled: false
+    country_code: es
   
   - name: ItDriverLicenseRecognizer
     supported_languages: 
