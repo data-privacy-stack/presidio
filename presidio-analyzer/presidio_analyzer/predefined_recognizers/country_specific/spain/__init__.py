@@ -1,5 +1,6 @@
 """Spain-specific recognizers package."""
 
+from .es_ccc_recognizer import EsCccRecognizer
 from .es_cif_recognizer import EsCifRecognizer
 from .es_nie_recognizer import EsNieRecognizer
 from .es_nif_recognizer import EsNifRecognizer
@@ -12,4 +13,5 @@ __all__ = [
     "EsNieRecognizer",
     "EsPassportRecognizer",
     "EsNssRecognizer",
+    "EsCccRecognizer",
 ]

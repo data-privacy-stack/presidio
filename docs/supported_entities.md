@@ -65,6 +65,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |ES_PASSPORT    | A Spanish passport number.|Pattern match and context|
 |ES_CIF         | The NIF of a Spanish legal entity (formerly CIF): a letter for the legal form, seven digits and a control character.|Pattern match, context and checksum|
 |ES_NSS         | A Spanish social security affiliation number (NSS/NAF): province code, sequence number and two control digits, e.g. 28/12345678/40.|Pattern match and checksum|
+|ES_CCC         | A Spanish bank account code (Código Cuenta Cliente): bank, branch, two control digits and account number, e.g. 2100 0418 45 0200051332. The national part of a Spanish IBAN.|Pattern match and checksum|
 
 ### Italy
 
