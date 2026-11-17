@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import List
 from inspect import signature
-from presidio_analyzer.predefined_recognizers import SpacyRecognizer
+from presidio_analyzer.predefined_recognizers import PhoneRecognizer, SpacyRecognizer
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.recognizer_registry.recognizers_loader_utils import RecognizerConfigurationLoader
 from presidio_analyzer import RecognizerRegistry
@@ -562,3 +562,92 @@ def test_recognizer_registry_config_rejects_invalid_supported_countries():
             recognizers=COUNTRY_FILTER_RECOGNIZERS,
             supported_countries=["  "],
         )
+
+
+def test_recognizer_registry_provider_phone_regions_and_leniency_reach_recognizer():
+    """YAML phone regions are used for matching, so national numbers are found."""
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["es"],
+            "recognizers": [
+                {
+                    "name": "PhoneRecognizer",
+                    "type": "predefined",
+                    "supported_languages": ["es"],
+                    "supported_regions": ["es"],
+                    "leniency": 2,
+                }
+            ],
+        }
+    ).create_recognizer_registry()
+
+    recognizer = registry.recognizers[0]
+    assert recognizer.supported_regions == ["ES"]
+    assert recognizer.leniency == 2
+    results = recognizer.analyze("Teléfono: 912 345 678", ["PHONE_NUMBER"])
+    assert [(r.entity_type, r.start, r.end, r.score) for r in results] == [
+        ("PHONE_NUMBER", 10, 21, 0.4)
+    ]
+
+
+def test_recognizer_registry_provider_phone_without_regions_keeps_defaults():
+    """Omitting the phone fields keeps the constructor defaults."""
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [{"name": "PhoneRecognizer", "type": "predefined"}],
+        }
+    ).create_recognizer_registry()
+
+    recognizer = registry.recognizers[0]
+    assert recognizer.supported_regions == PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS
+    assert recognizer.leniency == 1
+
+
+@pytest.mark.parametrize(
+    "phone_fields, expected_message",
+    [
+        (
+            {"supported_regions": ["UK"]},
+            "Unknown phone region(s) ['UK'] in 'supported_regions'. Use ISO "
+            "3166-1 alpha-2 codes, for example 'GB' for the United Kingdom",
+        ),
+        ({"leniency": 4}, "Input should be less than or equal to 3"),
+        (
+            {"supported_regions": []},
+            "'supported_regions' is empty, so PhoneRecognizer would never match",
+        ),
+    ],
+)
+def test_recognizer_registry_provider_rejects_invalid_phone_fields(
+    phone_fields, expected_message
+):
+    with pytest.raises(ValueError) as exc_info:
+        RecognizerRegistryProvider(
+            registry_configuration={
+                "supported_languages": ["en"],
+                "recognizers": [
+                    {"name": "PhoneRecognizer", "type": "predefined", **phone_fields}
+                ],
+            }
+        )
+    assert expected_message in str(exc_info.value.__cause__)
+
+
+def test_recognizer_registry_provider_phone_unknown_key_is_still_ignored():
+    """A key PhoneRecognizer does not take keeps loading, as before."""
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [
+                {
+                    "name": "PhoneRecognizer",
+                    "type": "predefined",
+                    "supported_region": ["ES"],
+                }
+            ],
+        }
+    ).create_recognizer_registry()
+
+    recognizer = registry.recognizers[0]
+    assert recognizer.supported_regions == PhoneRecognizer.DEFAULT_SUPPORTED_REGIONS
