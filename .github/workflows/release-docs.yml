@@ -71,6 +71,8 @@ jobs:
           find "$publish_dir" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a site/. "$publish_dir"/
           touch "$publish_dir/.nojekyll"
+          # Pages drops the custom domain when CNAME is missing from gh-pages.
+          echo "presidio.dataprivacystack.org" > "$publish_dir/CNAME"
 
           git -C "$publish_dir" add -A
           if git -C "$publish_dir" diff --cached --quiet; then

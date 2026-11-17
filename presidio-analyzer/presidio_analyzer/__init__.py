@@ -18,6 +18,12 @@ from presidio_analyzer.batch_analyzer_engine import BatchAnalyzerEngine
 from presidio_analyzer.analyzer_request import AnalyzerRequest
 from presidio_analyzer.context_aware_enhancers import ContextAwareEnhancer
 from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
+from presidio_analyzer.context_aware_enhancers import PhraseContextAwareEnhancer
+from presidio_analyzer.context_aware_enhancers import CompositeContextAwareEnhancer
+from presidio_analyzer.text_normalizers import TextNormalizer
+from presidio_analyzer.text_normalizers import NormalizedText
+from presidio_analyzer.text_normalizers import NoOpTextNormalizer
+from presidio_analyzer.text_normalizers import FullWidthAndInvisibleCharsNormalizer
 from presidio_analyzer.analyzer_engine_provider import AnalyzerEngineProvider
 
 # Define default loggers behavior
@@ -49,6 +55,12 @@ __all__ = [
     "AnalyzerRequest",
     "ContextAwareEnhancer",
     "LemmaContextAwareEnhancer",
+    "PhraseContextAwareEnhancer",
+    "CompositeContextAwareEnhancer",
+    "TextNormalizer",
+    "NormalizedText",
+    "NoOpTextNormalizer",
+    "FullWidthAndInvisibleCharsNormalizer",
     "BatchAnalyzerEngine",
     "AnalyzerEngineProvider",
 ]
