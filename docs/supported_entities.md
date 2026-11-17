@@ -63,6 +63,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |ES_NIF         | A Spanish NIF number (Personal tax ID).|Pattern match, context and checksum|
 |ES_NIE         | A Spanish NIE number (Foreigners ID card).|Pattern match, context and checksum|
 |ES_PASSPORT    | A Spanish passport number.|Pattern match and context|
+|ES_CIF         | The NIF of a Spanish legal entity (formerly CIF): a letter for the legal form, seven digits and a control character.|Pattern match, context and checksum|
 
 ### Italy
 
