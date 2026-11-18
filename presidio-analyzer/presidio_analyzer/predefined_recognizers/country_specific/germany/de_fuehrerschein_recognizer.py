@@ -100,9 +100,12 @@ class DeFuehrerscheinRecognizer(PatternRecognizer):
         Validate the check digit at position 10.
 
         :param pattern_text: the text to validate (11 characters)
-        :return: False if the check digit does not match, None otherwise so the
-                 pattern score and context decide the confidence.
+        :return: False if the text is not ASCII or the check digit does not
+                 match, None otherwise so the pattern score and context decide
+                 the confidence.
         """
+        if not pattern_text.isascii():
+            return False
         pattern_text = pattern_text.upper()
         total = sum(
             int(character, 36) * weight

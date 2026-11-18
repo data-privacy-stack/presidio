@@ -62,6 +62,9 @@ def entities():
         # Too short and too long
         ("B072RRE2I5", []),
         ("B072RRE2I551", []),
+        # Non-ASCII characters the case-insensitive pattern lets through
+        ("B072\u212aRE2I55", []),
+        ("B\u066072RRE2I55", []),
         # fmt: on
     ],
 )
