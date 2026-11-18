@@ -36,7 +36,7 @@ Steuer-IdNr.: 86095742719
 Arztnummer (LANR): 123456601
 Betriebsstättennummer (BSNR): 021234568
 USt-IdNr.: DE136695976
-Führerscheinnummer: BO12345678A
+Führerscheinnummer: B072RRE2I55
 Reisepassnummer: C01234565
 """
 ```
@@ -94,7 +94,7 @@ LOCATION, and ORGANIZATION on top of the pattern recognizers.
 | `DE_LANR` | Lebenslange Arztnummer | ✅ KBV weights algorithm |
 | `DE_BSNR` | Betriebsstättennummer | – |
 | `DE_VAT_ID` | Umsatzsteuer-Identifikationsnummer | – |
-| `DE_FUEHRERSCHEIN` | Führerscheinnummer (post-2013) | – |
+| `DE_FUEHRERSCHEIN` | Führerscheinnummer (post-2013) | ✅ Bundesdruckerei mod 11 |
 
 ## Results
 

@@ -5,49 +5,41 @@ from presidio_analyzer import Pattern, PatternRecognizer
 
 class DeFuehrerscheinRecognizer(PatternRecognizer):
     r"""
-    Recognizes German Führerscheinnummern (driving license numbers).
+    Recognizes German Führerscheinnummern (driving licence numbers).
 
-    The Führerscheinnummer is the document number printed in Field 5 of the
-    German driving license card.  Since the EU-harmonized credit-card format
-    was introduced on 19 January 2013 (EU Directive 2006/126/EC, implemented
-    via FeV reform), the number follows a fixed 11-character structure:
+    The Führerscheinnummer is printed in field 5 of the EU card licence that
+    Germany has issued since 19 January 2013. FeV Anlage 8 defines it as the
+    Behördenschlüssel of the issuing authority, a sequential number assigned by
+    that authority, a check digit and the number of the document issue. The
+    result is an 11-character code:
 
-        Pos 1–2:   Behördenkürzel – 2 uppercase letters identifying the issuing
-                   Fahrerlaubnisbehörde (derived from the Kfz-Zulassungskürzel
-                   of the issuing Kreis/Stadt, e.g. "MU" München, "HH" Hamburg,
-                   "KO" Koblenz, "BO" Bochum).  Single-letter Kfz codes such
-                   as "B" (Berlin) or "K" (Köln) are used in combination as
-                   2-letter authority codes here (e.g. "BO", "KN"); pure
-                   single-letter + digit forms like "B0" are out of scope for
-                   this strict pattern (see tests/test_de_fuehrerschein_recognizer.py).
-        Pos 3–5:   Behördennummer – 3-digit authority code within the Bundesland
-                   (assigned by the Kraftfahrt-Bundesamt, KBA)
-        Pos 6–10:  Laufende Nummer – 5-digit sequential issue number
-        Pos 11:    Prüfzeichen – 1 check character (uppercase letter A–Z or
-                   digit 0–9); the derivation algorithm is not published by KBA
+        Pos 1:     Bundesland, a letter from A (Baden-Württemberg) to P (Thüringen)
+        Pos 2–3:   Landkreis or kreisfreie Stadt, two digits
+        Pos 4:     Office of the authority, digit or letter
+        Pos 5–9:   Sequential number of the authority, base 36 ("00000" to "ZZZZZ")
+        Pos 10:    Check digit, 0–9 or X
+        Pos 11:    Issue number, 1–9, then A–Z
 
-    Legal basis: FeV Anlage 8 (Fahrerlaubnis-Verordnung, Anlage 8 – Muster des
-    Führerscheins), KBA Schlüsselverzeichnis der Fahrerlaubnisbehörden.
-    EU standard: Annex I to Directive 2006/126/EC (Field 5).
-    Data protection: DSGVO Art. 4 Nr. 1 (personenbezogene Daten), BDSG.
+    Check digit (Bundesdruckerei, "Leitfaden zum Ausfüllen der
+    Bestellunterlagen", version 9, 2013): the base-36 values of positions 1–9
+    (0–9 as digits, A = 10 … Z = 35) are multiplied by 9, 8, … 1 and summed.
+    The check digit is the remainder modulo 11, with a remainder of 10 written
+    as X.
 
-    Examples (fictitious): BO12345678A, MU12345678B, HH98765432C
+    Example: the official specimen licence (Musterführerschein) carries
+    B072RRE2I55. B072 is the Behördenschlüssel (Bayern, Landkreis Dachau),
+    RRE2I the sequential number, 5 the check digit and 5 the issue number.
 
-    Scope note: Pre-2013 German driving licenses (pink folded card, laminated
-    card) used locally defined, non-standardized number formats and remain
-    legally valid until 2033 under EU grandfathering rules.  Their numbers do
-    not reliably fit the 11-character pattern and are therefore out of scope
-    for this recognizer.  Context words (e.g. "Führerschein", "Fahrerlaubnis")
-    remain the primary means of distinguishing true license numbers from
-    other 11-character alphanumeric codes.
+    A failing check digit discards the match. A matching check digit keeps the
+    pattern score instead of raising it to the maximum, because a modulo-11
+    check passes for one in eleven random codes. Context words such as
+    "Führerschein" raise the score.
 
-    No checksum validation is implemented because the Prüfzeichen derivation
-    formula is not published in FeV Anlage 8 or KBA administrative documents.
+    Pre-2013 licences (paper and laminated cards) used locally defined number
+    formats and are out of scope.
 
-    Accuracy note: The pattern ``[A-Z]{2}\\d{8}[A-Z0-9]`` (11 characters) is
-    fairly specific, but context words are required for high-confidence matches
-    because no computable checksum is available.  The base confidence is set to
-    0.35.  Formal accuracy evaluation has not been performed on a labelled dataset.
+    Legal basis: FeV Anlage 8 (Fahrerlaubnis-Verordnung, Muster des
+    Führerscheins), Annex I to Directive 2006/126/EC (field 5).
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
@@ -59,9 +51,9 @@ class DeFuehrerscheinRecognizer(PatternRecognizer):
 
     PATTERNS = [
         Pattern(
-            "Führerscheinnummer (Post-2013 EU-Format, 11 Zeichen)",
-            r"\b[A-Z]{2}\d{8}[A-Z0-9]\b",
-            0.35,
+            "Führerscheinnummer (EU card licence, 11 characters)",
+            r"\b[A-P]\d{2}[A-Z0-9]{6}[0-9X][1-9A-Z]\b",
+            0.4,
         ),
     ]
 
@@ -102,3 +94,19 @@ class DeFuehrerscheinRecognizer(PatternRecognizer):
             supported_language=supported_language,
             name=name,
         )
+
+    def validate_result(self, pattern_text: str) -> Optional[bool]:
+        """
+        Validate the check digit at position 10.
+
+        :param pattern_text: the text to validate (11 characters)
+        :return: False if the check digit does not match, None otherwise so the
+                 pattern score and context decide the confidence.
+        """
+        pattern_text = pattern_text.upper()
+        total = sum(
+            int(character, 36) * weight
+            for character, weight in zip(pattern_text[:9], range(9, 0, -1))
+        )
+        expected = "X" if total % 11 == 10 else str(total % 11)
+        return None if pattern_text[9] == expected else False
