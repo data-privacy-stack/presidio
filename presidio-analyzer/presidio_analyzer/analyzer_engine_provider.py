@@ -58,7 +58,7 @@ class AnalyzerEngineProvider:
 
         if not conf_file:
             default_conf_file = self._get_full_conf_path()
-            with open(default_conf_file) as file:
+            with open(default_conf_file, encoding="utf-8") as file:
                 configuration = yaml.safe_load(file)
             logger.info(
                 f"Analyzer Engine configuration file "
@@ -67,20 +67,20 @@ class AnalyzerEngineProvider:
         else:
             try:
                 logger.info(f"Reading analyzer configuration from {conf_file}")
-                with open(conf_file) as file:
+                with open(conf_file, encoding="utf-8") as file:
                     configuration = yaml.safe_load(file)
             except OSError:
                 logger.warning(
                     f"configuration file {conf_file} not found.  "
                     f"Using default config."
                 )
-                with open(self._get_full_conf_path()) as file:
+                with open(self._get_full_conf_path(), encoding="utf-8") as file:
                     configuration = yaml.safe_load(file)
             except Exception:
                 logger.warning(
                     f"Failed to parse file {conf_file}, resorting to default"
                 )
-                with open(self._get_full_conf_path()) as file:
+                with open(self._get_full_conf_path(), encoding="utf-8") as file:
                     configuration = yaml.safe_load(file)
 
         ConfigurationValidator.validate_analyzer_configuration(configuration)

@@ -769,7 +769,7 @@ class RecognizerConfigurationLoader:
 
         if conf_file:
             try:
-                with open(conf_file) as file:
+                with open(conf_file, encoding="utf-8") as file:
                     config_from_file = yaml.safe_load(file)
                 use_defaults = False
 
@@ -777,7 +777,10 @@ class RecognizerConfigurationLoader:
                 logger.warning(
                     f"configuration file {conf_file} not found.  Using default config."
                 )
-                with open(RecognizerConfigurationLoader._get_full_conf_path()) as file:
+                with open(
+                    RecognizerConfigurationLoader._get_full_conf_path(),
+                    encoding="utf-8",
+                ) as file:
                     config_from_file = yaml.safe_load(file)
                 use_defaults = False
 
@@ -787,7 +790,9 @@ class RecognizerConfigurationLoader:
         # Load defaults if needed (no config provided,
         # or registry_configuration is incomplete)
         if use_defaults:
-            with open(RecognizerConfigurationLoader._get_full_conf_path()) as file:
+            with open(
+                RecognizerConfigurationLoader._get_full_conf_path(), encoding="utf-8"
+            ) as file:
                 config_from_file = yaml.safe_load(file)
 
         if config_from_file and not isinstance(config_from_file, dict):

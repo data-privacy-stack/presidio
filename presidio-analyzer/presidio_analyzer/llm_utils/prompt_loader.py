@@ -25,7 +25,7 @@ def load_file_from_conf(filename: str, conf_subdir: str = "conf") -> str:
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    with open(file_path, "r") as f:
+    with open(file_path, encoding="utf-8") as f:
         return f.read()
 
 

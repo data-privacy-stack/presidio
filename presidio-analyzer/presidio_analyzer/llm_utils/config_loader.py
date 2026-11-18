@@ -73,7 +73,7 @@ def load_yaml_file(filepath: Union[str, Path]) -> Dict:
         raise FileNotFoundError(f"File not found: {resolved_path}")
 
     try:
-        with open(resolved_path) as f:
+        with open(resolved_path, encoding="utf-8") as f:
             return yaml.safe_load(f)
     except yaml.YAMLError as e:
         raise ValueError(f"Failed to parse YAML: {e}")

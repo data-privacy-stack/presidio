@@ -82,7 +82,7 @@ class NlpEngineProvider:
     @staticmethod
     def _read_nlp_conf(conf_file: Union[Path, str]) -> Dict:
         """Read NLP configuration from a YAML file."""
-        with open(conf_file) as file:
+        with open(conf_file, encoding="utf-8") as file:
             return yaml.safe_load(file)
 
     @staticmethod
