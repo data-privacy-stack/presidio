@@ -3,7 +3,7 @@ import logging
 import os
 import warnings
 from collections import Counter
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 
 import regex as re
 
@@ -208,7 +208,7 @@ class AnalyzerEngine:
         correlation_id: Optional[str] = None,
         score_threshold: Optional[float] = None,
         return_decision_process: Optional[bool] = False,
-        ad_hoc_recognizers: Optional[List[EntityRecognizer]] = None,
+        ad_hoc_recognizers: Optional[Sequence[EntityRecognizer]] = None,
         context: Optional[List[str]] = None,
         allow_list: Optional[List[str]] = None,
         allow_list_match: Optional[str] = "exact",
