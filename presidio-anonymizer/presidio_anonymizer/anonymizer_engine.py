@@ -276,7 +276,10 @@ class AnonymizerEngine(EngineBase):
         """Merge adjacent entities of the same type separated by whitespace."""
         merged_results = []
         prev_result = None
-        for result in analyzer_results:
+        # Conflict resolution does not keep the results sorted. Out of order, two
+        # results could be merged around a result that lies between them, and
+        # the text after that result would be left in clear.
+        for result in sorted(analyzer_results, key=lambda x: (x.start, x.end)):
             if prev_result is not None:
                 if prev_result.entity_type == result.entity_type:
                     if re.search(r"^( )+$", text[prev_result.end:result.start]):
