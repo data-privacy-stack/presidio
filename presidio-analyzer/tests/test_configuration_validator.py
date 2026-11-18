@@ -1,8 +1,21 @@
 """Tests for the Pydantic-based validation system using existing adapted classes."""
 # ruff: noqa: D103,E501
 
+import inspect
+
 import pytest
-from presidio_analyzer.input_validation import ConfigurationValidator
+from presidio_analyzer.context_aware_enhancers import (
+    CompositeContextAwareEnhancer,
+    LemmaContextAwareEnhancer,
+    PhraseContextAwareEnhancer,
+)
+from presidio_analyzer.input_validation import (
+    ConfigurationValidator,
+    ContextAwareEnhancerConfig,
+    ContextAwareEnhancerSettingsConfig,
+    LemmaContextAwareEnhancerConfig,
+    PhraseContextAwareEnhancerConfig,
+)
 
 # ========== Language Code Validation Tests ==========
 
@@ -543,3 +556,222 @@ def test_analyzer_config_all_fields():
     validated = ConfigurationValidator.validate_analyzer_configuration(valid_config)
     assert validated == valid_config
 
+
+def test_when_context_aware_enhancer_section_is_valid_then_analyzer_config_passes():
+    valid_config = {
+        "supported_languages": ["en"],
+        "context_aware_enhancer": {
+            "context_similarity_factor": 0.5,
+            "min_score_with_context_similarity": 0.6,
+            "context_prefix_count": 3,
+            "context_suffix_count": 4,
+            "context_matching_mode": "whole_word",
+        },
+    }
+
+    validated = ConfigurationValidator.validate_analyzer_configuration(valid_config)
+    assert validated == valid_config
+
+
+def test_when_context_aware_enhancer_fields_omitted_then_only_given_keys_returned():
+    validated = ConfigurationValidator.validate_context_aware_enhancer_configuration(
+        {"context_suffix_count": 5, "context_matching_mode": None}
+    )
+    assert validated == {"context_suffix_count": 5}
+
+
+def test_when_context_aware_enhancer_section_is_empty_then_defaults_returned():
+    validated = ConfigurationValidator.validate_context_aware_enhancer_configuration(
+        None
+    )
+    assert validated == {}
+
+
+def test_when_context_aware_enhancer_section_is_empty_then_analyzer_config_passes():
+    config = {"supported_languages": ["en"], "context_aware_enhancer": None}
+
+    validated = ConfigurationValidator.validate_analyzer_configuration(config)
+    assert validated == config
+
+
+@pytest.mark.parametrize(
+    "enhancer_class, config_class",
+    [
+        (LemmaContextAwareEnhancer, ContextAwareEnhancerSettingsConfig),
+        (PhraseContextAwareEnhancer, ContextAwareEnhancerSettingsConfig),
+        (LemmaContextAwareEnhancer, LemmaContextAwareEnhancerConfig),
+        (PhraseContextAwareEnhancer, PhraseContextAwareEnhancerConfig),
+    ],
+)
+def test_context_aware_enhancer_config_fields_match_enhancer_constructor(
+    enhancer_class, config_class
+):
+    constructor_params = set(inspect.signature(enhancer_class.__init__).parameters)
+    fields = set(config_class.model_fields) - {"type"}
+    assert fields == constructor_params - {"self"}
+
+
+def test_context_aware_enhancer_config_fields_are_the_settings_and_enhancers():
+    composite_params = set(
+        inspect.signature(CompositeContextAwareEnhancer.__init__).parameters
+    ) - {"self"}
+    assert (
+        set(ContextAwareEnhancerConfig.model_fields)
+        == set(ContextAwareEnhancerSettingsConfig.model_fields) | composite_params
+    )
+
+
+def test_when_context_aware_enhancers_listed_then_each_keeps_its_own_settings():
+    validated = ConfigurationValidator.validate_context_aware_enhancer_configuration(
+        {
+            "enhancers": [
+                {"type": "phrase", "context_matching_mode": "whole_word"},
+                {
+                    "type": "lemma",
+                    "context_suffix_count": 2,
+                    "context_prefix_count": None,
+                },
+            ]
+        }
+    )
+    assert validated == {
+        "enhancers": [
+            {"type": "phrase", "context_matching_mode": "whole_word"},
+            {"type": "lemma", "context_suffix_count": 2},
+        ]
+    }
+
+
+def test_when_settings_set_next_to_enhancers_then_both_are_kept():
+    config = {
+        "context_suffix_count": 2,
+        "enhancers": [{"type": "lemma"}, {"type": "phrase", "context_suffix_count": 0}],
+    }
+
+    validated = ConfigurationValidator.validate_context_aware_enhancer_configuration(
+        config
+    )
+
+    assert validated == config
+
+
+@pytest.mark.parametrize(
+    "enhancer_config, expected_message",
+    [
+        (
+            {"enhancers": [{"type": "lemmas"}]},
+            "enhancers.0: Input tag 'lemmas' found using 'type' does not match any "
+            "of the expected tags: 'lemma', 'phrase'",
+        ),
+        (
+            {"enhancers": [{"context_suffix_count": 2}]},
+            "enhancers.0: Unable to extract tag using discriminator 'type'",
+        ),
+        (
+            {"enhancers": [{"type": "phrase", "context_suffix_cnt": 2}]},
+            "enhancers.0.phrase.context_suffix_cnt: Extra inputs are not permitted",
+        ),
+        (
+            {"enhancers": [{"type": "lemma", "context_prefix_count": -1}]},
+            "enhancers.0.lemma.context_prefix_count: Input should be greater than "
+            "or equal to 0",
+        ),
+        ({"enhancers": []}, "enhancers: List should have at least 1 item"),
+        ({"enhancers": "lemma"}, "enhancers: Input should be a valid list"),
+    ],
+)
+def test_when_context_aware_enhancers_invalid_then_raises_with_message(
+    enhancer_config, expected_message
+):
+    with pytest.raises(ValueError) as exc_info:
+        ConfigurationValidator.validate_context_aware_enhancer_configuration(
+            enhancer_config
+        )
+    message = str(exc_info.value)
+    assert message.startswith("Invalid context_aware_enhancer configuration: ")
+    assert expected_message in message
+
+
+def test_when_context_aware_enhancer_factor_is_int_then_accepted_as_float():
+    validated = ConfigurationValidator.validate_context_aware_enhancer_configuration(
+        {"context_similarity_factor": 1, "min_score_with_context_similarity": 0}
+    )
+    assert validated == {
+        "context_similarity_factor": 1.0,
+        "min_score_with_context_similarity": 0.0,
+    }
+
+
+@pytest.mark.parametrize(
+    "enhancer_config, expected_message",
+    [
+        (
+            {"context_suffix_cnt": 5},
+            "context_suffix_cnt: Extra inputs are not permitted",
+        ),
+        (
+            {"context_prefix_count": -1},
+            "context_prefix_count: Input should be greater than or equal to 0",
+        ),
+        (
+            {"context_suffix_count": True},
+            "context_suffix_count: Input should be a valid integer",
+        ),
+        (
+            {"context_suffix_count": 2.5},
+            "context_suffix_count: Input should be a valid integer",
+        ),
+        (
+            {"context_prefix_count": "5"},
+            "context_prefix_count: Input should be a valid integer",
+        ),
+        (
+            {"context_similarity_factor": 1.5},
+            "context_similarity_factor: Input should be less than or equal to 1",
+        ),
+        (
+            {"min_score_with_context_similarity": -0.1},
+            "min_score_with_context_similarity: Input should be greater than or "
+            "equal to 0",
+        ),
+        (
+            {"context_similarity_factor": False},
+            "context_similarity_factor: Input should be a valid number",
+        ),
+        (
+            {"context_matching_mode": "exact"},
+            "context_matching_mode: Input should be 'substring' or 'whole_word'",
+        ),
+    ],
+)
+def test_when_context_aware_enhancer_section_is_invalid_then_raises_with_message(
+    enhancer_config, expected_message
+):
+    invalid_config = {
+        "supported_languages": ["en"],
+        "context_aware_enhancer": enhancer_config,
+    }
+
+    with pytest.raises(ValueError) as exc_info:
+        ConfigurationValidator.validate_analyzer_configuration(invalid_config)
+    message = str(exc_info.value)
+    assert "Invalid context_aware_enhancer configuration" in message
+    assert expected_message in message
+    assert (
+        "Valid keys are: ['context_matching_mode', 'context_prefix_count', "
+        "'context_similarity_factor', 'context_suffix_count', 'enhancers', "
+        "'min_score_with_context_similarity']"
+    ) in message
+
+
+@pytest.mark.parametrize("enhancer_config", [[], "context_suffix_count: 5"])
+def test_when_context_aware_enhancer_section_is_not_a_dict_then_raises(
+    enhancer_config,
+):
+    with pytest.raises(ValueError) as exc_info:
+        ConfigurationValidator.validate_analyzer_configuration(
+            {"context_aware_enhancer": enhancer_config}
+        )
+    assert "context_aware_enhancer configuration must be a dictionary" in str(
+        exc_info.value
+    )
