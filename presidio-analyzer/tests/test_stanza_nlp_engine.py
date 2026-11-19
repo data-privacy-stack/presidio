@@ -2,16 +2,13 @@
 
 import warnings
 
-from spacy.lang.en import EnglishDefaults
-
-
 import pytest
-
 from presidio_analyzer.nlp_engine.stanza_nlp_engine import (
     MultiWordTokenSurface,
     StanzaTokenizer,
     load_pipeline,
 )
+from spacy.lang.en import EnglishDefaults
 
 
 def tags_equal(act, exp):
@@ -188,17 +185,13 @@ def test_get_tokens_with_heads_collapses_mwt_and_remaps_heads():
     assert heads == [1, 0, 1, -2, 1, 0]
 
 
-@pytest.mark.skip_engine("stanza_en")
-def test_convert_doc_keeps_mwt_surface_text_offsets_and_entities():
-    """Test _convert_doc on a real Stanza Document with a multi-word token.
+def _german_mwt_conllu_document():
+    """Build the real Stanza Document for a German sentence with one multi-word token.
 
-    The Document is built from CoNLL-U with the real Stanza Token, Word
-    and Span classes instead of running the German model, so it runs on
-    every test run without a model download. The annotations are what the
-    German pipeline produces for the text ("im" expanded into "in" + "dem").
+    The Document comes from CoNLL-U with the real Stanza Token, Word and Span
+    classes, with the annotations the German pipeline produces for the text
+    ("im" expanded into "in" + "dem"), so tests run without a model download.
     """
-    from types import SimpleNamespace
-    from spacy.vocab import Vocab
     from stanza.models.common.doc import Span
     from stanza.utils.conll import CoNLL
 
@@ -225,6 +218,17 @@ def test_convert_doc_keeps_mwt_surface_text_offsets_and_entities():
     snlp_doc.entities = [
         Span(tokens=sentence.tokens[6:8], type="PER", doc=snlp_doc, sent=sentence)
     ]
+    return text, snlp_doc
+
+
+@pytest.mark.skip_engine("stanza_en")
+def test_convert_doc_keeps_mwt_surface_text_offsets_and_entities():
+    """Test _convert_doc on a real Stanza Document with a multi-word token."""
+    from types import SimpleNamespace
+
+    from spacy.vocab import Vocab
+
+    text, snlp_doc = _german_mwt_conllu_document()
     tokenizer = StanzaTokenizer(SimpleNamespace(processors={}), Vocab())
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
@@ -259,3 +263,63 @@ def test_convert_doc_keeps_mwt_surface_text_offsets_and_entities():
     assert [(e.text, e.start_char, e.end_char, e.label_) for e in doc.ents] == [
         ("Thomas Bergmann", 28, 43, "PER")
     ]
+
+
+@pytest.mark.skip_engine("stanza_en")
+def test_stanza_engine_public_path_preserves_mwt_text_and_entity_offsets():
+    """The engine level path keeps MWT surface text and entity offsets.
+
+    Goes through StanzaNlpEngine.load() and process_text() end to end with the
+    pipeline mocked at load_pipeline: no model is downloaded, and the returned
+    callable converts the real Stanza Document through the real StanzaTokenizer,
+    which is what the spacy-stanza pipeline would return for this text.
+    """
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from presidio_analyzer.nlp_engine import StanzaNlpEngine
+    from spacy.vocab import Vocab
+
+    text, snlp_doc = _german_mwt_conllu_document()
+    tokenizer = StanzaTokenizer(SimpleNamespace(processors={}), Vocab())
+
+    class FakeSpacyStanzaLanguage:
+        """Callable with the vocab attribute the engine reads from its pipeline."""
+
+        vocab = Vocab()
+
+        def __call__(self, raw_text):
+            assert raw_text == text
+            return tokenizer._convert_doc(snlp_doc)
+
+    engine = StanzaNlpEngine(
+        models=[{"lang_code": "de", "model_name": "de"}],
+        download_if_missing=False,
+    )
+    with patch(
+        "presidio_analyzer.nlp_engine.stanza_nlp_engine.load_pipeline",
+        return_value=FakeSpacyStanzaLanguage(),
+    ):
+        engine.load()
+
+    artifacts = engine.process_text(text, language="de")
+
+    assert artifacts.tokens.text == text
+    assert [token.text for token in artifacts.tokens] == [
+        "Wir",
+        "treffen",
+        "uns",
+        "im",
+        "Büro",
+        "mit",
+        "Thomas",
+        "Bergmann",
+        ".",
+    ]
+    for index, token in zip(artifacts.tokens_indices, artifacts.tokens):
+        assert text[index : index + len(token.text)] == token.text
+    # The engine maps the Stanza PER label to the presidio entity name, with
+    # the character offsets of the original text preserved.
+    assert [
+        (e.text, e.start_char, e.end_char, e.label_) for e in artifacts.entities
+    ] == [("Thomas Bergmann", 28, 43, "PERSON")]
