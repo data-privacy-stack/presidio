@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 from presidio_analyzer import RecognizerResult, AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_analyzer.recognizer_registry import RecognizerRegistry
@@ -400,6 +402,8 @@ def test_use_other_language_in_analyze(get_dummy_nlp_engine, get_mock_png):
 class StubVisualRecognizer(VisualObjectRecognizer):
     """Visual recognizer stub returning one fixed FACE bbox."""
 
+    supported_entities = ["FACE"]
+
     def __init__(self):
         self.seen_images = []
 
@@ -499,12 +503,45 @@ def test_given_entities_filter_then_visual_results_are_filtered(
         get_dummy_nlp_engine, [StubVisualRecognizer()]
     )
 
+    face = ImageRecognizerResult("FACE", 0, 0, 0.85, 10, 20, 30, 40)
+
     assert engine.analyze(get_mock_png, entities=["PERSON"]) == []
-    # PERSON is kept in the list because AnalyzerEngine rejects an entities
-    # list in which no entity has a text recognizer.
-    assert engine.analyze(get_mock_png, entities=["PERSON", "FACE"]) == [
-        ImageRecognizerResult("FACE", 0, 0, 0.85, 10, 20, 30, 40)
-    ]
+    assert engine.analyze(get_mock_png, entities=["PERSON", "FACE"]) == [face]
+    # FACE has no text recognizer: it must not reach AnalyzerEngine, which
+    # rejects an entities list that none of its recognizers serves.
+    assert engine.analyze(get_mock_png, entities=["FACE"]) == [face]
+
+
+def test_given_visual_entity_then_it_is_not_forwarded_to_the_text_analyzer(
+    get_mock_png,
+):
+    """AnalyzerEngine is asked for the text entities only."""
+    analyzer_engine = MagicMock()
+    analyzer_engine.analyze.return_value = []
+    engine = ImageAnalyzerEngine(
+        analyzer_engine=analyzer_engine,
+        ocr=EmptyOCR(),
+        visual_recognizers=[StubVisualRecognizer()],
+    )
+
+    engine.analyze(get_mock_png, entities=["PERSON", "FACE"])
+    assert analyzer_engine.analyze.call_args.kwargs["entities"] == ["PERSON"]
+
+    analyzer_engine.analyze.reset_mock()
+    engine.analyze(get_mock_png, entities=["FACE"])
+    analyzer_engine.analyze.assert_not_called()
+
+
+def test_given_unknown_entity_then_the_text_analyzer_still_rejects_it(
+    get_dummy_nlp_engine, get_mock_png
+):
+    """Only entity types served by a visual recognizer are held back."""
+    engine = _engine_without_text_detection(
+        get_dummy_nlp_engine, [StubVisualRecognizer()]
+    )
+
+    with pytest.raises(ValueError, match="No matching recognizers"):
+        engine.analyze(get_mock_png, entities=["LICENSE_PLATE"])
 
 
 def test_given_score_threshold_then_visual_results_are_filtered(

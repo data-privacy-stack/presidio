@@ -144,17 +144,23 @@ redacted_image.save("new_image.png")
 ```
 
 The `entities` and `score_threshold` arguments of `ImageAnalyzerEngine.analyze`
-also apply to visual results.
+also apply to visual results: `entities=["FACE"]` returns faces only, and
+`entities=["PERSON", "FACE"]` returns faces next to the `PERSON` text entities.
+A `score_threshold` has to be passed to `analyze` to apply to visual results;
+the `default_score_threshold` of the `AnalyzerEngine` covers text results only.
 
 To use a different detector, implement the `VisualObjectRecognizer` abstract
-class: its single `recognize` method receives the image and returns a list of
+class: its `recognize` method receives the image and returns a list of
 `ImageRecognizerResult` objects with `start = end = 0`, since the entity is a
-region of the image rather than a span of text.
+region of the image rather than a span of text. List the entity types it
+returns in its `supported_entities` attribute, so that they can be requested
+through `entities`.
 
 !!! note "Note"
     Haar cascades detect frontal faces only, so profiles, strongly rotated and
-    occluded faces are missed. The `ImagePiiVerifyEngine` overlay currently
-    shows OCR-derived bounding boxes only.
+    occluded faces are missed. The `ImagePiiVerifyEngine` and
+    `DicomImagePiiVerifyEngine` overlays and evaluation currently cover
+    OCR-derived bounding boxes only.
 
 ### EgoBlur face and license plate detection
 
@@ -188,6 +194,10 @@ engine = ImageRedactorEngine(image_analyzer_engine=analyzer_engine)
 ```
 
 Either path may be omitted to run a single detector.
+
+!!! warning "Warning"
+    The model files are loaded with `torch.jit.load`, which executes the code
+    stored in them. Only load model files from a source you trust.
 
 !!! note "Note"
     The EgoBlur license page states the Apache License 2.0. The weights are

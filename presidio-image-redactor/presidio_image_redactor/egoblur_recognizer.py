@@ -31,6 +31,12 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
     the Apache License 2.0) and pass the resulting file paths to this
     constructor.
 
+    The model files are deserialised with ``torch.jit.load``, which executes
+    the code stored in them: only load files from a source you trust, and
+    verify the download. ``torch.jit.load`` is deprecated in recent torch
+    releases and emits a ``FutureWarning``; the gen1 models are distributed
+    as TorchScript only.
+
     Only the *gen1* TorchScript contract is supported: the detector is loaded
     with ``torch.jit.load`` and called with a single ``uint8`` BGR tensor in CHW
     layout (no batch dimension), returning the tuple
@@ -40,8 +46,9 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
     EgoBlur repository.
 
     Boxes are kept after class-agnostic NMS and a strictly-greater-than score
-    threshold, as the EgoBlur reference script does, and are then rounded
-    outwards (floor/ceil) so a redaction covers the whole detected box.
+    threshold, as the EgoBlur reference script does. They are then clamped to
+    the image and rounded outwards (floor/ceil) so a redaction covers the whole
+    detected box; a box lying entirely outside the image is dropped.
 
     :param face_model_path: path to the TorchScript face detector. Omit it to
         detect license plates only.
@@ -99,6 +106,7 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
             )
             if path
         ]
+        self.supported_entities = [entity_type for entity_type, _, _ in self.detectors]
 
     def _load_model(self, model_path: str):
         """Load a TorchScript detector onto the configured device.
@@ -146,6 +154,8 @@ class EgoBlurRecognizer(VisualObjectRecognizer):
                 top = max(0, math.floor(box[1]))
                 right = min(width, math.ceil(box[2]))
                 bottom = min(height, math.ceil(box[3]))
+                if right <= left or bottom <= top:
+                    continue
                 results.append(
                     ImageRecognizerResult(
                         entity_type,

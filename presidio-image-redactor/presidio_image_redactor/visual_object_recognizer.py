@@ -16,7 +16,14 @@ class VisualObjectRecognizer(ABC):
     The recommended entity types are ``"FACE"`` and ``"LICENSE_PLATE"``.
     Bounding boxes must be in the pixel coordinates of the image passed to
     ``recognize``.
+
+    Implementations list the entity types they return in
+    ``supported_entities``. ``ImageAnalyzerEngine`` uses it to keep those
+    entity types out of the ``entities`` list it forwards to the text
+    analyzer, which has no recognizer for them.
     """
+
+    supported_entities: List[str] = []
 
     @abstractmethod
     def recognize(self, image: object) -> List[ImageRecognizerResult]:

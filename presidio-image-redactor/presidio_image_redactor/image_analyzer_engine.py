@@ -56,7 +56,9 @@ class ImageAnalyzerEngine:
         :param ocr_kwargs: Additional params for OCR methods.
         :param text_analyzer_kwargs: Additional values for the analyze method
         in AnalyzerEngine. The ``entities`` and ``score_threshold`` values also
-        apply to the results of the visual recognizers.
+        apply to the results of the visual recognizers. Entity types served by
+        a visual recognizer are not forwarded to AnalyzerEngine, and the text
+        analysis is skipped when ``entities`` names visual entity types only.
 
         :return: List of the extract entities with image bounding boxes.
         """
@@ -84,15 +86,29 @@ class ImageAnalyzerEngine:
         # Difines English as default language, if not specified
         if "language" not in text_analyzer_kwargs:
             text_analyzer_kwargs["language"] = "en"
-        analyzer_result = self.analyzer_engine.analyze(
-            text=text, **text_analyzer_kwargs
-        )
+        # AnalyzerEngine has no recognizer for the visual entity types, so they
+        # are taken out of the entities it is asked for.
+        requested_entities = text_analyzer_kwargs.get("entities")
+        visual_entities = {
+            entity
+            for visual_recognizer in self.visual_recognizers
+            for entity in visual_recognizer.supported_entities
+        }
+        if requested_entities and visual_entities:
+            text_analyzer_kwargs["entities"] = [
+                entity for entity in requested_entities if entity not in visual_entities
+            ]
+        if requested_entities and not text_analyzer_kwargs["entities"]:
+            analyzer_result = []
+        else:
+            analyzer_result = self.analyzer_engine.analyze(
+                text=text, **text_analyzer_kwargs
+            )
         allow_list = self._check_for_allow_list(text_analyzer_kwargs)
         bboxes = self.map_analyzer_results_to_bounding_boxes(
             analyzer_result, ocr_result, text, allow_list
         )
 
-        requested_entities = text_analyzer_kwargs.get("entities")
         score_threshold = text_analyzer_kwargs.get("score_threshold")
         for visual_recognizer in self.visual_recognizers:
             for result in visual_recognizer.recognize(original_image):

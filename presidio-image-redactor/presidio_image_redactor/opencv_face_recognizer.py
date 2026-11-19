@@ -41,6 +41,8 @@ class OpenCVFaceRecognizer(VisualObjectRecognizer):
         cascade cannot be loaded from cascade_path.
     """
 
+    supported_entities = ["FACE"]
+
     def __init__(
         self,
         cascade_path: Optional[str] = None,

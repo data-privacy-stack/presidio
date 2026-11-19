@@ -162,6 +162,29 @@ def test_given_box_outside_the_image_then_it_is_clamped_to_the_bounds(
     ]
 
 
+def test_given_box_entirely_outside_the_image_then_it_is_dropped(
+    stub_model_path, red_pixel_image
+):
+    # A threshold below 0.5 keeps the third stub box, which lies past the
+    # bottom right corner of the 64x64 image.
+    recognizer = EgoBlurRecognizer(
+        face_model_path=stub_model_path, face_score_threshold=0.4
+    )
+
+    assert recognizer.recognize(red_pixel_image) == [_expected("FACE")]
+
+
+def test_given_loaded_models_then_supported_entities_lists_their_entity_types(
+    stub_model_path,
+):
+    assert EgoBlurRecognizer(lp_model_path=stub_model_path).supported_entities == [
+        "LICENSE_PLATE"
+    ]
+    assert EgoBlurRecognizer(
+        face_model_path=stub_model_path, lp_model_path=stub_model_path
+    ).supported_entities == ["FACE", "LICENSE_PLATE"]
+
+
 def test_given_threshold_equal_to_the_score_then_the_box_is_dropped(
     stub_model_path, red_pixel_image
 ):
