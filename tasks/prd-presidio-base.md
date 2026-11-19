@@ -88,7 +88,8 @@ A maintainer registers the `presidio-base` project on PyPI and configures truste
 - [ ] `presidio-analyzer/pyproject.toml` declares `presidio-base` as a dependency and a `[tool.uv.sources]` path entry pointing at `../presidio-base`; `presidio-analyzer/uv.lock` is regenerated.
 - [ ] The four old `presidio_analyzer.*` module paths alias the new modules per the design constraints.
 - [ ] Analyzer Dockerfiles install `presidio-base` from the repo source; `python -c "import presidio_base"` works in the built image.
-- [ ] The Image Redactor CI step that installs the in-repo analyzer also installs the in-repo `presidio-base`.
+- [ ] The CI test jobs for Image Redactor, CLI, and Structured install the in-repo `presidio-base` and the in-repo analyzer over the locked PyPI analyzer, and later steps do not re-sync the environment back to the locked versions.
+- [ ] `e2e-tests/requirements.txt` installs the in-repo `presidio-base` alongside the in-repo analyzer, so both E2E jobs pass before `presidio-base` is published.
 - [ ] The full `presidio-analyzer` test suite passes with no test file edited.
 - [ ] A new analyzer test asserts class identity and old-module-path imports for each moved class.
 - [ ] `presidio-base` tests cover the moved code at 90% or more and run in an environment without `spacy` and without `presidio_analyzer`.
@@ -101,7 +102,7 @@ A maintainer registers the `presidio-base` project on PyPI and configures truste
 - [ ] `entity_recognizer.py`, `local_recognizer.py`, and `pattern_recognizer.py` live in `presidio_base` and import only from `presidio_base`, the standard library, and `regex` at runtime.
 - [ ] The three old `presidio_analyzer.*` module paths alias the new modules; `from presidio_analyzer.pattern_recognizer import REGEX_TIMEOUT_SECONDS` and reloading that module with the environment variable set behave as before.
 - [ ] `presidio_analyzer.__init__` exports the same names in the same order as before.
-- [ ] The full test suites of `presidio-analyzer`, `presidio-cli`, `presidio-structured`, and `presidio-image-redactor` pass with no test file edited.
+- [ ] The full test suites of `presidio-analyzer`, `presidio-cli`, `presidio-structured`, and `presidio-image-redactor` pass with no test file edited, each running against the in-repo analyzer and `presidio-base`.
 - [ ] The identity test from US-003 is extended to the three classes.
 - [ ] `presidio-base` tests define a `PatternRecognizer` subclass and assert detection, exact score, and start/end positions with `nlp_artifacts=None`, in an environment without `spacy` and without `presidio_analyzer`. Moved code is covered at 90% or more.
 - [ ] End-to-end tests pass against the default and distroless images.
