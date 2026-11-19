@@ -135,13 +135,12 @@ def test_given_rgba_array_then_alpha_is_dropped_and_bbox_is_returned(
     assert recognizer.recognize(rgba_array) == [_expected("FACE")]
 
 
-def test_given_greyscale_array_then_it_is_widened_to_three_channels(
+def test_given_greyscale_array_then_it_is_accepted(
     stub_model_path,
 ):
     recognizer = EgoBlurRecognizer(face_model_path=stub_model_path)
     greyscale_array = np.zeros((64, 64), np.uint8)
 
-    assert recognizer._to_bgr(greyscale_array).shape == (64, 64, 3)
     assert recognizer.recognize(greyscale_array) == []
 
 

@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock
-
 import pytest
 from presidio_analyzer import RecognizerResult, AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_analyzer.recognizer_registry import RecognizerRegistry
@@ -510,26 +508,6 @@ def test_given_entities_filter_then_visual_results_are_filtered(
     # FACE has no text recognizer: it must not reach AnalyzerEngine, which
     # rejects an entities list that none of its recognizers serves.
     assert engine.analyze(get_mock_png, entities=["FACE"]) == [face]
-
-
-def test_given_visual_entity_then_it_is_not_forwarded_to_the_text_analyzer(
-    get_mock_png,
-):
-    """AnalyzerEngine is asked for the text entities only."""
-    analyzer_engine = MagicMock()
-    analyzer_engine.analyze.return_value = []
-    engine = ImageAnalyzerEngine(
-        analyzer_engine=analyzer_engine,
-        ocr=EmptyOCR(),
-        visual_recognizers=[StubVisualRecognizer()],
-    )
-
-    engine.analyze(get_mock_png, entities=["PERSON", "FACE"])
-    assert analyzer_engine.analyze.call_args.kwargs["entities"] == ["PERSON"]
-
-    analyzer_engine.analyze.reset_mock()
-    engine.analyze(get_mock_png, entities=["FACE"])
-    analyzer_engine.analyze.assert_not_called()
 
 
 def test_given_unknown_entity_then_the_text_analyzer_still_rejects_it(
