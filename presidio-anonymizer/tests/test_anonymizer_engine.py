@@ -259,6 +259,24 @@ def test_given_analyzer_result_input_then_it_is_not_mutated():
         assert original_result == copy_result
 
 
+def test_given_operators_without_default_then_they_are_not_mutated():
+    """The default operator is added for the call, not to the caller's dict."""
+    engine = AnonymizerEngine()
+    operators = {"PERSON": OperatorConfig("redact")}
+
+    result = engine.anonymize(
+        "Jane is here, call 555-1234",
+        [
+            RecognizerResult(start=0, end=4, entity_type="PERSON", score=0.9),
+            RecognizerResult(start=19, end=27, entity_type="PHONE", score=0.9),
+        ],
+        operators,
+    )
+
+    assert result.text == " is here, call <PHONE>"
+    assert operators == {"PERSON": OperatorConfig("redact")}
+
+
 def test_given_unsorted_input_then_merged_correctly():
     engine = AnonymizerEngine()
     text = "Jane Doe is a person"
