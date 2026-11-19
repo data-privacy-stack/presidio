@@ -121,6 +121,63 @@ Configuration can be done in two ways:
         Presidio can currently use one NER model per language via the `NlpEngine`. If multiple are required,
         consider wrapping NER models as additional recognizers ([see sample here](https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_remote_recognizer.py)).
 
+## Running without an NLP model
+
+The `NoOpNlpEngine` loads no model and does no NLP processing.
+It fits deployments in which no recognizer needs the NLP engine: for example, deployments that only use pattern-based recognizers (credit card, IBAN, email, phone number and so on), or recognizers that run their own model.
+Without a model, the memory and the time of the NLP step are saved, and this step no longer depends on the length of the text.
+
+To use it, set the NLP engine name to `no_op`. A `model_name` is required for each language, but no model is loaded:
+
+```yaml
+nlp_engine_name: no_op
+models:
+  - lang_code: en
+    model_name: no_op
+```
+
+This configuration is bundled as `presidio_analyzer/conf/no_op.yaml`. The Presidio Analyzer server uses it when the `NLP_CONF_FILE` environment variable points to it.
+
+In code:
+
+```python
+from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.nlp_engine import NoOpNlpEngine
+
+nlp_engine = NoOpNlpEngine(models=[{"lang_code": "en", "model_name": "no_op"}])
+analyzer = AnalyzerEngine(nlp_engine=nlp_engine)
+
+results = analyzer.analyze(text="My credit card is 4012888888881881", language="en")
+print(results)
+```
+
+This setup changes the results in two ways.
+
+**Entities from the NLP model are not detected.** The `SpacyRecognizer` is not loaded. With the default recognizers, `PERSON`, `LOCATION` and `NRP` are no longer detected. A `RecognizerRegistry` that is created in code with a `SpacyRecognizer` is rejected with an error.
+
+**Context words in the text no longer raise scores.** The context-aware enhancer looks for context words in the tokens and lemmas of the text, and the `NoOpNlpEngine` produces none. Each match keeps the score of its pattern. Scores that come from validation, such as a checksum, do not change:
+
+| Text | Entity | Score with the default spaCy engine | Score with `NoOpNlpEngine` |
+| --- | --- | --- | --- |
+| My driver license is A1234567 | `US_DRIVER_LICENSE` | 0.65 | 0.3 |
+| My phone number is 212-555-0198 | `PHONE_NUMBER` | 0.75 | 0.4 |
+| My bank account number is 12345678901 | `US_BANK_NUMBER` | 0.4 | 0.05 |
+| My passport number is 912803456 | `US_PASSPORT` | 0.4 | 0.05 |
+| My credit card is 4012888888881881 | `CREDIT_CARD` | 1.0 | 1.0 |
+
+### Effect on score thresholds
+
+A score threshold that was chosen with context words in mind removes more results with the `NoOpNlpEngine`.
+In the table above, a threshold of 0.5 keeps the driver license and the phone number with the spaCy engine, and removes both with the `NoOpNlpEngine`.
+
+Lowering the threshold brings these results back, but it also keeps matches that have no context word at all.
+Weak patterns, such as a run of nine digits, match many values that are not PII, so expect more false positives.
+
+Before moving a deployment to the `NoOpNlpEngine`:
+
+- Check the thresholds again on your own data: the analyzer `default_score_threshold`, the `score_thresholds` of each recognizer, and the `score_threshold` passed in requests.
+- If the context is known in advance, for example a column name or a form field label, pass it to `analyze` with the `context` parameter. Explicit context still raises scores with the `NoOpNlpEngine`. It applies to all matches in the text.
+
 ## Leverage frameworks other than spaCy, Stanza and transformers for ML based PII detection
 
 In addition to the built-in spaCy/Stanza/transformers capabilities, it is possible to create new recognizers which serve as interfaces to other models.

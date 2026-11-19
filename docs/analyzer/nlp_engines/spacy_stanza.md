@@ -34,6 +34,24 @@ For the available models, follow these links: [spaCy](https://spacy.io/usage/mod
 
 Once created, see [the NLP configuration documentation](../customizing_nlp_models.md#Configure-Presidio-to-use-the-new-model) for more information.
 
+### Limit the text length (spaCy)
+
+spaCy does not process a text longer than `nlp.max_length` characters (1,000,000 by default).
+It raises a `ValueError` (spaCy error `E088`) before the pipeline runs, so no part of the text is analyzed.
+To set a limit that fits the memory of your deployment, add `max_length` to a model in the spaCy NLP engine configuration:
+
+```yaml
+nlp_engine_name: spacy
+models:
+  - lang_code: en
+    model_name: en_core_web_lg
+    max_length: 100000
+```
+
+`max_length` is optional and is set per model. If it is left out, spaCy's default is kept.
+It applies to the `spacy` NLP engine only.
+When a text is too long, the Presidio Analyzer REST API returns status `413` from `/analyze`.
+
 ## How NER results flow within Presidio
 This diagram describes the flow of NER results within Presidio, and the relationship between the `SpacyNlpEngine` component and the `SpacyRecognizer` component:
 ```mermaid
