@@ -2,6 +2,7 @@
 
 from typing import Annotated, Any, Dict, List, Literal, Optional, Type, Union
 
+import phonenumbers
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from presidio_analyzer.input_validation import validate_language_codes
@@ -455,6 +456,59 @@ class LangExtractRecognizerConfig(PredefinedRecognizerConfig):
         return super().model_dump(*args, **kwargs)
 
 
+class PhoneRecognizerConfig(PredefinedRecognizerConfig):
+    """Configuration for ``PhoneRecognizer``.
+
+    Lets YAML set the phone regions and the matching leniency, which the generic
+    predefined schema would otherwise drop without an error.
+
+    Other unknown keys are still ignored, as for every predefined recognizer:
+    ``PhoneRecognizer`` does not accept extra keyword arguments, so passing them
+    through would fail at construction, and rejecting them would break YAML
+    files that load today.
+    """
+
+    supported_regions: Optional[List[str]] = Field(
+        None,
+        description="Phone regions to match, as ISO 3166-1 alpha-2 codes (e.g. ES)",
+    )
+    leniency: Optional[int] = Field(
+        None, ge=0, le=3, description="Matching strictness, from 0 to 3"
+    )
+
+    @field_validator("supported_regions")
+    @classmethod
+    def validate_supported_regions(
+        cls, v: Optional[List[str]]
+    ) -> Optional[List[str]]:
+        """Upper-case the region codes and reject codes phonenumbers does not know."""
+        if v is None:
+            return v
+        if not v:
+            raise ValueError(
+                "'supported_regions' is empty, so PhoneRecognizer would never "
+                "match. List at least one region, for example [ES], or remove "
+                "the key to use the default regions."
+            )
+        regions = [region.upper() for region in v]
+        unknown = [r for r in regions if r not in phonenumbers.SUPPORTED_REGIONS]
+        if unknown:
+            raise ValueError(
+                f"Unknown phone region(s) {unknown} in 'supported_regions'. "
+                "Use ISO 3166-1 alpha-2 codes, for example 'GB' for the "
+                "United Kingdom or 'ES' for Spain."
+            )
+        return regions
+
+    def model_dump(self, *args, **kwargs) -> Dict[str, Any]:
+        """Serialize the config without None values by default.
+
+        Omitted YAML fields then keep the recognizer's constructor defaults.
+        """
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(*args, **kwargs)
+
+
 class CustomRecognizerConfig(BaseRecognizerConfig):
     """Configuration for custom pattern-based recognizers."""
 
@@ -794,4 +848,5 @@ CONFIG_MODEL_MAP: Dict[str, Type[BaseModel]] = {
     "GLiNERRecognizer": GLiNERRecognizerConfig,
     "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
     "AzureOpenAILangExtractRecognizer": LangExtractRecognizerConfig,
+    "PhoneRecognizer": PhoneRecognizerConfig,
 }
