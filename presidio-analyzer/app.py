@@ -3,9 +3,10 @@
 import json
 import logging
 import os
+import re
 from logging.config import fileConfig
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 from flask import Flask, Response, jsonify, request
 from presidio_analyzer import (
@@ -21,6 +22,12 @@ DEFAULT_BATCH_SIZE = "500"
 DEFAULT_N_PROCESS = "1"
 
 LOGGING_CONF_FILE = "logging.ini"
+
+# spaCy raises a ValueError with this code and text
+# when a text is longer than `nlp.max_length`.
+SPACY_TEXT_TOO_LONG_PATTERN = re.compile(
+    r"\[E088\] Text of length (\d+) exceeds maximum of (\d+)"
+)
 
 WELCOME_MESSAGE = r"""
  _______  _______  _______  _______ _________ ______  _________ _______
@@ -125,6 +132,11 @@ class Server:
                 return jsonify(error=error_msg), 400
 
             except Exception as e:
+                text_too_long_msg = _get_text_too_long_message(e)
+                if text_too_long_msg:
+                    self.logger.error(text_too_long_msg)
+                    return jsonify(error=text_too_long_msg), 413
+
                 self.logger.error(
                     f"A fatal error occurred during execution of "
                     f"AnalyzerEngine.analyze(). {e}"
@@ -163,6 +175,18 @@ class Server:
         @self.app.errorhandler(HTTPException)
         def http_exception(e):
             return jsonify(error=e.description), e.code
+
+
+def _get_text_too_long_message(error: Exception) -> Optional[str]:
+    """Return a client error message if spaCy rejected a text as too long."""
+    match = SPACY_TEXT_TOO_LONG_PATTERN.search(str(error))
+    if not match:
+        return None
+    return (
+        f"Text of length {match.group(1)} exceeds the maximum of "
+        f"{match.group(2)} characters. Split the text into smaller parts "
+        f"and analyze each part separately."
+    )
 
 
 def _exclude_attributes_from_dto(recognizer_result_list):

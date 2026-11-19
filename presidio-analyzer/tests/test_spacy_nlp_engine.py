@@ -3,8 +3,13 @@ from typing import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
+import spacy
 
-from presidio_analyzer.nlp_engine import SpacyNlpEngine, NerModelConfiguration
+from presidio_analyzer.nlp_engine import (
+    NerModelConfiguration,
+    NlpEngineProvider,
+    SpacyNlpEngine,
+)
 
 
 class SetEncoder(json.JSONEncoder):
@@ -151,3 +156,69 @@ def test_when_cpu_device_then_gpu_not_configured():
             engine.load()
             
             mock_spacy.require_gpu.assert_not_called()
+
+
+@pytest.fixture(scope="module")
+def spacy_nlp_engine_with_max_length(tmp_path_factory):
+    """Create a spaCy NLP engine with max_length set in a YAML conf file."""
+    conf_file = tmp_path_factory.mktemp("conf") / "spacy_max_length.yaml"
+    conf_file.write_text(
+        """
+nlp_engine_name: spacy
+models:
+  - lang_code: en
+    model_name: en_core_web_lg
+    max_length: 20
+"""
+    )
+    return NlpEngineProvider(conf_file=conf_file).create_engine()
+
+
+def test_when_text_longer_than_max_length_then_process_text_raises(
+    spacy_nlp_engine_with_max_length,
+):
+    with pytest.raises(ValueError, match="E088"):
+        spacy_nlp_engine_with_max_length.process_text("a" * 21, language="en")
+
+
+def test_when_text_not_longer_than_max_length_then_process_text_succeeds(
+    spacy_nlp_engine_with_max_length,
+):
+    nlp_artifacts = spacy_nlp_engine_with_max_length.process_text(
+        "a" * 20, language="en"
+    )
+
+    assert len(nlp_artifacts.tokens) == 1
+
+
+def test_when_text_longer_than_max_length_then_process_batch_raises(
+    spacy_nlp_engine_with_max_length,
+):
+    nlp_artifacts_batch = spacy_nlp_engine_with_max_length.process_batch(
+        ["simple text", "a" * 21], language="en"
+    )
+
+    with pytest.raises(ValueError, match="E088"):
+        list(nlp_artifacts_batch)
+
+
+def test_when_max_length_not_set_then_spacy_default_is_kept(spacy_nlp_engine):
+    default_max_length = spacy.blank("en").max_length
+
+    assert spacy_nlp_engine.get_nlp("en").max_length == default_max_length
+
+
+@pytest.mark.parametrize("max_length", [0, -1, 1.5, "100", True])
+def test_when_max_length_is_invalid_then_load_raises(max_length):
+    nlp_engine = SpacyNlpEngine(
+        models=[
+            {
+                "lang_code": "en",
+                "model_name": "en_core_web_lg",
+                "max_length": max_length,
+            }
+        ]
+    )
+
+    with pytest.raises(ValueError, match="max_length must be a positive integer"):
+        nlp_engine.load()
