@@ -182,4 +182,30 @@ regex_per_country = {
     "SC": "(SC)" + CK + A4 + N4 + N4 + N4 + N4 + N4 + A3,
     # Ukraine   (6n,19c)  UAkk bbbb bbcc cccc cccc cccc cccc c
     "UA": "(UA)" + CK + N4 + N2 + C4 + C4 + C4 + C4 + C3,
+    # Burundi   (23n)  BIkk bbbb bsss sscc cccc cccc cxx
+    "BI": "(BI)" + CK + N4 + N4 + N4 + N4 + N4 + N3,
+    # Djibouti  (23n)  DJkk bbbb bsss sscc cccc cccc cxx
+    "DJ": "(DJ)" + CK + N4 + N4 + N4 + N4 + N4 + N3,
+    # El Salvador   (4a,20n)  SVkk bbbb cccc cccc cccc cccc cccc
+    "SV": "(SV)" + CK + A4 + N4 + N4 + N4 + N4 + N4,
+    # Falkland Islands  (2a,12n)  FKkk bbcc cccc cccc cc
+    "FK": "(FK)" + CK + A2 + N4 + N4 + N4,
+    # Honduras  (4a,20n)  HNkk bbbb cccc cccc cccc cccc cccc
+    "HN": "(HN)" + CK + A4 + N4 + N4 + N4 + N4 + N4,
+    # Mongolia  (16n)  MNkk bbbb cccc cccc cccc
+    "MN": "(MN)" + CK + N4 + N4 + N4 + N4,
+    # Nicaragua (4a,20n)  NIkk bbbb cccc cccc cccc cccc cccc
+    "NI": "(NI)" + CK + A4 + N4 + N4 + N4 + N4 + N4,
+    # Oman  (3n,16c)  OMkk bbbc cccc cccc cccc ccc
+    "OM": "(OM)" + CK + N3 + C4 + C4 + C4 + C4,
+    # Russia    (14n,15c)  RUkk bbbb bbbb bsss sscc cccc cccc cccc c
+    "RU": "(RU)" + CK + N4 + N4 + N4 + N2 + C4 + C4 + C4 + C3,
+    # Sao Tome and Principe (21n)  STkk bbbb ssss cccc cccc cccc c
+    "ST": "(ST)" + CK + N4 + N4 + N4 + N4 + N4 + N,
+    # Somalia   (19n)  SOkk bbbb sssc cccc cccc ccc
+    "SO": "(SO)" + CK + N4 + N4 + N4 + N4 + N3,
+    # Sudan (14n)  SDkk bbcc cccc cccc cc
+    "SD": "(SD)" + CK + N4 + N4 + N4 + N2,
+    # Yemen (4a,4n,18c)  YEkk bbbb ssss cccc cccc cccc cccc cc
+    "YE": "(YE)" + CK + A4 + N4 + C4 + C4 + C4 + C4 + C2,
 }
