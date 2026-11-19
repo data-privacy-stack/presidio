@@ -383,6 +383,33 @@ def test_custom_recognizer_config_with_deny_list():
     assert config.deny_list_score == 0.1
 
 
+def test_custom_recognizer_config_omitted_deny_list_score_defaults_to_one():
+    """Omitted deny_list_score should match PatternRecognizer's own default (1.0).
+
+    PatternRecognizer.from_dict() forwards model_dump() output straight to the
+    constructor, so the dumped value has to already be 1.0 for an omitted
+    YAML field to behave the same as constructing PatternRecognizer directly.
+    """
+    config = CustomRecognizerConfig(
+        name="custom_test",
+        supported_entity="CUSTOM_ENTITY",
+        deny_list=["exclude", "this"],
+    )
+    assert config.deny_list_score == 1.0
+    assert config.model_dump()["deny_list_score"] == 1.0
+
+
+def test_custom_recognizer_config_explicit_deny_list_score_kept_in_dump():
+    """An explicitly set deny_list_score is preserved through model_dump()."""
+    config = CustomRecognizerConfig(
+        name="custom_test",
+        supported_entity="CUSTOM_ENTITY",
+        deny_list=["exclude", "this"],
+        deny_list_score=0.1,
+    )
+    assert config.model_dump()["deny_list_score"] == 0.1
+
+
 def test_custom_recognizer_config_invalid_patterns_not_list():
     """Test that patterns must be a list."""
     with pytest.raises(ValidationError) as exc_info:
@@ -486,6 +513,24 @@ def test_recognizer_registry_config_defaults():
     assert config.supported_languages is None
     assert config.global_regex_flags == 26
     assert len(config.recognizers) == 1
+
+
+def test_recognizer_level_normalize_text_points_to_analyzer_setting():
+    """normalize_text in a recognizer entry fails with a pointer to text_normalizer."""
+    with pytest.raises(
+        ValidationError, match="Add a 'text_normalizer' section to the analyzer configuration"
+    ):
+        PredefinedRecognizerConfig(name="UsPassportRecognizer", normalize_text=True)
+
+    with pytest.raises(
+        ValidationError, match="Add a 'text_normalizer' section to the analyzer configuration"
+    ):
+        CustomRecognizerConfig(
+            name="custom_norm",
+            supported_entity="CUSTOM_ENTITY",
+            patterns=[{"name": "id", "regex": r"[0-9]+", "score": 0.5}],
+            normalize_text=True,
+        )
 
 
 def test_recognizer_registry_config_valid_languages():

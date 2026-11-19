@@ -1,7 +1,7 @@
 import copy
 import logging
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Type, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Type, Union
 
 import regex as re
 import yaml
@@ -189,7 +189,7 @@ class RecognizerRegistry:
         language: str,
         entities: Optional[List[str]] = None,
         all_fields: bool = False,
-        ad_hoc_recognizers: Optional[List[EntityRecognizer]] = None,
+        ad_hoc_recognizers: Optional[Sequence[EntityRecognizer]] = None,
     ) -> List[EntityRecognizer]:
         """
         Return a list of recognizers which supports the specified name and language.
@@ -201,6 +201,14 @@ class RecognizerRegistry:
         as part of the request
         :return: A list of the recognizers which supports the supplied entities
         and language
+        :raises ValueError: if language is None, entities is None when all_fields
+        is False, or if no recognizers match the request at all.
+
+        Partly unsupported requests log a warning and return the matching
+        recognizers. This warn-and-ignore behavior
+        is deprecated and will raise an error in a future version. Use
+        AnalyzerEngine.get_supported_entities(language) to find supported entities,
+        or provide matching ad-hoc recognizers.
         """
         if language is None:
             raise ValueError("No language provided")
@@ -232,7 +240,10 @@ class RecognizerRegistry:
                 if not subset:
                     logger.warning(
                         "Entity %s doesn't have the corresponding"
-                        " recognizer in language : %s",
+                        " recognizer in language : %s. Ignoring unsupported entities"
+                        " is deprecated and will raise an error in a future version."
+                        " Use AnalyzerEngine.get_supported_entities(language) to find"
+                        " supported entities, or add a matching recognizer.",
                         entity,
                         language,
                     )
