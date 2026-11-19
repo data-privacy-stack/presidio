@@ -1,7 +1,7 @@
 import copy
 import logging
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Type, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Type, Union
 
 import regex as re
 import yaml
@@ -189,7 +189,7 @@ class RecognizerRegistry:
         language: str,
         entities: Optional[List[str]] = None,
         all_fields: bool = False,
-        ad_hoc_recognizers: Optional[List[EntityRecognizer]] = None,
+        ad_hoc_recognizers: Optional[Sequence[EntityRecognizer]] = None,
     ) -> List[EntityRecognizer]:
         """
         Return a list of recognizers which supports the specified name and language.
