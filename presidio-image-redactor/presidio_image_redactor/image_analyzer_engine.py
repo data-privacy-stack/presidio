@@ -10,6 +10,7 @@ from presidio_analyzer import AnalyzerEngine, RecognizerResult
 
 from presidio_image_redactor import OCR, ImagePreprocessor, TesseractOCR
 from presidio_image_redactor.entities import ImageRecognizerResult
+from presidio_image_redactor.visual_object_recognizer import VisualObjectRecognizer
 
 
 class ImageAnalyzerEngine:
@@ -20,6 +21,9 @@ class ImageAnalyzerEngine:
     :param ocr: the OCR object to be used to detect text in images.
     :param image_preprocessor: The ImagePreprocessor object to be
         used to preprocess the image
+    :param visual_recognizers: Optional list of VisualObjectRecognizer objects
+        detecting non-textual PII (e.g. faces) directly in the image pixels.
+        Their results are added to the OCR-derived ones.
     """
 
     def __init__(
@@ -27,6 +31,7 @@ class ImageAnalyzerEngine:
         analyzer_engine: Optional[AnalyzerEngine] = None,
         ocr: Optional[OCR] = None,
         image_preprocessor: Optional[ImagePreprocessor] = None,
+        visual_recognizers: Optional[List[VisualObjectRecognizer]] = None,
     ):
         if not analyzer_engine:
             analyzer_engine = AnalyzerEngine()
@@ -40,6 +45,8 @@ class ImageAnalyzerEngine:
             image_preprocessor = ImagePreprocessor()
         self.image_preprocessor = image_preprocessor
 
+        self.visual_recognizers = visual_recognizers or []
+
     def analyze(
         self, image: object, ocr_kwargs: Optional[dict] = None, **text_analyzer_kwargs
     ) -> List[ImageRecognizerResult]:
@@ -48,12 +55,18 @@ class ImageAnalyzerEngine:
         :param image: PIL Image/numpy array or file path(str) to be processed.
         :param ocr_kwargs: Additional params for OCR methods.
         :param text_analyzer_kwargs: Additional values for the analyze method
-        in AnalyzerEngine.
+        in AnalyzerEngine. The ``entities`` and ``score_threshold`` values also
+        apply to the results of the visual recognizers. Entity types served by
+        a visual recognizer are not forwarded to AnalyzerEngine, and the text
+        analysis is skipped when ``entities`` names visual entity types only.
 
         :return: List of the extract entities with image bounding boxes.
         """
         # Perform OCR
         perform_ocr_kwargs, ocr_threshold = self._parse_ocr_kwargs(ocr_kwargs)
+        # The visual recognizers run on the original image, so that their bboxes
+        # are in the same pixel coordinates as the rescaled OCR ones.
+        original_image = image
         image, preprocessing_metadata = self.image_preprocessor.preprocess_image(image)
         ocr_result = self.ocr.perform_ocr(image, **perform_ocr_kwargs)
         ocr_result = self.remove_space_boxes(ocr_result)
@@ -73,13 +86,37 @@ class ImageAnalyzerEngine:
         # Difines English as default language, if not specified
         if "language" not in text_analyzer_kwargs:
             text_analyzer_kwargs["language"] = "en"
-        analyzer_result = self.analyzer_engine.analyze(
-            text=text, **text_analyzer_kwargs
-        )
+        # AnalyzerEngine has no recognizer for the visual entity types, so they
+        # are taken out of the entities it is asked for.
+        requested_entities = text_analyzer_kwargs.get("entities")
+        visual_entities = {
+            entity
+            for visual_recognizer in self.visual_recognizers
+            for entity in visual_recognizer.supported_entities
+        }
+        if requested_entities and visual_entities:
+            text_analyzer_kwargs["entities"] = [
+                entity for entity in requested_entities if entity not in visual_entities
+            ]
+        if requested_entities and not text_analyzer_kwargs["entities"]:
+            analyzer_result = []
+        else:
+            analyzer_result = self.analyzer_engine.analyze(
+                text=text, **text_analyzer_kwargs
+            )
         allow_list = self._check_for_allow_list(text_analyzer_kwargs)
         bboxes = self.map_analyzer_results_to_bounding_boxes(
             analyzer_result, ocr_result, text, allow_list
         )
+
+        score_threshold = text_analyzer_kwargs.get("score_threshold")
+        for visual_recognizer in self.visual_recognizers:
+            for result in visual_recognizer.recognize(original_image):
+                if requested_entities and result.entity_type not in requested_entities:
+                    continue
+                if score_threshold is not None and result.score < score_threshold:
+                    continue
+                bboxes.append(result)
 
         return bboxes
 

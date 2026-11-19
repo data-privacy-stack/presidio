@@ -207,6 +207,13 @@ Detected using the `MedicalNERRecognizer` (requires the `transformers` extra). U
 |MEDICAL_FAMILY_HISTORY | A family medical history reference. | NER model (HuggingFace transformers) |
 |MEDICAL_HISTORY | A patient medical history reference. | NER model (HuggingFace transformers) |
 
+### Image (presidio-image-redactor)
+
+|FieldType | Description | Detection Method |
+| --- | --- | --- |
+|FACE | A human face detected in image pixels | Haar cascade face detection (`OpenCVFaceRecognizer`), EgoBlur detector (`EgoBlurRecognizer`) |
+|LICENSE_PLATE | A vehicle license plate detected in image pixels | EgoBlur detector (`EgoBlurRecognizer`) |
+
 ## Adding a custom PII entity
 
 See [this documentation](analyzer/adding_recognizers.md) for instructions on how to add a new Recognizer for a new type of PII entity.

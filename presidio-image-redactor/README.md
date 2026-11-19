@@ -69,6 +69,16 @@ redacted_image.save("new_image.png")
 # redacted_image.show()
 ```
 
+To redact faces as well as text, pass a visual object recognizer to the image analyzer engine:
+`ImageRedactorEngine(ImageAnalyzerEngine(visual_recognizers=[OpenCVFaceRecognizer()]))`. Faces are
+reported as `FACE` entities and redacted like any other entity; a custom detector can be plugged in
+by implementing the `VisualObjectRecognizer` abstract class. Installing the `egoblur` extra
+(`pip install "presidio-image-redactor[egoblur]"`) additionally provides `EgoBlurRecognizer`, which
+detects faces and `LICENSE_PLATE` entities with Meta's EgoBlur models, downloaded separately by the
+user. See
+[the documentation](https://presidio.dataprivacystack.org/image-redactor/#redacting-visual-objects-faces-and-license-plates)
+for details.
+
 ### As docker service
 
 In folder presidio/presidio-image-redactor run:

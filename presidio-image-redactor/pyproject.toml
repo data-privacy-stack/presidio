@@ -39,6 +39,10 @@ server = [
     "flask (>=1.1,<4.0.0)",
     "gunicorn (>=25.3.0,<26.0.0)"
 ]
+egoblur = [
+    "torch (>=2.2.0,<3.0.0)",
+    "torchvision (>=0.17.0,<1.0.0)"
+]
 
 [dependency-groups]
 dev = [
