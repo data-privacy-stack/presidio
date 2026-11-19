@@ -73,6 +73,16 @@ def test_when_masking_char_length_is_greater_than_one_then_ipe_raised():
         Mask().validate(params)
 
 
+def test_when_masking_char_is_empty_then_ipe_raised():
+    params = _get_default_mask_parameters()
+    params["masking_char"] = ""
+
+    with pytest.raises(
+        InvalidParamError, match="Invalid input, masking_char must be a character"
+    ):
+        Mask().validate(params)
+
+
 def test_when_chars_to_mask_is_missing_then_ipe_raised():
     params = _get_default_mask_parameters()
     params.pop("chars_to_mask")
