@@ -71,6 +71,9 @@ see [Installing Presidio](../installation.md).
     print(result)
     ```
 
+    Every entity passed to `deanonymize` needs an operator, either one for its entity type or a `DEFAULT`.
+    If an entity has neither, `deanonymize` raises an `InvalidParamError`, and the HTTP endpoint returns a 422.
+
 === "As an HTTP server"
 
     You can run presidio anonymizer as an http server using either python runtime or using a docker container.

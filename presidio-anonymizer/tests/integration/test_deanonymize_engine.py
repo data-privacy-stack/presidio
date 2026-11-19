@@ -59,6 +59,27 @@ def test_given_short_key_then_we_fail():
         )
 
 
+def test_given_entity_without_operator_and_no_default_then_we_fail():
+    text = (
+        "My name is S184CMt9Drj7QaKQ21JTrpYzghnboTF9pn/neN8JME0= and I live in Seattle"
+    )
+    encryption_results = [
+        OperatorResult(start=11, end=55, entity_type="PERSON"),
+        OperatorResult(start=70, end=77, entity_type="LOCATION"),
+    ]
+    engine = DeanonymizeEngine()
+    expected_result = (
+        "Invalid input, no operator was given for entity type 'LOCATION' "
+        "and there is no DEFAULT operator"
+    )
+    with pytest.raises(InvalidParamError, match=expected_result):
+        engine.deanonymize(
+            text,
+            encryption_results,
+            {"PERSON": OperatorConfig(Decrypt.NAME, {"key": "WmZq4t7w!z%C&F)J"})},
+        )
+
+
 def test_given_anonymize_with_encrypt_then_text_returned_with_encrypted_content():
     unencrypted_text = "My name is "
     expected_encrypted_text = "Chloë"
