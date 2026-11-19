@@ -25,6 +25,7 @@ This section collects different resources developed with Presidio.
 | [Extending Power BI with Python and R](https://github.com/PacktPublishing/Extending-Power-BI-with-Python-and-R) | Code repository for [Extending Power BI with Python and R](https://www.packtpub.com/product/extending-power-bi-with-python-and-r/9781801078207), published by Packt. |
 | [HebSafeHarbor](https://github.com/8400TheHealthNetwork/HebSafeHarbor) | Clinical notes anonymization in Hebrew. |
 | [GolemPII for Presidio](https://github.com/cordwainersmith/golempii/tree/main/integrations/presidio) | Hebrew PII detection and anonymization with the GolemPII v2 models, for text that mixes Hebrew and English. Registers them as a `HuggingFaceNerRecognizer` for language `he` with Presidio entity names, using `NoOpNlpEngine` (no spaCy model). |
+| [Tarn](https://github.com/Syntriq-GmbH/tarn) | Open transformers and GLiNER models for German PII detection, using Presidio entity names including the German identifiers, with a ready `TransformersNlpEngine` configuration. |
 | [Presidio GitHub Action](https://github.com/marketplace/actions/presidio-action) | GitHub Action that analyzes text for PII entities with the Presidio framework. |
 
 * Please create a PR if you're interested in adding your tool to this list.
