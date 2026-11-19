@@ -106,7 +106,7 @@ def test_given_text_longer_than_max_length_then_return_413(
 
     assert response.status_code == 413
     assert response.get_json() == {
-        "error": "Text of length 21 exceeds the maximum of 20 characters. "
+        "error": "Text is longer than the maximum length of the NLP model. "
         "Split the text into smaller parts and analyze each part separately."
     }
 

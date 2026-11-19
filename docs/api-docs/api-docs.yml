@@ -791,7 +791,7 @@ components:
             properties:
               error:
                 type: string
-                example: "Text of length 150000 exceeds the maximum of 100000 characters. Split the text into smaller parts and analyze each part separately."
+                example: "Text is longer than the maximum length of the NLP model. Split the text into smaller parts and analyze each part separately."
 
     422UnprocessableEntity:
       description: Unprocessable Entity
