@@ -48,6 +48,13 @@ class EntityRecognizer:
     #: instance methods.
     COUNTRY_CODE: ClassVar[Optional[str]] = None
 
+    #: How this recognizer's context words are matched by the context aware
+    #: enhancers: ``"substring"`` or ``"whole_word"``. ``None`` (the default)
+    #: means the enhancer's own ``context_matching_mode`` applies. Set it to
+    #: ``"whole_word"`` when a short context word would otherwise match as a
+    #: substring of unrelated words (e.g. ``"sin"`` inside ``"business"``).
+    CONTEXT_MATCHING_MODE: ClassVar[Optional[str]] = None
+
     def __init__(
         self,
         supported_entities: List[str],

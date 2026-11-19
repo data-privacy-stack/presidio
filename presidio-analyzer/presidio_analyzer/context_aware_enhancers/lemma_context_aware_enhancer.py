@@ -4,6 +4,9 @@ from typing import List, Optional, Set
 
 from presidio_analyzer import EntityRecognizer, RecognizerResult
 from presidio_analyzer.context_aware_enhancers import ContextAwareEnhancer
+from presidio_analyzer.context_aware_enhancers.context_aware_enhancer import (
+    resolve_context_matching_mode,
+)
 from presidio_analyzer.nlp_engine import NlpArtifacts
 
 logger = logging.getLogger("presidio-analyzer")
@@ -158,7 +161,9 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
             surrounding_words.extend(context)
 
             supportive_context_word = self._find_supportive_word_in_context(
-                surrounding_words, recognizer.context, self.context_matching_mode
+                surrounding_words,
+                recognizer.context,
+                resolve_context_matching_mode(recognizer, self.context_matching_mode),
             )
             if supportive_context_word != "":
                 result.score += self.context_similarity_factor
