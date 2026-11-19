@@ -5,6 +5,7 @@ import pytest
 
 from tests import assert_result
 from presidio_analyzer.predefined_recognizers.generic.iban_recognizer import IbanRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 
 @pytest.fixture(scope="module")
@@ -417,6 +418,53 @@ def test_when_format_validation_times_out_then_returns_no_results(recognizer, en
         results = recognizer.analyze("AL47212110090000000235698741", entities)
 
     assert results == []
+
+
+@pytest.mark.parametrize(
+    "default_flags, call_flags, expected_spans",
+    [
+        (re.DOTALL | re.MULTILINE, None, []),
+        (re.DOTALL | re.MULTILINE, re.IGNORECASE, [(11, 33)]),
+        (re.IGNORECASE, None, [(11, 33)]),
+        (re.IGNORECASE, 0, []),
+    ],
+)
+def test_when_regex_flags_passed_to_analyze_then_override_defaults(
+    default_flags, call_flags, expected_spans, entities
+):
+    """Flags passed to analyze replace the defaults, and zero disables them."""
+    recognizer = IbanRecognizer(regex_flags=default_flags)
+
+    # The pattern only matches a lowercase IBAN when IGNORECASE is used.
+    results = recognizer.analyze(
+        "my iban is gb33bukb20201555555555", entities, regex_flags=call_flags
+    )
+
+    assert [(r.start, r.end) for r in results] == expected_spans
+
+
+def test_when_loaded_from_yaml_then_regex_flags_zero_disables_defaults(
+    tmp_path, entities
+):
+    """A YAML-loaded IbanRecognizer honors an explicit zero at analysis time."""
+    conf = tmp_path / "recognizers.yaml"
+    conf.write_text(
+        """
+        supported_languages: [en]
+        recognizers:
+          - name: IbanRecognizer
+            type: predefined
+        """,
+        encoding="utf-8",
+    )
+    registry = RecognizerRegistryProvider(conf_file=conf).create_recognizer_registry()
+    [recognizer] = registry.get_recognizers(language="en", entities=entities)
+    text = "my iban is gb33bukb20201555555555"
+
+    # The registry enables IGNORECASE by default.
+    default_results = recognizer.analyze(text, entities)
+    assert [(r.start, r.end) for r in default_results] == [(11, 33)]
+    assert recognizer.analyze(text, entities, regex_flags=0) == []
 
 
 def test_when_iban_match_group_is_empty_string_then_skips(recognizer, entities):

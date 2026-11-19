@@ -124,7 +124,7 @@ class IbanRecognizer(PatternRecognizer):
         results = []
 
         if self.patterns:
-            pattern_result = self.__analyze_patterns(text)
+            pattern_result = self.__analyze_patterns(text, regex_flags)
             results.extend(pattern_result)
 
         return results
@@ -143,7 +143,7 @@ class IbanRecognizer(PatternRecognizer):
         :param flags: regex flags
         :return: A list of RecognizerResult
         """
-        flags = flags if flags else self.global_regex_flags
+        flags = flags if flags is not None else self.global_regex_flags
         results = []
         for pattern in self.patterns:
             try:
