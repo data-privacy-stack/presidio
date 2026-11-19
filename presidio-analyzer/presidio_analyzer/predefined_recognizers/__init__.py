@@ -119,8 +119,11 @@ from .country_specific.south_africa.za_vat_number_recognizer import (
 )
 
 # Spain recognizers
+from .country_specific.spain.es_ccc_recognizer import EsCccRecognizer
+from .country_specific.spain.es_cif_recognizer import EsCifRecognizer
 from .country_specific.spain.es_nie_recognizer import EsNieRecognizer
 from .country_specific.spain.es_nif_recognizer import EsNifRecognizer
+from .country_specific.spain.es_nss_recognizer import EsNssRecognizer
 from .country_specific.spain.es_passport_recognizer import EsPassportRecognizer
 
 # Sweden recognizers
@@ -281,6 +284,9 @@ __all__ = [
     "FiPersonalIdentityCodeRecognizer",
     "EsNieRecognizer",
     "EsPassportRecognizer",
+    "EsCifRecognizer",
+    "EsNssRecognizer",
+    "EsCccRecognizer",
     "UkDrivingLicenceRecognizer",
     "UkNinoRecognizer",
     "UkPassportRecognizer",
