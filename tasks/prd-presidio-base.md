@@ -41,7 +41,7 @@ These apply to every story.
 
 - **Old module paths are aliases, not copies.** Each old module (for example `presidio_analyzer.pattern_recognizer`) resolves to the same module object as its `presidio_base` counterpart. Patching, `importlib.reload`, and module-level constants such as `REGEX_TIMEOUT_SECONDS` behave as before. A plain `from presidio_base.x import *` shim is not sufficient.
 - **Class identity is preserved.** `presidio_analyzer.PatternRecognizer is presidio_base.PatternRecognizer`, and the same for every moved class.
-- **Existing tests are the regression gate.** Files under `presidio-analyzer/tests`, `presidio-cli/tests`, `presidio-structured/tests`, `presidio-image-redactor/tests`, and `e2e-tests` are not edited, skipped, or deleted.
+- **Existing tests are the regression gate.** Existing test source files (`*.py`) under `presidio-analyzer/tests`, `presidio-cli/tests`, `presidio-structured/tests`, `presidio-image-redactor/tests`, and `e2e-tests` are not edited, skipped, or deleted. Test dependency and configuration files, such as `e2e-tests/requirements.txt`, may change where a story requires it.
 - **`NlpArtifacts` stays in the analyzer.** Moved modules reference it only under `TYPE_CHECKING`, as they do today. `presidio_base` never imports `spacy` or `presidio_analyzer` at runtime.
 - **Logger names are unchanged.** Moved modules keep `logging.getLogger("presidio-analyzer")`.
 - **Versions are lockstep.** `presidio-base` carries the same version as `presidio-analyzer`.
@@ -74,6 +74,7 @@ A maintainer registers the `presidio-base` project on PyPI and configures truste
 - [ ] All six analyzer Dockerfiles (`Dockerfile`, `.dev`, `.distroless`, `.stanza`, `.transformers`, `.windows`) build with the repo root as context.
 - [ ] `docker-compose.yml` and `docker-compose.distroless.yml` use the root context for the analyzer service; `docker-compose up --build` from the repo root works unchanged.
 - [ ] The analyzer build steps in `.github/workflows/ci.yml` and `.github/workflows/release.yml` use the root context.
+- [ ] The two analyzer devcontainers (`.devcontainer/presidio-analyzer` and `.devcontainer/presidio-analyzer-transformers`) build `Dockerfile.dev` with the root context and still open with `presidio-analyzer` as the working folder.
 - [ ] Paths inside the image are unchanged: `/app` layout, conf file locations, `entrypoint.sh`, user, port, and healthcheck.
 - [ ] A root `.dockerignore` (or equivalent) keeps the analyzer image contents equivalent to today's; unrelated packages are not copied into the image.
 - [ ] `docker build -f presidio-analyzer/Dockerfile .` succeeds and the container answers `/health`.
@@ -89,6 +90,7 @@ A maintainer registers the `presidio-base` project on PyPI and configures truste
 - [ ] The four old `presidio_analyzer.*` module paths alias the new modules per the design constraints.
 - [ ] Analyzer Dockerfiles install `presidio-base` from the repo source; `python -c "import presidio_base"` works in the built image.
 - [ ] The CI test jobs for Image Redactor, CLI, and Structured install the in-repo `presidio-base` and the in-repo analyzer over the locked PyPI analyzer, and later steps do not re-sync the environment back to the locked versions.
+- [ ] Both analyzer devcontainers mount `presidio-base` next to `presidio-analyzer` so the path source resolves, and their dependency setup installs the in-repo `presidio-base`.
 - [ ] `e2e-tests/requirements.txt` installs the in-repo `presidio-base` alongside the in-repo analyzer, so both E2E jobs pass before `presidio-base` is published.
 - [ ] The full `presidio-analyzer` test suite passes with no test file edited.
 - [ ] A new analyzer test asserts class identity and old-module-path imports for each moved class.
