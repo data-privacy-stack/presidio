@@ -30,7 +30,7 @@ class SpacyNlpEngine(NlpEngine):
 
     def __init__(
         self,
-        models: Optional[List[Dict[str, str]]] = None,
+        models: Optional[List[Dict[str, Any]]] = None,
         ner_model_configuration: Optional[NerModelConfiguration] = None,
     ):
         """
@@ -38,6 +38,9 @@ class SpacyNlpEngine(NlpEngine):
 
         :param models: Dictionary with the name of the spaCy model per language.
         For example: models = [{"lang_code": "en", "model_name": "en_core_web_lg"}]
+        A model can also hold an optional "max_length": the maximum number of
+        characters in one text (spaCy's `nlp.max_length`). spaCy raises
+        a ValueError for a longer text. If omitted, spaCy's default is kept.
         :param ner_model_configuration: Parameters for the NER model.
         See conf/spacy.yaml for an example
         """
@@ -71,8 +74,12 @@ class SpacyNlpEngine(NlpEngine):
         self.nlp = {}
         for model in self.models:
             self._validate_model_params(model)
+            max_length = self._get_max_length(model)
             self._download_spacy_model_if_needed(model["model_name"])
-            self.nlp[model["lang_code"]] = spacy.load(model["model_name"])
+            nlp = spacy.load(model["model_name"])
+            if max_length is not None:
+                nlp.max_length = max_length
+            self.nlp[model["lang_code"]] = nlp
 
     @staticmethod
     def _download_spacy_model_if_needed(model_name: str) -> None:
@@ -89,6 +96,23 @@ class SpacyNlpEngine(NlpEngine):
             raise ValueError("model_name is missing from model configuration")
         if not isinstance(model["model_name"], str):
             raise ValueError("model_name must be a string")
+
+    @staticmethod
+    def _get_max_length(model: Dict) -> Optional[int]:
+        """Return the model's max_length, or None to keep spaCy's default."""
+        max_length = model.get("max_length")
+        if max_length is None:
+            return None
+        if (
+            not isinstance(max_length, int)
+            or isinstance(max_length, bool)
+            or max_length <= 0
+        ):
+            raise ValueError(
+                f"max_length must be a positive integer, got {max_length!r} "
+                f"for model {model['model_name']}"
+            )
+        return max_length
 
     def get_supported_entities(self) -> List[str]:
         """Return the supported entities for this NLP engine."""
