@@ -13,6 +13,7 @@ from presidio_analyzer import (
     AnalysisExplanation,
     AnalyzerEngine,
     BatchAnalyzerEngine,
+    CjkSpacingNormalizer,
     FullWidthAndInvisibleCharsNormalizer,
     LocalRecognizer,
     NoOpTextNormalizer,
@@ -233,6 +234,26 @@ def test_predefined_recognizers_detect_fullwidth_values(
     assert full_span in [(r.start, r.end) for r in results]
     assert max(r.score for r in results) == ascii_score
     assert not [r for r in off_results if r.entity_type == entity]
+
+
+@pytest.mark.parametrize("template", ["号码{}结束", "番号{}です", "번호는{}입니다"])
+@pytest.mark.parametrize("recognizer_class,value,entity", PREDEFINED_CASES)
+def test_cjk_spacing_detects_values_written_next_to_cjk_text(
+    template, recognizer_class, value, entity
+):
+    engine = AnalyzerEngine(
+        registry=RecognizerRegistry(recognizers=[recognizer_class()]),
+        nlp_engine=no_op_nlp_engine(),
+        text_normalizer=CjkSpacingNormalizer(),
+    )
+    text = template.format(value)
+
+    results = [
+        r for r in engine.analyze(text, language="en") if r.entity_type == entity
+    ]
+
+    start = text.index(value)
+    assert (start, start + len(value)) in [(r.start, r.end) for r in results]
 
 
 def test_zero_width_separated_iban_is_detected():

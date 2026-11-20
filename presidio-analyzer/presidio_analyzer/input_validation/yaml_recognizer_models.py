@@ -296,12 +296,13 @@ class TextNormalizerConfig(BaseModel):
 
     :param type: The text normalizer. "full_width_and_invisible_chars" (the
     default) folds full-width characters to ASCII and removes invisible
-    characters.
+    characters. "cjk_spacing" does the same and also puts a space between CJK
+    text and the ASCII letters and digits next to it.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    type: Literal["full_width_and_invisible_chars"] = Field(
+    type: Literal["full_width_and_invisible_chars", "cjk_spacing"] = Field(
         default="full_width_and_invisible_chars", description="Text normalizer"
     )
 

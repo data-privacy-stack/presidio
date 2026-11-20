@@ -19,6 +19,7 @@ from presidio_analyzer.context_aware_enhancers import (
 )
 from presidio_analyzer.nlp_engine import NlpArtifacts, SpacyNlpEngine
 from presidio_analyzer.text_normalizers import (
+    CjkSpacingNormalizer,
     FullWidthAndInvisibleCharsNormalizer,
     NoOpTextNormalizer,
 )
@@ -1160,6 +1161,18 @@ def test_when_text_normalizer_configured_then_engine_normalizes(
     assert isinstance(engine.text_normalizer, FullWidthAndInvisibleCharsNormalizer)
     results = engine.analyze("code １２３４５６", language="en")
     assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 5, 11)]
+
+
+def test_when_cjk_spacing_normalizer_configured_then_engine_uses_it(tmp_path):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path, text_normalizer={"type": "cjk_spacing"}
+    )
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+    assert isinstance(engine.text_normalizer, CjkSpacingNormalizer)
+    results = engine.analyze("编号１２３４５６号", language="en")
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 2, 8)]
 
 
 def test_when_text_normalizer_not_configured_then_text_is_not_normalized(tmp_path):
