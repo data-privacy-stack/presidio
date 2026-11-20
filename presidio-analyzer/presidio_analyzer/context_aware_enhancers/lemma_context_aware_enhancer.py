@@ -354,9 +354,11 @@ class LemmaContextAwareEnhancer(ContextAwareEnhancer):
         # collect at most n words (in lower case)
         remaining = n_words + 1
         while 0 <= i < len(lemmas) and remaining > 0:
-            lower_lemma = lemmas[i].lower()
-            if lower_lemma in lemmatized_filtered_keywords:
-                context_words.append(lower_lemma)
+            parts = ContextAwareEnhancer._keyword_parts(
+                lemmas[i], lemmatized_filtered_keywords
+            )
+            if parts:
+                context_words.extend(parts)
                 remaining -= 1
             i = i - 1 if is_backward else i + 1
         return context_words
