@@ -79,6 +79,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |Entity Type|Description|Detection Method|
 |--- |--- |--- |
 |PL_PESEL|Polish PESEL number|Pattern match, context and checksum|
+|PL_REGON|Polish REGON number (statistical number of a business entity). Disabled by default.|Pattern match, context and checksum|
 
 ### Singapore
 
