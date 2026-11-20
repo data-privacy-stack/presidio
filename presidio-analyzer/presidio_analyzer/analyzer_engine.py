@@ -237,6 +237,7 @@ class AnalyzerEngine:
         in the text
         :param allow_list_match: How the allow_list should be interpreted; either as "exact" or as "regex".
         - If `regex`, results which match with any regex condition in the allow_list would be allowed and not be returned as potential PII.
+        Each term is matched on its own with its own timeout, so the worst case per result is `len(allow_list) * REGEX_TIMEOUT_SECONDS`.
         - if `exact`, results which exactly match any value in the allow_list would be allowed and not be returned as potential PII.
         :param regex_flags: regex flags to be used for when allow_list_match is "regex"
         :param nlp_artifacts: precomputed NlpArtifacts. With a text normalizer,
