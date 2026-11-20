@@ -20,6 +20,7 @@ from typing import (
 import yaml
 
 from presidio_analyzer import EntityRecognizer, PatternRecognizer
+from presidio_analyzer.file_utils import ConfigFileEncodingError, read_utf8_file
 from presidio_analyzer.score_thresholds import normalize_score_thresholds
 
 logger = logging.getLogger("presidio-analyzer")
@@ -769,16 +770,18 @@ class RecognizerConfigurationLoader:
 
         if conf_file:
             try:
-                with open(conf_file) as file:
-                    config_from_file = yaml.safe_load(file)
+                config_from_file = yaml.safe_load(read_utf8_file(conf_file))
                 use_defaults = False
 
+            except ConfigFileEncodingError:
+                raise
             except OSError:
                 logger.warning(
                     f"configuration file {conf_file} not found.  Using default config."
                 )
-                with open(RecognizerConfigurationLoader._get_full_conf_path()) as file:
-                    config_from_file = yaml.safe_load(file)
+                config_from_file = yaml.safe_load(
+                    read_utf8_file(RecognizerConfigurationLoader._get_full_conf_path())
+                )
                 use_defaults = False
 
             except Exception as e:
@@ -787,8 +790,9 @@ class RecognizerConfigurationLoader:
         # Load defaults if needed (no config provided,
         # or registry_configuration is incomplete)
         if use_defaults:
-            with open(RecognizerConfigurationLoader._get_full_conf_path()) as file:
-                config_from_file = yaml.safe_load(file)
+            config_from_file = yaml.safe_load(
+                read_utf8_file(RecognizerConfigurationLoader._get_full_conf_path())
+            )
 
         if config_from_file and not isinstance(config_from_file, dict):
             raise TypeError(
