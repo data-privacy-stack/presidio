@@ -3,6 +3,8 @@
 Presidio uses `AnalyzerEngineProvider` to load `AnalyzerEngine` configuration from file. 
 Configuration can be loaded in three different ways:
 
+Configuration files, and the prompt files used by LLM-based recognizers, must be saved as UTF-8; Presidio raises an error naming the file if it is not valid UTF-8.
+
 ## Using a single file
 
 Create an `AnalyzerEngineProvider` using a single configuration file and set its path to `analyzer_engine_conf_file`, then create `AnalyzerEngine` based on it:

@@ -7,6 +7,7 @@ import sys
 import textwrap
 
 import pytest
+from presidio_analyzer.file_utils import ConfigFileEncodingError
 
 RECOGNIZER_YAML = """
 supported_languages:
@@ -142,3 +143,60 @@ def test_config_file_is_read_as_utf8_under_a_non_utf8_locale(tmp_path, loader):
 
     assert completed.returncode == 0, completed.stderr.decode("utf-8", "replace")
     assert json.loads(completed.stdout.decode("ascii").splitlines()[-1]) == expected
+
+
+def _load_with_recognizer_registry_provider(path):
+    from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
+
+    RecognizerRegistryProvider(conf_file=str(path)).create_recognizer_registry()
+
+
+def _load_with_analyzer_engine_provider(path):
+    from presidio_analyzer import AnalyzerEngineProvider
+
+    AnalyzerEngineProvider(str(path))
+
+
+def _load_with_nlp_engine_provider(path):
+    from presidio_analyzer.nlp_engine import NlpEngineProvider
+
+    NlpEngineProvider(conf_file=str(path))
+
+
+def _load_with_load_yaml_file(path):
+    from presidio_analyzer.llm_utils import load_yaml_file
+
+    load_yaml_file(path)
+
+
+def _load_with_load_prompt_file(path):
+    from presidio_analyzer.llm_utils import load_prompt_file
+
+    load_prompt_file(path)
+
+
+NON_UTF8_LOADERS = {
+    "recognizer_registry_provider": _load_with_recognizer_registry_provider,
+    "analyzer_engine_provider": _load_with_analyzer_engine_provider,
+    "nlp_engine_provider": _load_with_nlp_engine_provider,
+    "llm_load_yaml_file": _load_with_load_yaml_file,
+    "llm_load_prompt_file": _load_with_load_prompt_file,
+}
+
+
+@pytest.mark.parametrize("loader", sorted(NON_UTF8_LOADERS))
+def test_non_utf8_config_file_raises_an_actionable_error(tmp_path, loader):
+    """A file saved in a legacy encoding is rejected, naming the file and the fix.
+
+    Every loader raises the same error, and none falls back to the defaults.
+    """
+    path = tmp_path / "config.yaml"
+    path.write_bytes("deny_list: [Se\u00f1or]\n".encode("cp1252"))
+
+    with pytest.raises(ConfigFileEncodingError) as exc_info:
+        NON_UTF8_LOADERS[loader](path)
+
+    message = str(exc_info.value)
+    assert str(path) in message
+    assert "is not valid UTF-8" in message
+    assert "re-save it as UTF-8" in message

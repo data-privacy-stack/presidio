@@ -5,6 +5,8 @@ from typing import Dict, List, Union
 
 import yaml
 
+from presidio_analyzer.file_utils import read_utf8_file
+
 logger = logging.getLogger("presidio-analyzer")
 
 __all__ = [
@@ -73,8 +75,7 @@ def load_yaml_file(filepath: Union[str, Path]) -> Dict:
         raise FileNotFoundError(f"File not found: {resolved_path}")
 
     try:
-        with open(resolved_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+        return yaml.safe_load(read_utf8_file(resolved_path))
     except yaml.YAMLError as e:
         raise ValueError(f"Failed to parse YAML: {e}")
 
