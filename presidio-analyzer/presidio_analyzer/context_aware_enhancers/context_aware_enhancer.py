@@ -184,6 +184,18 @@ class ContextAwareEnhancer:
         remaining = n_words + 1
         while 0 <= i < len(lemmas) and remaining > 0:
             yield i
-            if lemmas[i].lower() in keywords:
+            if ContextAwareEnhancer._keyword_parts(lemmas[i], keywords):
                 remaining -= 1
             i += step
+
+    @staticmethod
+    def _keyword_parts(lemma: str, keywords: List[str]) -> List[str]:
+        """Return the lower cased parts of a lemma that are keywords.
+
+        `NlpArtifacts` also splits keywords on ":", so a token such as
+        "Phone:617" still holds the keyword "phone".
+
+        :param lemma: lemma of a token
+        :param keywords: the lemmas that count as keywords
+        """
+        return [part for part in lemma.lower().split(":") if part in keywords]

@@ -377,3 +377,20 @@ def test_context_window_covers_the_tokens_of_the_lemma_context(
             or edge in (0, len(nlp_artifacts.tokens) - 1)
             or count == 0
         )
+
+
+def test_when_context_word_glued_to_entity_with_colon_then_window_counts_it(
+    spacy_nlp_engine,
+):
+    # "Phone:617" is one token; its "phone" part is the one keyword before the
+    # entity that the lemma enhancer takes, so "account" is outside the window
+    recognizer = _licence_recognizer(["account number"], regex=r"\b\d{3}-\d{3}-\d{4}\b")
+    enhancer = PhraseContextAwareEnhancer(
+        context_prefix_count=1, context_suffix_count=0
+    )
+
+    enhanced = _enhance_one(
+        spacy_nlp_engine, "account number Phone:617-555-0134", recognizer, enhancer
+    )
+
+    assert enhanced.score == pytest.approx(0.3)
