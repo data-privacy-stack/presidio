@@ -1188,3 +1188,60 @@ def test_when_text_normalizer_section_invalid_then_provider_raises(
 
     with pytest.raises(ValueError, match=message):
         AnalyzerEngineProvider(analyzer_yaml)
+
+
+def test_when_allow_list_configured_then_engine_applies_it(tmp_path):
+    terms_file = tmp_path / "terms.txt"
+    terms_file.write_text("# comment\nFabrikam\n\n  Acme  \n", encoding="utf-8")
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path,
+        allow_list={
+            "terms": ["Contoso"],
+            "file": str(terms_file),
+            "match": "exact",
+            "ignore_case": True,
+        },
+    )
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+    assert engine.allow_list == ["Contoso", "Fabrikam", "Acme"]
+    assert engine.allow_list_match == "exact"
+    assert engine.allow_list_ignore_case is True
+    assert engine.analyze("code 123456", language="en")
+    # the configured list is applied to the TEST_ID results
+    engine.allow_list = ["123456"]
+    assert engine.analyze("code 123456", language="en") == []
+
+
+def test_when_allow_list_not_configured_then_engine_default_is_empty(tmp_path):
+    engine = AnalyzerEngineProvider(
+        _write_text_normalizer_analyzer_conf(tmp_path)
+    ).create_engine()
+    assert not engine.allow_list
+
+
+@pytest.mark.parametrize(
+    "allow_list,message",
+    [
+        ({"terms": ["a"], "mode": "exact"}, "Invalid allow_list configuration"),
+        ({"match": "fuzzy"}, "Invalid allow_list configuration: match"),
+        ({"terms": "a"}, "Invalid allow_list configuration: terms"),
+        (["a"], "must be a dictionary"),
+    ],
+)
+def test_when_allow_list_section_invalid_then_provider_raises(
+    tmp_path, allow_list, message
+):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path, allow_list=allow_list
+    )
+    with pytest.raises(ValueError, match=message):
+        AnalyzerEngineProvider(analyzer_yaml)
+
+
+def test_when_allow_list_file_missing_then_create_engine_raises(tmp_path):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path, allow_list={"file": str(tmp_path / "missing.txt")}
+    )
+    with pytest.raises(FileNotFoundError):
+        AnalyzerEngineProvider(analyzer_yaml).create_engine()

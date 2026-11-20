@@ -96,6 +96,17 @@ context_aware_enhancer:
 
 - `text_normalizer` (optional): Normalizes the text before it is analyzed, so entities written with full-width or invisible characters are found. `type` is `full_width_and_invisible_chars`, the default. Without this section the text is not normalized. See [Full-width and invisible characters](text_normalization.md).
 
+- `allow_list` (optional): Terms the analyzer allows in every request, in addition to the per-request `allow_list` of `analyze()`. Results matching a term are not returned. `terms` lists them inline, `file` names a text file with one term per line (blank lines and lines starting with `#` are ignored), `match` is `exact` (default) or `regex`, and `ignore_case` makes `exact` matching case-insensitive. `match` and `ignore_case` apply to the configured terms only; a request's `allow_list_match` applies to its own `allow_list`.
+
+```yaml
+allow_list:
+  terms:
+    - Contoso
+  file: /app/conf/allow-list.txt
+  match: exact
+  ignore_case: true
+```
+
 !!! note "Defining confidence thresholds"
     Presidio supports multiple types of score thresholds: default ones (for the analyzer and each recognizer), per-request thresholds, and per-entity thresholds. Supplying `analyzer.analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request and applies the supplied threshold to every result. The order of importance is: `analyzer.analyze(score_threshold=...)` > an entity specific threshold > a recognizer default threshold (`default`) > the Presidio Analyzer `default_score_threshold`.
 

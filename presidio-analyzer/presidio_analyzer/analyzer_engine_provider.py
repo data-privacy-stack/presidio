@@ -105,6 +105,7 @@ class AnalyzerEngineProvider:
 
         context_aware_enhancer = self._load_context_aware_enhancer()
         text_normalizer = self._load_text_normalizer()
+        allow_list_configuration = self._load_allow_list()
 
         analyzer = AnalyzerEngine(
             nlp_engine=nlp_engine,
@@ -113,9 +114,36 @@ class AnalyzerEngineProvider:
             default_score_threshold=default_score_threshold,
             context_aware_enhancer=context_aware_enhancer,
             text_normalizer=text_normalizer,
+            **allow_list_configuration,
         )
 
         return analyzer
+
+    def _load_allow_list(self) -> Dict[str, Any]:
+        """Load the ``allow_list`` section as AnalyzerEngine keyword arguments.
+
+        Returns no arguments when the section is absent. Terms from ``file``
+        (one per line, blank lines and lines starting with # ignored) follow
+        the inline ``terms``.
+        """
+        if "allow_list" not in self.configuration:
+            return {}
+
+        allow_list = ConfigurationValidator.validate_allow_list_configuration(
+            self.configuration["allow_list"]
+        )
+        terms = list(allow_list["terms"])
+        if allow_list["file"]:
+            with open(allow_list["file"], encoding="utf-8") as file:
+                for line in file:
+                    term = line.strip()
+                    if term and not term.startswith("#"):
+                        terms.append(term)
+        return {
+            "allow_list": terms,
+            "allow_list_match": allow_list["match"],
+            "allow_list_ignore_case": allow_list["ignore_case"],
+        }
 
     def _load_context_aware_enhancer(self) -> Optional[ContextAwareEnhancer]:
         """Load the context-aware enhancer from the ``context_aware_enhancer`` section.

@@ -10,6 +10,7 @@ from presidio_analyzer.score_thresholds import (
 
 from . import validate_language_codes
 from .yaml_recognizer_models import (
+    AllowListConfig,
     ContextAwareEnhancerConfig,
     RecognizerRegistryConfig,
     TextNormalizerConfig,
@@ -174,6 +175,35 @@ class ConfigurationValidator:
         return validated_config.model_dump()
 
     @staticmethod
+    def validate_allow_list_configuration(
+        config: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Validate the allow list section of the analyzer configuration.
+
+        :param config: Allow list configuration to validate.
+        An empty section (None) is treated as {}, so the list is empty.
+        :return: The validated configuration, with defaults filled in.
+        """
+        if config is None:
+            return AllowListConfig().model_dump()
+        if not isinstance(config, dict):
+            raise ValueError("allow_list configuration must be a dictionary")
+        try:
+            validated_config = AllowListConfig(**config)
+        except ValidationError as e:
+            errors = "; ".join(
+                f"{'.'.join(str(loc) for loc in error['loc'])}: {error['msg']}"
+                if error["loc"]
+                else error["msg"]
+                for error in e.errors()
+            )
+            raise ValueError(
+                f"Invalid allow_list configuration: {errors}. "
+                f"Valid keys are: {sorted(AllowListConfig.model_fields)}"
+            ) from e
+        return validated_config.model_dump()
+
+    @staticmethod
     def validate_analyzer_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
         """Validate analyzer engine configuration."""
         if not isinstance(config, dict):
@@ -187,6 +217,7 @@ class ConfigurationValidator:
             "recognizer_registry",
             "context_aware_enhancer",
             "text_normalizer",
+            "allow_list",
         }
 
         # Check for unknown keys
@@ -227,6 +258,11 @@ class ConfigurationValidator:
         if "text_normalizer" in config:
             ConfigurationValidator.validate_text_normalizer_configuration(
                 config["text_normalizer"]
+            )
+
+        if "allow_list" in config:
+            ConfigurationValidator.validate_allow_list_configuration(
+                config["allow_list"]
             )
 
         return config
