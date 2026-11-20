@@ -201,6 +201,11 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
+          paths:
+            - presidio-analyzer
+            - presidio-anonymizer
+            - presidio-image-redactor
+            - presidio-structured
           options:
             docstring_style: sphinx
             docstring_section_style: spacy
