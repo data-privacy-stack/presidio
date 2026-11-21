@@ -56,12 +56,12 @@ jobs:
         with:
           fail-on-severity: low
           allow-licenses: MIT, MIT-CMU, Apache-2.0, BSD-3-Clause, 0BSD, 0BSD AND Apache-2.0 AND BSD-3-Clause AND MIT
-          # Existing transitive dependencies whose licenses fall outside allow-licenses;
-          # exempted by name so version bumps (e.g. security fixes) are not blocked.
+          # Existing dependencies whose licenses fall outside allow-licenses.
+          # Exempted by name so version bumps (e.g. security fixes) are not blocked.
           allow-dependencies-licenses: >-
             pkg:pypi/blis, pkg:pypi/certifi, pkg:pypi/cffi, pkg:pypi/distlib,
             pkg:pypi/emoji, pkg:pypi/kiwisolver, pkg:pypi/matplotlib, pkg:pypi/nodeenv,
-            pkg:pypi/nvidia-nvjitlink, pkg:pypi/orjson, pkg:pypi/protobuf, pkg:pypi/pygments,
+            pkg:pypi/numpy, pkg:pypi/nvidia-nvjitlink, pkg:pypi/orjson, pkg:pypi/protobuf, pkg:pypi/pygments,
             pkg:pypi/regex, pkg:pypi/torch, pkg:pypi/tqdm, pkg:pypi/udtools, pkg:pypi/wrapt
           comment-summary-in-pr: on-failure
 
