@@ -307,6 +307,13 @@ recognizers:
     type: predefined
     country_code: it
 
+  - name: ItLicensePlateRecognizer
+    supported_languages:
+    - it
+    type: predefined
+    enabled: false
+    country_code: it
+
   - name: PhPassportRecognizer
     supported_languages:
     - en

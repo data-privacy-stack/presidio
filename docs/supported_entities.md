@@ -73,6 +73,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |IT_VAT_CODE| An Italian VAT code number |Pattern match, context and checksum|
 |IT_PASSPORT|An Italian passport number.|Pattern match and context|
 |IT_IDENTITY_CARD|An Italian identity card number. <https://en.wikipedia.org/wiki/Italian_electronic_identity_card>|Pattern match and context|
+|IT_LICENSE_PLATE|An Italian vehicle license plate (targa) in the national format in use since 1994: two letters, three digits, two letters for cars and trailers (letters I, O, Q, U are not used), or two letters and five digits for motorcycles. Disabled by default. <https://en.wikipedia.org/wiki/Vehicle_registration_plates_of_Italy>|Pattern match and context|
 
 ### Poland
 
