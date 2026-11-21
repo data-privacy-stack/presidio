@@ -22,6 +22,9 @@ Presidio is supported for the following python versions:
 * 3.13
 * 3.14
 
+The base `presidio-analyzer` install with spaCy also supports Python 3.15.
+See [Python 3.15 compatibility](https://github.com/data-privacy-stack/presidio/issues/2526) for progress on optional Analyzer backends and the rest of the suite.
+
 ### PII anonymization on text
 
 For PII anonymization on text, install the `presidio-analyzer` and `presidio-anonymizer` packages

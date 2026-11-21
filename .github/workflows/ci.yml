@@ -207,6 +207,54 @@ jobs:
           pip install --require-hashes -r ${{ github.workspace }}/.github/pipelines/requirements-build.txt
           python -m build --wheel
 
+  test-analyzer-python-315:
+    name: Test base Analyzer (Python 3.15)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: presidio-analyzer
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e672414ff5f5447ce83dd # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.15
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.15'
+
+      - name: Install locked base dependencies
+        run: |
+          python -m pip install uv==0.11.6
+          uv sync --locked --group dev --python 3.15
+
+      - name: Download spaCy models
+        run: |
+          for model in en_core_web_lg en_core_web_sm; do
+            uv run --no-sync python -m spacy download "$model"
+          done
+
+      - name: Run focused Analyzer tests
+        run: |
+          uv run --no-sync pytest -q \
+            tests/test_spacy_nlp_engine.py \
+            tests/test_analyzer_engine.py \
+            tests/test_spacy_recognizer.py
+
+      - name: Build and verify wheel
+        run: |
+          python -m pip install --require-hashes -r ../.github/pipelines/requirements-build.txt
+          python -m build --wheel
+          wheel_env="$RUNNER_TEMP/analyzer-wheel"
+          python -m venv "$wheel_env"
+          "$wheel_env/bin/python" -m pip install --only-binary=:all: dist/*.whl
+          "$wheel_env/bin/python" -m pip check
+          "$wheel_env/bin/python" -I -c 'from presidio_analyzer import AnalyzerEngine'
+
   build-platform-images:
     name: Build ${{ matrix.image }} (${{ matrix.platform }}${{ matrix.variant && format(', {0}', matrix.variant) }})
     runs-on: ${{ matrix.runner }}
