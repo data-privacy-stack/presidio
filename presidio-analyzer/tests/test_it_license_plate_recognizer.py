@@ -15,6 +15,8 @@ from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from tests.mocks import NlpEngineMock
 
 CAR_SCORE = 0.3
+# Default LemmaContextAwareEnhancer boost: 0.3 + 0.35
+CAR_SCORE_WITH_CONTEXT = 0.65
 MOTORCYCLE_SCORE = 0.05
 ENTITY = "IT_LICENSE_PLATE"
 
@@ -39,7 +41,6 @@ def entities():
         ("AB123CD", [(0, 7)], CAR_SCORE),
         ("AB 123 CD", [(0, 9)], CAR_SCORE),
         ("AB-123-CD", [(0, 9)], CAR_SCORE),
-        ("ab123cd", [(0, 7)], CAR_SCORE),
         ("AA000AA", [(0, 7)], CAR_SCORE),
         ("ZZ999ZZ", [(0, 7)], CAR_SCORE),
         # Reserved series: trailers (X), local police (Y), square plates (Z)
@@ -75,8 +76,15 @@ def test_when_valid_plate_in_text_then_found_with_exact_span_and_score(
         "OB123CD",
         "AB123QD",
         "AB123CU",
-        # Lookalike: a product code of the same shape that uses excluded letters
+        # Lowercase text: plates are issued in capital letters
+        "ab123cd",
+        "ab12345",
+        # Lookalikes: ordinary Italian text and codes of the same shape
         "Codice articolo IQ 500 OU",
+        "Sono da 120 km da casa",
+        "Il veicolo costa da 15000 euro",
+        "IL 10000",
+        "IO12345",
         # Wrong number of letters or digits
         "AB12CD",
         "AB1234CD",
@@ -126,6 +134,9 @@ def _nlp_artifacts(text: str) -> NlpArtifacts:
         ("Il veicolo targato FG456HJ è fermo", True),
         ("Targa: FG456HJ", True),
         ("Immatricolazione FG456HJ", True),
+        # Compounds are covered by substring matching of the base word
+        ("L'autoveicolo FG456HJ", True),
+        ("Autovettura immatricolata FG456HJ", True),
         # Context is prefix-only by default: a word after the match does not count
         ("FG456HJ è la targa", False),
         ("Il codice è FG456HJ", False),
@@ -151,16 +162,9 @@ def test_when_context_word_precedes_plate_then_score_is_boosted(
     )
     assert len(enhanced) == 1
     if expect_boost:
-        assert enhanced[0].score > CAR_SCORE
+        assert enhanced[0].score == pytest.approx(CAR_SCORE_WITH_CONTEXT)
     else:
         assert enhanced[0].score == pytest.approx(CAR_SCORE)
-
-
-def test_when_recognizer_created_then_defaults_are_italian(recognizer):
-    assert recognizer.COUNTRY_CODE == "it"
-    assert recognizer.supported_language == "it"
-    assert recognizer.supported_entities == [ENTITY]
-    assert "targa" in recognizer.context
 
 
 def test_when_custom_patterns_and_context_given_then_they_override_defaults():

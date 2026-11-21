@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional
 
 from presidio_analyzer import Pattern, PatternRecognizer
@@ -15,9 +16,13 @@ class ItLicensePlateRecognizer(PatternRecognizer):
       excluded because they can be confused with 1, 0 and V. The same
       scheme covers the reserved series for square plates (``ZA``),
       trailers (``XA``) and local police (``YA``).
-    - Motorcycles: two letters followed by five digits (``AA 99999``).
+    - Motorcycles: two letters followed by five digits (``AA 99999``),
+      using the same 22 letters.
 
     Plates are matched with or without a space or hyphen between groups.
+    Matching is case-sensitive, since plates are issued in capital letters:
+    case-insensitive matching would flag ordinary Italian text such as
+    "da 120 km" or "da 15000".
     The car pattern has a distinctive shape but no checksum, so it scores
     as medium; the motorcycle pattern is a bare letters-and-digits run and
     scores as very weak, relying on context words to be promoted.
@@ -36,6 +41,7 @@ class ItLicensePlateRecognizer(PatternRecognizer):
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
     :param supported_entity: The entity this recognizer can detect
+    :param name: Optional name of the recognizer
     """
 
     COUNTRY_CODE = "it"
@@ -51,29 +57,24 @@ class ItLicensePlateRecognizer(PatternRecognizer):
         ),
         Pattern(
             "IT License Plate motorcycle (very weak)",
-            r"\b[A-Z]{2}[ -]?\d{5}\b",
+            rf"\b{_LETTER}{{2}}[ -]?\d{{5}}\b",
             0.05,
         ),
     ]
 
-    # Short words such as "auto" or "moto" are left out on purpose: context
-    # matching is substring-based, so they would also fire on unrelated
-    # tokens like "autorizzazione" or "remoto".
+    # Context matching is substring-based, so each word below also covers
+    # its compounds and inflections ("targa" covers "targato", "veicolo"
+    # covers "autoveicolo", "immatricola" covers "immatricolazione").
+    # Short words such as "auto" or "moto" are left out on purpose: they
+    # would also fire on unrelated words like "autorizzazione" or "remoto".
     CONTEXT = [
         "targa",
-        "targato",
-        "targata",
         "veicolo",
-        "autoveicolo",
-        "automobile",
-        "autovettura",
         "vettura",
+        "automobile",
         "motociclo",
-        "motoveicolo",
         "rimorchio",
-        "immatricolazione",
-        "immatricolato",
-        "immatricolata",
+        "immatricola",
     ]
 
     def __init__(
@@ -92,4 +93,5 @@ class ItLicensePlateRecognizer(PatternRecognizer):
             context=context,
             supported_language=supported_language,
             name=name,
+            global_regex_flags=re.DOTALL | re.MULTILINE,
         )
