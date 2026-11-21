@@ -61,8 +61,9 @@ jobs:
           allow-dependencies-licenses: >-
             pkg:pypi/blis, pkg:pypi/certifi, pkg:pypi/cffi, pkg:pypi/distlib,
             pkg:pypi/emoji, pkg:pypi/kiwisolver, pkg:pypi/matplotlib, pkg:pypi/nodeenv,
-            pkg:pypi/nvidia-nvjitlink, pkg:pypi/orjson, pkg:pypi/protobuf, pkg:pypi/pygments,
-            pkg:pypi/regex, pkg:pypi/torch, pkg:pypi/tqdm, pkg:pypi/udtools, pkg:pypi/wrapt
+            pkg:pypi/nvidia-nvjitlink, pkg:pypi/orjson, pkg:pypi/protobuf, pkg:pypi/pyasn1,
+            pkg:pypi/pygments, pkg:pypi/regex, pkg:pypi/torch, pkg:pypi/tqdm,
+            pkg:pypi/udtools, pkg:pypi/wrapt
           comment-summary-in-pr: on-failure
 
   test:
