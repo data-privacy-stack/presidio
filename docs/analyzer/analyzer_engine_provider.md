@@ -82,7 +82,19 @@ The configuration file contains the following parameters:
 - `default_score_threshold`: A score that determines the minimal threshold for detection.
 - `nlp_configuration`: Configuration given to the NLP engine which will detect the PIIs and extract features for the downstream logic.
 - `recognizer_registry`: All the recognizers that will be used by the analyzer. Each recognizer entry can define `score_thresholds`, using `default` as its fallback and entity names for overrides.
-- `context_aware_enhancer` (optional): Parameters for the `LemmaContextAwareEnhancer` that boosts scores when context words appear around a match. Supported keys are `context_similarity_factor` (default `0.35`) and `min_score_with_context_similarity` (default `0.4`), both between 0 and 1; `context_prefix_count` (default `5`) and `context_suffix_count` (default `0`), the number of words before and after the match to search for context, both non-negative integers; and `context_matching_mode`, either `substring` (default) or `whole_word`. Omitted keys keep their defaults, unknown keys are rejected, and leaving out the whole section keeps the default enhancer. Setting `context_suffix_count` helps languages that often place the context word after the value, such as German or Turkish ("05xx xxx xx xx numaralı telefonum").
+- `context_aware_enhancer` (optional): Parameters for the enhancer that boosts scores when context words appear around a match: `context_similarity_factor`, `min_score_with_context_similarity`, `context_prefix_count`, `context_suffix_count` and `context_matching_mode`. They apply to the default lemma and phrase enhancers. To choose the enhancers, or to give one enhancer its own parameters, list them under `enhancers`:
+
+```yaml
+context_aware_enhancer:
+  context_prefix_count: 3
+  enhancers:
+    - type: lemma
+      context_suffix_count: 3
+    - type: phrase
+      context_matching_mode: whole_word
+```
+
+- `text_normalizer` (optional): Normalizes the text before it is analyzed, so entities written with full-width or invisible characters are found. `type` is `full_width_and_invisible_chars`, the default. Without this section the text is not normalized. See [Full-width and invisible characters](text_normalization.md).
 
 !!! note "Defining confidence thresholds"
     Presidio supports multiple types of score thresholds: default ones (for the analyzer and each recognizer), per-request thresholds, and per-entity thresholds. Supplying `analyzer.analyze(score_threshold=...)` bypasses recognizer-level thresholds for that request and applies the supplied threshold to every result. The order of importance is: `analyzer.analyze(score_threshold=...)` > an entity specific threshold > a recognizer default threshold (`default`) > the Presidio Analyzer `default_score_threshold`.

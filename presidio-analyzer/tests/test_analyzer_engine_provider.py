@@ -12,8 +12,16 @@ import pytest
 import yaml
 from install_nlp_models import _install_models_from_nlp_config, install_models
 from presidio_analyzer import AnalyzerEngineProvider, RecognizerResult
-from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
+from presidio_analyzer.context_aware_enhancers import (
+    CompositeContextAwareEnhancer,
+    LemmaContextAwareEnhancer,
+    PhraseContextAwareEnhancer,
+)
 from presidio_analyzer.nlp_engine import NlpArtifacts, SpacyNlpEngine
+from presidio_analyzer.text_normalizers import (
+    FullWidthAndInvisibleCharsNormalizer,
+    NoOpTextNormalizer,
+)
 from presidio_analyzer.predefined_recognizers import (
     AzureAILanguageRecognizer,
     CreditCardRecognizer,
@@ -882,14 +890,34 @@ def test_when_context_aware_enhancer_configured_then_values_reach_engine(tmp_pat
 
     engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
 
-    enhancer = engine.context_aware_enhancer
-    assert isinstance(enhancer, LemmaContextAwareEnhancer)
-    assert enhancer.context_suffix_count == 3
-    assert enhancer.context_matching_mode == "whole_word"
-    # Omitted fields keep the constructor defaults
-    assert enhancer.context_similarity_factor == 0.35
-    assert enhancer.min_score_with_context_similarity == 0.4
-    assert enhancer.context_prefix_count == 5
+    # The settings apply to both enhancers of the default composite
+    composite = engine.context_aware_enhancer
+    assert isinstance(composite, CompositeContextAwareEnhancer)
+    assert [type(enhancer) for enhancer in composite.enhancers] == [
+        LemmaContextAwareEnhancer,
+        PhraseContextAwareEnhancer,
+    ]
+    for enhancer in composite.enhancers:
+        assert enhancer.context_suffix_count == 3
+        assert enhancer.context_matching_mode == "whole_word"
+        # Omitted fields keep the constructor defaults
+        assert enhancer.context_similarity_factor == 0.35
+        assert enhancer.min_score_with_context_similarity == 0.4
+        assert enhancer.context_prefix_count == 5
+
+
+def _assert_default_composite(composite):
+    assert isinstance(composite, CompositeContextAwareEnhancer)
+    assert [type(enhancer) for enhancer in composite.enhancers] == [
+        LemmaContextAwareEnhancer,
+        PhraseContextAwareEnhancer,
+    ]
+    for enhancer in composite.enhancers:
+        assert enhancer.context_similarity_factor == 0.35
+        assert enhancer.min_score_with_context_similarity == 0.4
+        assert enhancer.context_prefix_count == 5
+        assert enhancer.context_suffix_count == 0
+        assert enhancer.context_matching_mode == "substring"
 
 
 def test_when_context_aware_enhancer_section_absent_then_engine_uses_defaults(
@@ -901,13 +929,7 @@ def test_when_context_aware_enhancer_section_absent_then_engine_uses_defaults(
     assert provider._load_context_aware_enhancer() is None
     engine = provider.create_engine()
 
-    enhancer = engine.context_aware_enhancer
-    assert isinstance(enhancer, LemmaContextAwareEnhancer)
-    assert enhancer.context_similarity_factor == 0.35
-    assert enhancer.min_score_with_context_similarity == 0.4
-    assert enhancer.context_prefix_count == 5
-    assert enhancer.context_suffix_count == 0
-    assert enhancer.context_matching_mode == "substring"
+    _assert_default_composite(engine.context_aware_enhancer)
 
 
 def test_when_context_aware_enhancer_section_empty_then_engine_uses_defaults(
@@ -922,13 +944,97 @@ def test_when_context_aware_enhancer_section_empty_then_engine_uses_defaults(
     assert provider.configuration["context_aware_enhancer"] is None
     engine = provider.create_engine()
 
-    enhancer = engine.context_aware_enhancer
-    assert isinstance(enhancer, LemmaContextAwareEnhancer)
-    assert enhancer.context_similarity_factor == 0.35
-    assert enhancer.min_score_with_context_similarity == 0.4
-    assert enhancer.context_prefix_count == 5
-    assert enhancer.context_suffix_count == 0
-    assert enhancer.context_matching_mode == "substring"
+    _assert_default_composite(engine.context_aware_enhancer)
+
+
+def test_when_context_aware_enhancers_listed_then_engine_runs_them_in_order(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={
+            "enhancers": [
+                {"type": "phrase", "context_matching_mode": "whole_word"},
+                {"type": "lemma", "context_suffix_count": 3},
+            ]
+        },
+    )
+
+    composite = (
+        AnalyzerEngineProvider(analyzer_yaml).create_engine().context_aware_enhancer
+    )
+
+    assert isinstance(composite, CompositeContextAwareEnhancer)
+    phrase, lemma = composite.enhancers
+    assert isinstance(phrase, PhraseContextAwareEnhancer)
+    assert phrase.context_matching_mode == "whole_word"
+    assert phrase.context_suffix_count == 0
+    assert isinstance(lemma, LemmaContextAwareEnhancer)
+    assert lemma.context_suffix_count == 3
+    assert lemma.context_matching_mode == "substring"
+
+
+def test_when_settings_next_to_enhancers_then_they_are_the_list_defaults(
+    tmp_path,
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={
+            "context_prefix_count": 2,
+            "context_matching_mode": "whole_word",
+            "enhancers": [
+                {"type": "lemma"},
+                {"type": "phrase", "context_suffix_count": 1},
+            ],
+        },
+    )
+
+    composite = (
+        AnalyzerEngineProvider(analyzer_yaml).create_engine().context_aware_enhancer
+    )
+
+    assert composite.context_prefix_count == 2
+    assert composite.context_matching_mode == "whole_word"
+    lemma, phrase = composite.enhancers
+    assert type(lemma) is LemmaContextAwareEnhancer
+    assert type(phrase) is PhraseContextAwareEnhancer
+    for enhancer in composite.enhancers:
+        assert enhancer.context_prefix_count == 2
+        assert enhancer.context_matching_mode == "whole_word"
+        assert enhancer.context_similarity_factor == 0.35
+    assert lemma.context_suffix_count == 0
+    assert phrase.context_suffix_count == 1
+
+
+@pytest.mark.parametrize(
+    "context_aware_enhancer, expected_score",
+    [
+        (None, 0.65),
+        ({"context_prefix_count": 3}, 0.65),
+        ({"enhancers": [{"type": "lemma"}]}, 0.3),
+        ({"enhancers": [{"type": "phrase"}]}, 0.65),
+    ],
+)
+def test_when_context_aware_enhancer_configured_then_phrase_context_follows_it(
+    tmp_path, context_aware_enhancer, expected_score
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path, context_aware_enhancer=context_aware_enhancer
+    )
+    with open(analyzer_yaml) as f:
+        configuration = yaml.safe_load(f)
+    configuration["recognizer_registry"]["recognizers"][0]["context"] = [
+        "ticket number"
+    ]
+    analyzer_yaml.write_text(yaml.safe_dump(configuration, sort_keys=False))
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+    results = engine.analyze(
+        text="My ticket number is 123456", language="en", entities=["TICKET_ID"]
+    )
+
+    assert len(results) == 1
+    assert results[0].score == pytest.approx(expected_score)
 
 
 def test_when_context_suffix_count_configured_then_suffix_context_boosts_score(
@@ -970,6 +1076,27 @@ def test_when_context_aware_enhancer_configured_with_no_op_engine_then_warns(
         AnalyzerEngineProvider(analyzer_yaml).create_engine()
 
 
+@pytest.mark.parametrize(
+    "enhancers, expected_class",
+    [
+        ([{"type": "phrase"}], "PhraseContextAwareEnhancer"),
+        ([{"type": "lemma"}, {"type": "phrase"}], "LemmaContextAwareEnhancer"),
+    ],
+)
+def test_when_context_aware_enhancers_listed_with_no_op_engine_then_warns(
+    tmp_path, enhancers, expected_class
+):
+    analyzer_yaml = _write_context_enhancer_analyzer_conf(
+        tmp_path,
+        context_aware_enhancer={"enhancers": enhancers},
+        nlp_engine_name="no_op",
+    )
+
+    with pytest.warns(UserWarning, match=f"{expected_class} cannot use") as record:
+        AnalyzerEngineProvider(analyzer_yaml).create_engine()
+    assert len([w for w in record if "NoOpNlpEngine" in str(w.message)]) == 1
+
+
 def test_when_context_aware_enhancer_absent_with_no_op_engine_then_no_warning(
     tmp_path,
 ):
@@ -988,4 +1115,76 @@ def test_when_context_aware_enhancer_section_invalid_then_provider_raises(tmp_pa
     )
 
     with pytest.raises(ValueError, match="context_suffix_cnt"):
+        AnalyzerEngineProvider(analyzer_yaml)
+
+
+def _write_text_normalizer_analyzer_conf(tmp_path, **sections):
+    configuration = {
+        "supported_languages": ["en"],
+        "nlp_configuration": {
+            "nlp_engine_name": "no_op",
+            "models": [{"lang_code": "en", "model_name": "no_op"}],
+        },
+        "recognizer_registry": {
+            "recognizers": [
+                {
+                    "name": "Test ID",
+                    "type": "custom",
+                    "supported_language": "en",
+                    "supported_entity": "TEST_ID",
+                    "patterns": [
+                        {"name": "id", "regex": r"\b[0-9]{6}\b", "score": 0.9}
+                    ],
+                }
+            ],
+        },
+        **sections,
+    }
+    analyzer_yaml = tmp_path / "analyzer_with_text_normalizer.yaml"
+    analyzer_yaml.write_text(yaml.safe_dump(configuration, sort_keys=False))
+    return analyzer_yaml
+
+
+@pytest.mark.parametrize(
+    "text_normalizer", [{"type": "full_width_and_invisible_chars"}, {}, None]
+)
+def test_when_text_normalizer_configured_then_engine_normalizes(
+    tmp_path, text_normalizer
+):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path, text_normalizer=text_normalizer
+    )
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+    assert isinstance(engine.text_normalizer, FullWidthAndInvisibleCharsNormalizer)
+    results = engine.analyze("code １２３４５６", language="en")
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("TEST_ID", 5, 11)]
+
+
+def test_when_text_normalizer_not_configured_then_text_is_not_normalized(tmp_path):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(tmp_path)
+
+    engine = AnalyzerEngineProvider(analyzer_yaml).create_engine()
+
+    assert isinstance(engine.text_normalizer, NoOpTextNormalizer)
+    assert engine.analyze("code １２３４５６", language="en") == []
+
+
+@pytest.mark.parametrize(
+    "text_normalizer,message",
+    [
+        ({"type": "nfkc"}, "Invalid text_normalizer configuration: type"),
+        ({"kind": "full_width"}, "Valid keys are: \\['type'\\]"),
+        ("full_width_and_invisible_chars", "must be a dictionary"),
+    ],
+)
+def test_when_text_normalizer_section_invalid_then_provider_raises(
+    tmp_path, text_normalizer, message
+):
+    analyzer_yaml = _write_text_normalizer_analyzer_conf(
+        tmp_path, text_normalizer=text_normalizer
+    )
+
+    with pytest.raises(ValueError, match=message):
         AnalyzerEngineProvider(analyzer_yaml)

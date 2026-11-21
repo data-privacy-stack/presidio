@@ -1,6 +1,6 @@
 """Pydantic models for YAML recognizer configurations."""
 
-from typing import Any, Dict, List, Literal, Optional, Type, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -85,6 +85,22 @@ class BaseRecognizerConfig(BaseModel):
         default=None,
         description="Default and entity-specific score thresholds",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_recognizer_level_normalize_text(cls, data: Any) -> Any:
+        """Point to the analyzer setting when a recognizer sets normalize_text.
+
+        Text normalization is applied by the analyzer engine to all recognizers,
+        so it is configured once, in the analyzer configuration.
+        """
+        if isinstance(data, dict) and "normalize_text" in data:
+            raise ValueError(
+                f"Recognizer '{data.get('name')}' sets 'normalize_text', which is "
+                "not a recognizer setting. Add a 'text_normalizer' section to the "
+                "analyzer configuration instead, next to 'context_aware_enhancer'."
+            )
+        return data
 
     @field_validator("supported_language")
     @classmethod
@@ -195,10 +211,10 @@ class TextChunkerConfig(BaseModel):
         return self
 
 
-class ContextAwareEnhancerConfig(BaseModel):
-    """Validated configuration for the analyzer's context-aware enhancer.
+class ContextAwareEnhancerSettingsConfig(BaseModel):
+    """Validated settings of a lemma or phrase context-aware enhancer.
 
-    Omitted fields keep the ``LemmaContextAwareEnhancer`` constructor defaults.
+    Omitted fields keep the enhancer constructor defaults.
 
     :param context_similarity_factor: How much to enhance confidence of a match.
     :param min_score_with_context_similarity: Minimum confidence score
@@ -234,6 +250,60 @@ class ContextAwareEnhancerConfig(BaseModel):
         """
         kwargs.setdefault("exclude_none", True)
         return super().model_dump(*args, **kwargs)
+
+
+class LemmaContextAwareEnhancerConfig(ContextAwareEnhancerSettingsConfig):
+    """A ``LemmaContextAwareEnhancer`` in the ``enhancers`` list."""
+
+    type: Literal["lemma"]
+
+
+class PhraseContextAwareEnhancerConfig(ContextAwareEnhancerSettingsConfig):
+    """A ``PhraseContextAwareEnhancer`` in the ``enhancers`` list."""
+
+    type: Literal["phrase"]
+
+
+class ContextAwareEnhancerConfig(ContextAwareEnhancerSettingsConfig):
+    """Validated configuration for the analyzer's context-aware enhancer.
+
+    The analyzer runs a ``CompositeContextAwareEnhancer``. Without ``enhancers``,
+    it holds a ``LemmaContextAwareEnhancer`` and a ``PhraseContextAwareEnhancer``.
+    With ``enhancers``, it holds the listed enhancers in order. The settings given
+    here apply to every enhancer, and an entry's own settings override them.
+
+    :param enhancers: The enhancers to run in order, each with a ``type``
+    of "lemma" or "phrase" and its settings.
+    """
+
+    enhancers: Optional[
+        List[
+            Annotated[
+                Union[
+                    LemmaContextAwareEnhancerConfig, PhraseContextAwareEnhancerConfig
+                ],
+                Field(discriminator="type"),
+            ]
+        ]
+    ] = Field(None, min_length=1, description="Enhancers to run in order")
+
+
+class TextNormalizerConfig(BaseModel):
+    """Validated configuration for the analyzer's text normalizer.
+
+    With this section in the analyzer configuration, the analyzer normalizes
+    the text before analyzing it; without it, the text is not normalized.
+
+    :param type: The text normalizer. "full_width_and_invisible_chars" (the
+    default) folds full-width characters to ASCII and removes invisible
+    characters.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["full_width_and_invisible_chars"] = Field(
+        default="full_width_and_invisible_chars", description="Text normalizer"
+    )
 
 
 class PredefinedRecognizerConfig(BaseRecognizerConfig):
@@ -505,6 +575,15 @@ class RecognizerRegistryConfig(BaseModel):
     supported_languages: Optional[List[str]] = Field(
         default=None, description="List of supported languages"
     )
+    supported_countries: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "Optional list of ISO 3166-1 alpha-2 country codes "
+            "(case-insensitive). Mirrors 'supported_languages': when set, "
+            "country-specific recognizers outside this list are not loaded, "
+            "while locale-agnostic recognizers are always loaded."
+        ),
+    )
     global_regex_flags: int = Field(default=26, description="Global regex flags")
     recognizers: List[
         Union[
@@ -534,6 +613,24 @@ class RecognizerRegistryConfig(BaseModel):
 
         validate_language_codes(languages)
         return languages
+
+    @field_validator("supported_countries")
+    @classmethod
+    def validate_country_codes(
+        cls, countries: Optional[List[str]]
+    ) -> Optional[List[str]]:
+        """Validate and normalize country codes to lower-case ISO 3166-1 codes.
+
+        Reuses ``RecognizerListLoader._normalize_countries`` so the YAML
+        path rejects the same input the Python ``countries=`` argument rejects
+        (bare strings, non-string entries, blank codes) instead of letting the
+        mistake surface later as an empty registry.
+        """
+        if countries is None:
+            return None
+
+        normalized = RecognizerListLoader._normalize_countries(countries)
+        return sorted(normalized)
 
     @model_validator(mode="after")
     def validate_languages_for_custom_recognizers(self):

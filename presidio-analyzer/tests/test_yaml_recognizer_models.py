@@ -515,6 +515,24 @@ def test_recognizer_registry_config_defaults():
     assert len(config.recognizers) == 1
 
 
+def test_recognizer_level_normalize_text_points_to_analyzer_setting():
+    """normalize_text in a recognizer entry fails with a pointer to text_normalizer."""
+    with pytest.raises(
+        ValidationError, match="Add a 'text_normalizer' section to the analyzer configuration"
+    ):
+        PredefinedRecognizerConfig(name="UsPassportRecognizer", normalize_text=True)
+
+    with pytest.raises(
+        ValidationError, match="Add a 'text_normalizer' section to the analyzer configuration"
+    ):
+        CustomRecognizerConfig(
+            name="custom_norm",
+            supported_entity="CUSTOM_ENTITY",
+            patterns=[{"name": "id", "regex": r"[0-9]+", "score": 0.5}],
+            normalize_text=True,
+        )
+
+
 def test_recognizer_registry_config_valid_languages():
     """Test registry with valid languages."""
     config = RecognizerRegistryConfig(
