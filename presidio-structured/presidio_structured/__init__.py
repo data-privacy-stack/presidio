@@ -7,6 +7,7 @@ from .config import StructuredAnalysis
 from .data import (
     CsvReader,
     JsonDataProcessor,
+    JsonLinesReader,
     JsonReader,
     PandasDataProcessor,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "StructuredAnalysis",
     "CsvReader",
     "JsonReader",
+    "JsonLinesReader",
     "PandasDataProcessor",
     "JsonDataProcessor",
 ]

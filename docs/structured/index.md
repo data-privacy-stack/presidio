@@ -106,6 +106,36 @@ anonymized_complex_json = json_engine.anonymize(sample_complex_json, json_comple
 print(anonymized_complex_json)
 ```
 
+##### Example 3: Anonymizing JSON Lines files
+
+A [JSON Lines](https://jsonlines.org) file holds one JSON record per line. `JsonLinesReader` reads it into a list of records, and each record is then anonymized like the JSON data above.
+
+```python
+from presidio_structured import StructuredEngine, JsonAnalysisBuilder, JsonDataProcessor, JsonLinesReader
+from presidio_anonymizer.entities import OperatorConfig
+from faker import Faker # optionally using faker as an example
+
+json_engine = StructuredEngine(data_processor=JsonDataProcessor())
+
+records = JsonLinesReader().read("users.jsonl")
+
+# Define anonymization operators
+fake = Faker()
+operators = {
+    "PERSON": OperatorConfig("replace", {"new_value": "REDACTED"}),
+    "EMAIL_ADDRESS": OperatorConfig("custom", {"lambda": lambda x: fake.safe_email()})
+}
+
+# The analysis is generated from a single record. Check that it covers every key
+# holding PII, or define a StructuredAnalysis manually as in Example 2.
+json_analysis = JsonAnalysisBuilder().generate_analysis(records[0])
+
+anonymized_records = [
+    json_engine.anonymize(record, json_analysis, operators=operators)
+    for record in records
+]
+```
+
 A more detailed sample can be found here:
 
 - <https://github.com/data-privacy-stack/presidio/blob/main/docs/samples/python/example_structured.ipynb>
