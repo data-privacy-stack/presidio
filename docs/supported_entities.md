@@ -121,6 +121,11 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | KR_RRN     | The Korean Resident Registration Number (RRN) is a 13-digit number issued to all Korean residents. | Pattern match, context and custom logic. |
 
 
+### Malaysia
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| MY_NRIC    | The Malaysian identity card number (MyKad / NRIC) is a 12-digit number in the `YYMMDD-PB-###G` format: date of birth, place-of-birth code issued by the National Registration Department (JPN), and a serial number. It has no checksum; impossible dates and unassigned place-of-birth codes are rejected. | Pattern match, context and custom logic. |
+
 ### Nigeria
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
