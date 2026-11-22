@@ -40,6 +40,11 @@ recognizers:
     #   default: 0.4
     #   CREDIT_CARD: 0.7
 
+  - name: CardTrackDataRecognizer
+    supported_languages:
+    - en
+    type: predefined
+
   - name: UsBankRecognizer
     supported_languages: 
     - en
