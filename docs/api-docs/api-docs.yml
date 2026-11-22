@@ -97,6 +97,8 @@ paths:
                         { "entity_type": "EMAIL_ADDRESS", "start": 15, "end": 35, "score": 0.95, "analysis_explanation": null }
                       ]
                     ]
+        413:
+          $ref: "#/components/responses/413ContentTooLarge"
 
   /recognizers:
     get:
@@ -779,6 +781,17 @@ components:
               error:
                 type: string
                 example: "Invalid request json"
+
+    413ContentTooLarge:
+      description: Content Too Large. A text is longer than the `max_length` of the spaCy NLP model.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Text is longer than the maximum length of the NLP model. Split the text into smaller parts and analyze each part separately."
 
     422UnprocessableEntity:
       description: Unprocessable Entity

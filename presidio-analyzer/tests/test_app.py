@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from app import create_app
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
-from presidio_analyzer.nlp_engine import NoOpNlpEngine
+from presidio_analyzer.nlp_engine import NoOpNlpEngine, SpacyNlpEngine
 from presidio_analyzer.predefined_recognizers import IbanRecognizer
 
 
@@ -77,3 +77,46 @@ def test_given_unsupported_language_for_supported_entities_then_return_500(clien
     assert response.get_json() == {
         "error": "No matching recognizers were found to serve the request."
     }
+
+
+@pytest.fixture(scope="module")
+def client_with_max_length():
+    nlp_engine = SpacyNlpEngine(
+        models=[{"lang_code": "en", "model_name": "en_core_web_lg", "max_length": 20}]
+    )
+    nlp_engine.load()
+    engine = AnalyzerEngine(
+        registry=RecognizerRegistry([IbanRecognizer()]),
+        nlp_engine=nlp_engine,
+    )
+    with patch("app.AnalyzerEngineProvider") as provider:
+        provider.return_value.create_engine.return_value = engine
+        app = create_app()
+        app.testing = True
+        yield app.test_client()
+
+
+@pytest.mark.parametrize("text", ["a" * 21, ["short text", "a" * 21]])
+def test_given_text_longer_than_max_length_then_return_413(
+    client_with_max_length, text
+):
+    response = client_with_max_length.post(
+        "/analyze", json={"text": text, "language": "en"}
+    )
+
+    assert response.status_code == 413
+    assert response.get_json() == {
+        "error": "Text is longer than the maximum length of the NLP model. "
+        "Split the text into smaller parts and analyze each part separately."
+    }
+
+
+def test_given_text_not_longer_than_max_length_then_return_200(
+    client_with_max_length,
+):
+    response = client_with_max_length.post(
+        "/analyze", json={"text": "a" * 20, "language": "en"}
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == []

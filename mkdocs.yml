@@ -47,6 +47,7 @@ nav:
               - Filtering recognizers by country: analyzer/filtering_by_country.md
               - Multi-language support: analyzer/languages.md
               - Full-width and invisible characters: analyzer/text_normalization.md
+              - Analyzing long texts: analyzer/long_texts.md
               - Customizing the NLP model:
                   - Home: analyzer/customizing_nlp_models.md
                   - Spacy/Stanza: analyzer/nlp_engines/spacy_stanza.md
