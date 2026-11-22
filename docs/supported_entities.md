@@ -178,6 +178,12 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
 | PH_UMID    | Philippine Unified Multi-Purpose ID (UMID) / Common Reference Number (CRN). 12-digit format (e.g., 0111-1234567-8). Acts as a master ID connecting SSS, GSIS, PhilHealth, and Pag-IBIG. Disabled by default. | Pattern match and context |
 
+### Lithuania
+
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| LT_ASMENS | The Lithuanian personal code (asmens kodas): 11 digits (e.g., 33309240064) encoding the gender and birth century (1 and 2 the 1800s, 3 and 4 the 1900s, 5 and 6 the 2000s), the birth date (YYMMDD), a three digit serial number, with the last digit a check digit from the two round mod 11 check with weights 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, then 3, 4, 5, 6, 7, 8, 9, 1, 2, 3. The code doubles as the Lithuanian individual tax identification number. | Pattern match, context, date and checksum. |
+
 ### Germany
 
 | Entity Type | Description | Detection Method |
