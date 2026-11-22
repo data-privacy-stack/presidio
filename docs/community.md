@@ -28,5 +28,6 @@ This section collects different resources developed with Presidio.
 | [Tarn](https://github.com/Syntriq-GmbH/tarn) | Open transformers and GLiNER models for German PII detection, using Presidio entity names including the German identifiers, with a ready `TransformersNlpEngine` configuration. |
 | [Presidio GitHub Action](https://github.com/marketplace/actions/presidio-action) | GitHub Action that analyzes text for PII entities with the Presidio framework. |
 | [canpii](https://github.com/ArthurJZL/canpii) | Canadian PII recognizers for Presidio: provincial health card numbers (including Québec RAMQ), passport, CRA Business Number, bank account and driver's licence numbers, with English and French context words and check-digit validation. |
+| [HoverBot](https://www.hoverbot.ai/blog/presidio-mask-pii-chatbot-test) | Use Presidio to mask personal data in visitor messages before they reach HoverBot's reply model. |
 
 * Please create a PR if you're interested in adding your tool to this list.
