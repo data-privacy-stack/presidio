@@ -26,10 +26,10 @@ def entities():
     [
         # fmt: off
         # Valid Steuer-IdNr – checksum passes → result at MAX_SCORE
-        ("12345678903", 1, ((0, 11),)),
-        ("98765432106", 1, ((0, 11),)),
-        ("Meine Steuer-ID: 12345678903.", 1, ((17, 28),)),
-        ("IdNr. 98765432106 liegt vor.", 1, ((6, 17),)),
+        ("36574261809", 1, ((0, 11),)),
+        ("36574321837", 1, ((0, 11),)),
+        ("Meine Steuer-ID: 36574261809.", 1, ((17, 28),)),
+        ("IdNr. 36574321837 liegt vor.", 1, ((6, 17),)),
         # Invalid: wrong check digit
         ("12345678901", 0, ()),
         ("98765432100", 0, ()),
@@ -43,6 +43,10 @@ def entities():
         # Invalid: a single digit appears 4+ times in positions 1-10
         # (post-2016 BZSt rule: max 3 repetitions)
         ("11112345678", 0, ()),
+        # Invalid: no repeated digit, two repeated digits, three adjacent copies
+        ("12345678903", 0, ()),
+        ("36557426186", 0, ()),
+        ("33357421805", 0, ()),
         # fmt: on
     ],
 )
@@ -58,9 +62,17 @@ def test_when_all_de_tax_ids_then_succeed(
 @pytest.mark.parametrize(
     "number, expected",
     [
-        # Valid numbers
-        ("12345678903", True),
-        ("98765432106", True),
+        # Valid numbers: one digit twice; one digit three times (not all adjacent)
+        ("36574261809", True),
+        ("86095742719", True),
+        ("36574321837", True),
+        ("33657421802", True),
+        # Correct check digit but no repeated digit, or two repeated digits
+        ("12345678903", False),
+        ("98765432106", False),
+        ("36557426186", False),
+        # Three copies of a digit next to each other
+        ("33357421805", False),
         # Wrong check digit
         ("12345678901", False),
         ("98765432100", False),
