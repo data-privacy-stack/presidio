@@ -160,6 +160,38 @@ def test_remove_space_boxes_happy_path(image_analyzer_engine):
     assert test_results["top"] == [5, 900]
 
 
+def test_remove_bbox_padding_reduces_coordinates_and_clamps_at_zero():
+    """Regression: analyzer_bboxes is a list of dicts, not a coordinate dict.
+
+    The documented analyzer_bboxes parameter is a List[Dict[...]], so indexing
+    the list with a "left"/"top" key must not raise TypeError.
+    """
+    analyzer_bboxes = [
+        {"entity_type": "PERSON", "left": 10, "top": 7, "width": 30, "height": 20},
+        {"entity_type": "PHONE_NUMBER", "left": 3, "top": 0, "width": 12, "height": 8},
+    ]
+
+    unpadded = ImageAnalyzerEngine._remove_bbox_padding(analyzer_bboxes, padding_width=5)
+
+    assert len(unpadded) == 2
+    # left/top reduced by padding_width
+    assert unpadded[0]["left"] == 5
+    assert unpadded[0]["top"] == 2
+    # results below zero are clamped at 0
+    assert unpadded[1]["left"] == 0
+    assert unpadded[1]["top"] == 0
+    # non-coordinate fields preserved
+    assert unpadded[0]["entity_type"] == "PERSON"
+    assert unpadded[0]["width"] == 30
+    assert unpadded[0]["height"] == 20
+
+    # control: zero padding leaves coordinates unchanged
+    unchanged = ImageAnalyzerEngine._remove_bbox_padding(analyzer_bboxes, padding_width=0)
+    for original, result in zip(analyzer_bboxes, unchanged):
+        assert result["left"] == original["left"]
+        assert result["top"] == original["top"]
+
+
 @pytest.mark.parametrize(
     "text_analyzer_kwargs, expected_allow_list",
     [

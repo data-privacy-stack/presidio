@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image, ImageChops
 from presidio_analyzer import AnalyzerEngine, RecognizerResult
 
-from presidio_image_redactor import OCR, ImagePreprocessor, TesseractOCR
+from presidio_image_redactor import OCR, BboxProcessor, ImagePreprocessor, TesseractOCR
 from presidio_image_redactor.entities import ImageRecognizerResult
 
 
@@ -261,18 +261,7 @@ class ImageAnalyzerEngine:
 
         :return: Bounding box information per word.
         """
-
-        unpadded_results = deepcopy(analyzer_bboxes)
-        if padding_width < 0:
-            raise ValueError("Padding width must be a non-negative integer.")
-
-        coordinate_keys = ["left", "top"]
-        for coord_key in coordinate_keys:
-            unpadded_results[coord_key] = [
-                max(0, x - padding_width) for x in unpadded_results[coord_key]
-            ]
-
-        return unpadded_results
+        return BboxProcessor.remove_bbox_padding(analyzer_bboxes, padding_width)
 
     @staticmethod
     def _parse_ocr_kwargs(ocr_kwargs: dict) -> Tuple[dict, float]:
