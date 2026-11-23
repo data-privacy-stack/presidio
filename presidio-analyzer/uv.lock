@@ -2520,7 +2520,7 @@ requires-dist = [
     { name = "gliner", marker = "extra == 'gliner'", specifier = ">=0.2.29,<1.0.0" },
     { name = "gunicorn", marker = "sys_platform != 'win32' and extra == 'server'", specifier = ">=20.0.0,<26.0.0" },
     { name = "huggingface-hub", marker = "extra == 'gliner'" },
-    { name = "huggingface-hub", marker = "extra == 'transformers'", specifier = ">=0.20.0,<2.0.0" },
+    { name = "huggingface-hub", marker = "extra == 'transformers'", specifier = ">=0.20.0,<3.0.0" },
     { name = "jinja2", marker = "extra == 'langextract'", specifier = ">=3.0.0,<4.0.0" },
     { name = "langextract", marker = "extra == 'langextract'", specifier = ">=1.0.0,<2.0.0" },
     { name = "more-itertools", marker = "extra == 'langextract'", specifier = ">=10.0.0,<12.0.0" },
