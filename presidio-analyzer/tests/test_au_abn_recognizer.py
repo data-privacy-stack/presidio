@@ -28,6 +28,11 @@ def entities():
         # (A prior special case remapped the leading 0 to 9 and wrongly
         # accepted this as valid.)
         ("00000000560", 0, (), (),),
+        # Leading-zero numbers whose weighted sum is still a multiple of 89
+        # after subtracting 1 from the first digit
+        ("01039475633", 0, (), (),),
+        ("06868334297", 0, (), (),),
+        ("01 039 475 633", 0, (), (),),
         # Invalid formatting and ABNs.  
         ("5282475355632", 0, (), (),),
         ("52824753556AF", 0, (), (),),

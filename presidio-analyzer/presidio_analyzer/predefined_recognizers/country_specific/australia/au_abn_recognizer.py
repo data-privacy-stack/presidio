@@ -82,11 +82,14 @@ class AuAbnRecognizer(PatternRecognizer):
         # Set weights based on digit position
         weight = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
 
+        # Valid ABNs never start with 0. Subtracting 1 from a leading 0 does not
+        # make the checksum fail on its own: for some numbers the weighted sum
+        # is still a multiple of 89 (e.g. 01039475633), so reject them here.
+        if abn_list[0] == 0:
+            return False
+
         # Perform checksums. The ABR algorithm subtracts 1 from the first
-        # (left-most) digit; a leading 0 therefore becomes -1 (which makes the
-        # weighted sum non-zero mod 89 and correctly fails — valid ABNs never
-        # start with 0). The previous special case remapped 0 to 9, which
-        # admitted some invalid leading-zero numbers as valid.
+        # (left-most) digit.
         abn_list[0] = abn_list[0] - 1
         sum_product = 0
         for i in range(11):
