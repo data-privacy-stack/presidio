@@ -1,3 +1,4 @@
+import cv2
 import PIL
 from PIL import Image
 import numpy as np
@@ -96,6 +97,46 @@ def test_contrast_segmented_image_enhancer_preprocess_image():
     preprocessed_image, metadata = preprocessor.preprocess_image(image)
     assert isinstance(preprocessed_image, PIL.Image.Image)
     assert "scale_factor" in metadata
+
+
+def _compose_enhancer_stages(preprocessor, image):
+    """Run the enhancer's stages explicitly to pin down its image output."""
+    array = preprocessor.convert_image_to_array(image)
+    filtered, _ = preprocessor.bilateral_filter.preprocess_image(array)
+    grayscale = np.asarray(Image.fromarray(np.uint8(filtered)).convert("L"))
+    adjusted, _, _ = preprocessor._improve_contrast(grayscale)
+    thresholded, _ = preprocessor.adaptive_threshold.preprocess_image(adjusted)
+    _, threshold_image = cv2.threshold(
+        np.asarray(thresholded), 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU
+    )
+    rescaled, _ = preprocessor.image_rescaling.preprocess_image(threshold_image)
+    return rescaled
+
+
+def test_contrast_segmented_image_enhancer_returns_documented_metadata():
+    """Every metadata key named in the docstring must be returned.
+
+    Regression: only ``scale_factor`` used to be returned; the metadata from
+    the bilateral-filter and adaptive-threshold stages was silently discarded.
+    """
+    preprocessor = ContrastSegmentedImageEnhancer()
+    image = get_resource_image("ocr_test.png")
+
+    preprocessed_image, metadata = preprocessor.preprocess_image(image)
+
+    # Control: the image output is still the exact composition of the stages.
+    expected_image = _compose_enhancer_stages(preprocessor, image)
+    assert np.array_equal(np.asarray(preprocessed_image), np.asarray(expected_image))
+
+    # Documented contract: background color, scale percentage, contrast, C.
+    assert isinstance(metadata, dict)
+    assert {"background_color", "scale_factor", "contrast", "C"} <= metadata.keys()
+    assert isinstance(metadata["background_color"], (int, np.integer))
+    assert 0 <= metadata["background_color"] <= 255
+    assert metadata["scale_factor"] in (1, 2, 0.5)
+    assert isinstance(metadata["contrast"], (float, np.floating))
+    assert metadata["contrast"] >= 0
+    assert metadata["C"] in (10, 40)
 
 
 def test_contrast_segmented_image_enhancer__improve_contrast():
