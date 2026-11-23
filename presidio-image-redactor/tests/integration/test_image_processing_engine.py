@@ -90,6 +90,27 @@ def test_segmented_image_rescaling_preprocess_image(image, expected):
     assert np.array(processed_image).shape == expected[1]
 
 
+def test_image_rescaling_with_pil_image():
+    processed_image, metadata = ImageRescaling().preprocess_image(
+        Image.new("L", (32, 32))
+    )
+
+    assert isinstance(processed_image, PIL.Image.Image)
+    assert isinstance(metadata, dict)
+    assert "scale_factor" in metadata
+    assert metadata["scale_factor"] == 2
+    assert np.array(processed_image).shape == (64, 64)
+
+
+def test_image_rescaling_with_ndarray():
+    image = np.zeros((32, 32), dtype=np.uint8)
+    processed_image, metadata = ImageRescaling().preprocess_image(image)
+
+    assert isinstance(processed_image, PIL.Image.Image)
+    assert metadata["scale_factor"] == 2
+    assert np.array(processed_image).shape == (64, 64)
+
+
 def test_contrast_segmented_image_enhancer_preprocess_image():
     preprocessor = ContrastSegmentedImageEnhancer()
     image = get_resource_image("ocr_test.png")

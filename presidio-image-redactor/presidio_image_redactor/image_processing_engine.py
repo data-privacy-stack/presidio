@@ -255,20 +255,36 @@ class ImageRescaling(ImagePreprocessor):
         :return: The processed image and metadata (scale_factor).
         """
 
+        is_pil_image = isinstance(image, Image.Image)
+        if not is_pil_image and not isinstance(image, np.ndarray):
+            raise TypeError(
+                "image must be a PIL Image or a NumPy array, "
+                f"got {type(image).__name__}."
+            )
+
+        if is_pil_image:
+            width, height = image.size
+            pixel_count = width * height
+        else:
+            height, width = image.shape[:2]
+            pixel_count = image.size
+
         scale_factor = 1
-        if image.size < self.small_size:
+        if pixel_count < self.small_size:
             scale_factor = self.factor
-        elif image.size > self.large_size:
+        elif pixel_count > self.large_size:
             scale_factor = 1 / self.factor
 
-        width = int(image.shape[1] * scale_factor)
-        height = int(image.shape[0] * scale_factor)
-        dimensions = (width, height)
-
-        # resize image
-        rescaled_image = cv2.resize(image, dimensions, interpolation=self.interpolation)
+        dimensions = (int(width * scale_factor), int(height * scale_factor))
+        rescaled_image = (
+            image.resize(dimensions)
+            if is_pil_image
+            else Image.fromarray(
+                cv2.resize(image, dimensions, interpolation=self.interpolation)
+            )
+        )
         metadata = {"scale_factor": scale_factor}
-        return Image.fromarray(rescaled_image), metadata
+        return rescaled_image, metadata
 
 
 class ContrastSegmentedImageEnhancer(ImagePreprocessor):
