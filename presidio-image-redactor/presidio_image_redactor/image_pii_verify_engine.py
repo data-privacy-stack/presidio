@@ -1,6 +1,7 @@
 import io
 from typing import List, Optional
 
+import matplotlib.pyplot as plt
 from PIL import Image, ImageChops
 from presidio_analyzer import PatternRecognizer
 
@@ -94,12 +95,12 @@ class ImagePiiVerifyEngine(ImageRedactorEngine):
             use_greyscale_cmap = False
 
         # Get image with verification boxes
-        verify_image = (
-            self.image_analyzer_engine.add_custom_bboxes(
-                image, pii_bboxes, show_text_annotation, use_greyscale_cmap
-            )
-            if display_image
-            else None
+        verify_image = self.image_analyzer_engine.add_custom_bboxes(
+            image, pii_bboxes, show_text_annotation, use_greyscale_cmap
         )
+
+        if display_image:
+            plt.imshow(verify_image)
+            plt.show()
 
         return verify_image
