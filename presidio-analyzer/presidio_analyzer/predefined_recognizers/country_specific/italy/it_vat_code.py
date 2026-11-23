@@ -75,6 +75,15 @@ class ItVatCodeRecognizer(PatternRecognizer):
         if text == "00000000000":
             return False
 
+        # Digits 1-7 are the registration number, which is never all zero, and
+        # digits 8-10 the code of the issuing office: 001-100 for the provinces
+        # or one of the special codes 120, 121, 888 and 999 (DM 23/12/1976).
+        office = text[7:10]
+        if int(text[:7]) == 0:
+            return False
+        if not ("001" <= office <= "100" or office in ("120", "121", "888", "999")):
+            return False
+
         x = 0
         y = 0
 
