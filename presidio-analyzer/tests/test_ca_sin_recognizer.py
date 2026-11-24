@@ -1,7 +1,9 @@
 import pytest
+from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.predefined_recognizers import CaSinRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 from tests import assert_result_within_score_range
-from presidio_analyzer.predefined_recognizers import CaSinRecognizer
 
 
 @pytest.fixture(scope="module")
@@ -77,3 +79,53 @@ def test_when_sin_in_text_then_all_ca_sins_are_found(
         assert_result_within_score_range(
             res, entities[0], st_pos, fn_pos, st_score, fn_score
         )
+
+
+@pytest.fixture(scope="module")
+def analyzer_from_yaml(tmp_path_factory, spacy_nlp_engine):
+    """Analyzer with CaSinRecognizer enabled through registry configuration."""
+    conf = tmp_path_factory.mktemp("conf") / "recognizers.yaml"
+    conf.write_text(
+        """
+supported_languages:
+  - en
+recognizers:
+  - name: CaSinRecognizer
+    supported_languages:
+      - en
+    type: predefined
+    enabled: true
+    country_code: ca
+"""
+    )
+    registry = RecognizerRegistryProvider(conf_file=conf).create_recognizer_registry()
+    return AnalyzerEngine(registry=registry, nlp_engine=spacy_nlp_engine)
+
+
+@pytest.mark.parametrize(
+    "text, start, end, expected_score",
+    [
+        # fmt: off
+        # Context phrases raise the score.
+        ("My SIN number is 130692544.", 17, 26, 0.4),
+        ("Social insurance number 130692544", 24, 33, 0.4),
+        ("Social insurance number 130-692-544", 24, 35, 0.85),
+        # Context is prefix-only: a phrase after the number does not count.
+        ("130692544 is my social insurance number", 0, 9, 0.05),
+        # Words containing "sin" or "nas" are not context.
+        ("Our business account is 130692544.", 24, 33, 0.05),
+        ("Our business account is 130-692-544.", 24, 35, 0.5),
+        ("My cousin has account 130692544", 22, 31, 0.05),
+        ("The dynasty record 130692544", 19, 28, 0.05),
+        # fmt: on
+    ],
+)
+def test_when_enabled_in_yaml_then_context_raises_score_only_for_sin_phrases(
+    analyzer_from_yaml, text, start, end, expected_score
+):
+    results = analyzer_from_yaml.analyze(text, language="en", entities=["CA_SIN"])
+
+    assert [(r.entity_type, r.start, r.end) for r in results] == [
+        ("CA_SIN", start, end)
+    ]
+    assert results[0].score == pytest.approx(expected_score)
