@@ -76,6 +76,11 @@ from .country_specific.nigeria.ng_vehicle_registration_recognizer import (
     NgVehicleRegistrationRecognizer,
 )
 
+# Norway recognizers
+from .country_specific.norway.no_fodselsnummer_recognizer import (
+    NoFodselsnummerRecognizer,
+)
+
 # Philippines recognizers
 from .country_specific.philippines.ph_passport_recognizer import PhPassportRecognizer
 from .country_specific.philippines.ph_tin_recognizer import PhTinRecognizer
@@ -296,6 +301,7 @@ __all__ = [
     "TrLicensePlateRecognizer",
     "TrNationalIdRecognizer",
     "SePersonnummerRecognizer",
+    "NoFodselsnummerRecognizer",
     "ZaCompanyRegistrationRecognizer",
     "ZaDriverLicenseRecognizer",
     "ZaIdNumberRecognizer",
