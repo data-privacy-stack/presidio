@@ -21,6 +21,7 @@ Presidio is supported for the following python versions:
 * 3.12
 * 3.13
 * 3.14
+* 3.15 (base `presidio-analyzer` with spaCy)
 
 ### PII anonymization on text
 
