@@ -19,7 +19,7 @@ class CreditCardRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "All Credit Cards (weak)",
-            r"\b(?!1\d{12}(?!\d))((4\d{3})|(5[0-5]\d{2})|(6\d{3})|(1\d{3})|(3\d{3}))[- ]?(\d{3,4})[- ]?(\d{3,4})[- ]?(\d{3,5})\b",  # noqa: E501
+            r"\b(?!1\d{12}(?!\d))((4\d{3})|(5[0-5]\d{2})|(6\d{3})|(1\d{3})|(3\d{3}))[- \u00a0\u2007\u2009\u202f]?(\d{3,4})[- \u00a0\u2007\u2009\u202f]?(\d{3,4})[- \u00a0\u2007\u2009\u202f]?(\d{3,5})\b",  # noqa: E501
             0.3,
         ),
     ]
@@ -48,7 +48,16 @@ class CreditCardRecognizer(PatternRecognizer):
         name: Optional[str] = None,
     ):
         self.replacement_pairs = (
-            replacement_pairs if replacement_pairs else [("-", ""), (" ", "")]
+            replacement_pairs
+            if replacement_pairs
+            else [
+                ("-", ""),
+                (" ", ""),
+                ("\u00a0", ""),
+                ("\u2007", ""),
+                ("\u2009", ""),
+                ("\u202f", ""),
+            ]
         )
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
