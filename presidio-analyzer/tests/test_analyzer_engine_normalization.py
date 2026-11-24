@@ -129,6 +129,21 @@ class FixedSpansRecognizer(LocalRecognizer):
         ]
 
 
+class InvalidRawSpanPatternRecognizer(PatternRecognizer):
+    """Return an invalid span only when the raw-text fallback is used."""
+
+    def __init__(self):
+        super().__init__(
+            supported_entity="INVALID_SPAN",
+            patterns=[Pattern("unused", "unused", 0.8)],
+        )
+
+    def analyze(self, text, entities, nlp_artifacts=None, regex_flags=None):
+        if "ＯＫ" in text:
+            return [RecognizerResult("INVALID_SPAN", 1, 100, 0.8)]
+        return []
+
+
 class DropHashNormalizer(TextNormalizer):
     """A custom normalizer that removes '#' characters."""
 
@@ -255,19 +270,23 @@ def test_other_recognizers_get_only_the_normalized_text():
     assert [(r.entity_type, r.start, r.end) for r in results] == [("KEYWORD", 6, 10)]
 
 
-def test_results_with_invalid_spans_are_skipped(caplog):
+def test_results_with_invalid_spans_are_skipped():
     # The normalized text is "Name: John", 10 characters long.
     recognizer = FixedSpansRecognizer(
         [("VALID", 6, 10), ("EMPTY", 5, 5), ("OUT_OF_RANGE", 3, 30)]
     )
     text = "Name: " + to_fullwidth("John") + ZERO_WIDTH_SPACE
 
-    with caplog.at_level("WARNING", logger="presidio-analyzer"):
-        results = make_engine([recognizer]).analyze(text, language="en")
+    results = make_engine([recognizer]).analyze(text, language="en")
 
     assert [(r.entity_type, r.start, r.end) for r in results] == [("VALID", 6, 10)]
-    assert "EMPTY result with an invalid span (5, 5)" in caplog.text
-    assert "OUT_OF_RANGE result with an invalid span (3, 30)" in caplog.text
+
+
+def test_invalid_raw_recognizer_span_is_skipped_after_normalization():
+    text = "x ＯＫ"
+    engine = make_engine([InvalidRawSpanPatternRecognizer()])
+
+    assert engine.analyze(text, language="en") == []
 
 
 def test_results_with_invalid_spans_are_returned_as_before_without_normalization():

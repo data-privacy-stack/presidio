@@ -117,6 +117,13 @@ class NormalizedText:
         :return: The ``(start, end)`` span in the normalized text, or None when
         the span covers only removed characters.
         """
+        if not 0 <= start <= end <= len(self.original_text):
+            raise ValueError(
+                f"Invalid original span ({start}, {end}) "
+                f"for an original text of length {len(self.original_text)}."
+            )
+        if start == end:
+            return None
         normalized_start = bisect_right(self.ends, start)
         normalized_end = bisect_left(self.starts, end)
         if normalized_start >= normalized_end:
