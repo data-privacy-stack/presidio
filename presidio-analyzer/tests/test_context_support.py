@@ -216,3 +216,36 @@ def test_when_context_custom_recognizer_then_succeed(spacy_nlp_engine, mock_nlp_
     assert len(results_without_context) == len(results_with_context)
     for res_wo, res_w in zip(results_without_context, results_with_context):
         assert res_wo.score < res_w.score
+
+
+@pytest.mark.parametrize(
+    "glued_text, spaced_text, recognizer, context_word",
+    [
+        ("Phone:617-555-0134", "Phone: 617-555-0134", PhoneRecognizer(), "phone"),
+        ("SSN:219-09-9999", "SSN: 219-09-9999", UsSsnRecognizer(), "ssn"),
+        (
+            "Passport:912803456",
+            "Passport: 912803456",
+            UsPassportRecognizer(),
+            "passport",
+        ),
+    ],
+)
+def test_when_context_word_glued_to_entity_with_colon_then_score_matches_spaced(
+    spacy_nlp_engine, lemma_context, glued_text, spaced_text, recognizer, context_word
+):
+    """spaCy keeps "Phone:617" as one token; its "phone" part is still context."""
+
+    def enhance(text):
+        nlp_artifacts = spacy_nlp_engine.process_text(text, "en")
+        results = recognizer.analyze(text, recognizer.supported_entities, nlp_artifacts)
+        assert len(results) == 1
+        return lemma_context.enhance_using_context(
+            text, results, nlp_artifacts, [recognizer]
+        )[0]
+
+    glued = enhance(glued_text)
+    spaced = enhance(spaced_text)
+
+    assert glued.analysis_explanation.supportive_context_word == context_word
+    assert glued.score == pytest.approx(spaced.score)
