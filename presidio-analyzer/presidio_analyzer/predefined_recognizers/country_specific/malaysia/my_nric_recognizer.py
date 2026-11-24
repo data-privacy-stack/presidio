@@ -10,8 +10,8 @@ class MyNricRecognizer(PatternRecognizer):
 
     The MyKad number issued by the National Registration Department of
     Malaysia (Jabatan Pendaftaran Negara, JPN) has 12 digits in the
-    ``YYMMDD-PB-###G`` layout. It is printed with dashes and often stored
-    without them:
+    ``YYMMDD-PB-###G`` layout. It is printed with dashes, is often stored
+    without them, and is sometimes written with spaces (``YYMMDD PB ###G``):
 
     - ``YYMMDD``: date of birth. The two-digit year does not say the century,
       so any real calendar date is accepted (``000229`` is valid, because
@@ -69,6 +69,11 @@ class MyNricRecognizer(PatternRecognizer):
             0.4,
         ),
         Pattern(
+            "MyKad (with spaces) (medium)",
+            r"\b\d{6} \d{2} \d{4}\b",
+            0.4,
+        ),
+        Pattern(
             "MyKad (without dashes) (weak)",
             r"\b\d{12}\b",
             0.1,
@@ -110,7 +115,7 @@ class MyNricRecognizer(PatternRecognizer):
         :param pattern_text: the text detected by the regex engine
         :return: True if the match cannot be a MyKad number
         """
-        digits = pattern_text.replace("-", "")
+        digits = pattern_text.replace("-", "").replace(" ", "")
         if len(digits) != self.NRIC_LENGTH or not digits.isdigit():
             return True
 

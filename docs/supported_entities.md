@@ -124,7 +124,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 ### Malaysia
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
-| MY_NRIC    | The Malaysian identity card number (MyKad / NRIC) is a 12-digit number in the `YYMMDD-PB-###G` format: date of birth, place-of-birth code issued by the National Registration Department (JPN), and a serial number. It has no checksum; impossible dates and unassigned place-of-birth codes are rejected. | Pattern match, context and custom logic. |
+| MY_NRIC    | The Malaysian identity card number (MyKad / NRIC) is a 12-digit number in the `YYMMDD-PB-###G` format (written with dashes, spaces or no separator): date of birth, place-of-birth code issued by the National Registration Department (JPN), and a serial number. It has no checksum; impossible dates and unassigned place-of-birth codes are rejected. | Pattern match, context and custom logic. |
 
 ### Nigeria
 | FieldType  | Description                                                                                             | Detection Method                         |

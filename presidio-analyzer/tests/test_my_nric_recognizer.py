@@ -29,6 +29,9 @@ def entities():
         # fmt: off
         # Valid, with dashes (state code 14 = Kuala Lumpur)
         ("900101-14-5678", 1, ((0, 14),), (0.4,)),
+        # Valid, with spaces
+        ("900101 14 5678", 1, ((0, 14),), (0.4,)),
+        ("IC 880808 01 4321 verified", 1, ((3, 17),), (0.4,)),
         # Valid, without dashes (state code 08 = Perak)
         ("850512085123", 1, ((0, 12),), (0.1,)),
         # Valid leap day in a two-digit year (2000 was a leap year)
@@ -44,6 +47,7 @@ def entities():
         ("900101-14-5678 and 850512085123", 2, ((0, 14), (19, 31),), (0.4, 0.1)),
         # Invalid month
         ("901301-14-5678", 0, (), ()),
+        ("901301 14 5678", 0, (), ()),
         ("900001145678", 0, (), ()),
         # Invalid day
         ("900132-14-5678", 0, (), ()),
@@ -57,12 +61,15 @@ def entities():
         ("900101-73-5678", 0, (), ()),
         ("900101-80-5678", 0, (), ()),
         ("900101-95-5678", 0, (), ()),
+        ("900101 95 5678", 0, (), ()),
         # Same shape, not a MyKad: a 12-digit order number with no valid date
         ("Order 202499887766 shipped", 0, (), ()),
         # Wrong length or grouping
         ("90010114567", 0, (), ()),
         ("9001011456789", 0, (), ()),
         ("9001-0114-5678", 0, (), ()),
+        ("9001 0114 5678", 0, (), ()),
+        ("900101 145678", 0, (), ()),
         ("AB900101145678", 0, (), ()),
         # fmt: on
     ],
@@ -83,6 +90,7 @@ def test_when_mykad_in_text_then_detected_with_exact_score(
     [
         ("900101-14-5678", False),
         ("900101145678", False),
+        ("900101 14 5678", False),
         ("991231-99-9999", False),
         ("010101-16-0000", False),
         ("010101-21-0000", False),
