@@ -121,6 +121,12 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | KR_RRN     | The Korean Resident Registration Number (RRN) is a 13-digit number issued to all Korean residents. | Pattern match, context and custom logic. |
 
 
+### Malaysia
+
+| FieldType | Description | Detection Method |
+|-----------|-------------|------------------|
+| MY_SSM | The Malaysian SSM company and business registration number: 12 digits since 2019 (`YYYY` registration year, `TT` entity type 01-06, 6-digit serial), or the older company number such as `123456-X`. | Pattern match, context, year and entity type validation. |
+
 ### Nigeria
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|

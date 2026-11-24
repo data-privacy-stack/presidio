@@ -25,7 +25,7 @@ analyzer = AnalyzerEngine(registry=registry)
 The registry above contains all locale-agnostic recognizers (e.g. credit
 card, email, URL) plus US- and UK-specific recognizers (US SSN, UK NHS,
 UK NINO, …) — but excludes German, Spanish, Indian, Italian, Korean,
-Polish, Singaporean, Swedish, Thai, Turkish, and other country
+Malaysian, Polish, Singaporean, Swedish, Thai, Turkish, and other country
 recognizers.
 
 The same filter can be set globally in YAML, mirroring how
