@@ -332,11 +332,45 @@ def test_pattern_recognizer_to_dict():
 
     assert result_dict["supported_entity"] == "TEST_ENTITY"
     assert "supported_entities" not in result_dict
-    assert len(result_dict["patterns"]) == 2  # 1 pattern + 1 deny_list pattern
+    # The deny-list pattern is rebuilt from deny_list, so it is not listed
+    assert result_dict["patterns"] == [patterns[0].to_dict()]
     assert result_dict["deny_list"] == deny_list
+    assert result_dict["deny_list_score"] == 1.0
     assert result_dict["context"] == context
     assert result_dict["name"] == "TestRecognizer"
     assert result_dict["version"] == "1.0.0"
+
+
+def test_when_deny_list_recognizer_round_trips_through_dict_then_it_is_unchanged():
+    recognizer = PatternRecognizer(
+        supported_entity="TITLE",
+        patterns=[Pattern(name="p1", regex=r"\d+", score=0.8)],
+        deny_list=["Mr", "Mrs"],
+        deny_list_score=0.4,
+    )
+
+    restored = PatternRecognizer.from_dict(recognizer.to_dict())
+
+    assert restored.to_dict() == recognizer.to_dict()
+    assert [(p.name, p.score) for p in restored.patterns] == [
+        ("p1", 0.8),
+        ("deny_list", 0.4),
+    ]
+    results = restored.analyze("Mr Smith", ["TITLE"])
+    assert len(results) == 1
+    assert_result(results[0], "TITLE", 0, 2, 0.4)
+
+
+def test_when_deny_list_given_then_callers_patterns_list_is_not_changed():
+    patterns = [Pattern(name="p1", regex=r"\b\d{5}\b", score=0.3)]
+
+    PatternRecognizer(supported_entity="A", patterns=patterns, deny_list=["alpha"])
+    other = PatternRecognizer(supported_entity="B", patterns=patterns)
+
+    assert [p.name for p in patterns] == ["p1"]
+    results = other.analyze("alpha 12345", ["B"])
+    assert len(results) == 1
+    assert_result(results[0], "B", 6, 11, 0.3)
 
 
 def test_pattern_recognizer_from_dict_with_both_supported_entity_and_entities():
