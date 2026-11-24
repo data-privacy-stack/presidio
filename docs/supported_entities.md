@@ -33,7 +33,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |--- |--- |--- |
 |US_BANK_NUMBER|A US bank account number is between 8 to 17 digits.|Pattern match and context|
 |US_DRIVER_LICENSE|A US driver license according to <https://ntsi.com/drivers-license-format/>|Pattern match and context|
-|US_ICD10_CM|An ICD-10-CM diagnosis code written with the decimal point, for example `E11.9`. Three-character categories and undotted codes are not detected.|Pattern match and context|
+|US_ICD10_CM|An ICD-10-CM diagnosis code written with the decimal point, for example `E11.9`. Three-character categories and undotted codes are not detected. A match scores 0.1 without a context word, so set a `score_threshold` when enabling it.|Pattern match and context|
 |US_ITIN | US Individual Taxpayer Identification Number (ITIN). Nine digits that start with a "9" and contain a "7" or "8" as the 4 digit.|Pattern match and context|
 |US_CLAIM_NUMBER|A US healthcare claim identifier used in billing and claims processing.|Pattern match, context enhancement, and entity threshold|
 |US_HEALTH_INSURANCE_MEMBER_ID|A US health insurance member or subscriber identifier printed on an insurance card. Healthcare or insurance context increases detection confidence.|Pattern match, context enhancement, and entity threshold|

@@ -108,11 +108,13 @@ def test_when_custom_name_and_entity_then_applied():
 
 
 @pytest.fixture(scope="module")
-def analyzer():
+def analyzer(spacy_nlp_engine):
     """Analyzer with only this recognizer registered."""
     registry = RecognizerRegistry()
     registry.add_recognizer(UsIcd10CmRecognizer())
-    return AnalyzerEngine(registry=registry, supported_languages=["en"])
+    return AnalyzerEngine(
+        registry=registry, nlp_engine=spacy_nlp_engine, supported_languages=["en"]
+    )
 
 
 def _results(analyzer, text):
@@ -159,7 +161,7 @@ def test_when_context_word_follows_then_score_not_boosted(analyzer):
     assert results[0].score == pytest.approx(0.1)
 
 
-def test_when_enabled_in_yaml_then_loads_and_detects(tmp_path):
+def test_when_enabled_in_yaml_then_loads_and_detects(tmp_path, spacy_nlp_engine):
     """The recognizer is reachable through the YAML path users configure."""
     conf = tmp_path / "recognizers.yaml"
     conf.write_text(
@@ -178,7 +180,9 @@ recognizers:
     registry = RecognizerRegistryProvider(
         conf_file=str(conf)
     ).create_recognizer_registry()
-    analyzer = AnalyzerEngine(registry=registry, supported_languages=["en"])
+    analyzer = AnalyzerEngine(
+        registry=registry, nlp_engine=spacy_nlp_engine, supported_languages=["en"]
+    )
 
     results = analyzer.analyze("Diagnosis code E11.9 recorded", language="en")
 
