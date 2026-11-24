@@ -15,6 +15,8 @@ This module may also be used on medical DICOM images. The `DicomImageRedactorEng
      This class only redacts pixel data and does not scrub text PII which may exist in the DICOM metadata.
      We highly recommend using the DICOM image redactor engine to redact text from images BEFORE scrubbing metadata PII.*
 
+     When redacting a directory, files that are not DICOM files and DICOM files without pixel data are copied to the output directory as they are. A warning in the log names these files.
+
 ## Installation
 
 Pre-requisites:

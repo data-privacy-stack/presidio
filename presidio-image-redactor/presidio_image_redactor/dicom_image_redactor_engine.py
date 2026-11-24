@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import shutil
 from copy import deepcopy
@@ -10,6 +11,7 @@ import pydicom
 from matplotlib import pyplot as plt  # necessary import for PIL typing # noqa: F401
 from PIL import Image, ImageOps
 from presidio_analyzer import PatternRecognizer
+from pydicom.misc import is_dicom
 from pydicom.multival import MultiValue
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 
@@ -18,6 +20,8 @@ from presidio_image_redactor import (
     ImageRedactorEngine,
 )
 from presidio_image_redactor.entities import ImageRecognizerResult
+
+logger = logging.getLogger("presidio-image-redactor")
 
 
 class DicomImageRedactorEngine(ImageRedactorEngine):
@@ -223,6 +227,13 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
     ) -> None:
         """Redact method to redact from a directory of files.
 
+        All DICOM files with pixel data in the directory and its
+        sub-directories are redacted. A file is taken as a DICOM file when it
+        has a .dcm or .dicom extension or when it starts with the DICOM file
+        header, whatever its name is. All other files, and DICOM files without
+        pixel data, are copied to the output as they are and are named in a
+        warning log message.
+
         :param input_dicom_path: String path to directory of DICOM images.
         :param output_dir: String path to parent output directory.
         :param padding_width: Padding width to use when running OCR.
@@ -279,21 +290,33 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
     def _get_all_dcm_files(dcm_dir: Path) -> List[Path]:
         """Return paths to all DICOM files in a directory and its sub-directories.
 
-        :param dcm_dir: pathlib Path to a directory containing at least one .dcm file.
+        A file is a DICOM file when it has a .dcm or .dicom extension (in any
+        letter case) or when it starts with the DICOM file header, whatever
+        its name is.
 
-        :return: List of pathlib Path objects.
+        :param dcm_dir: pathlib Path to a directory to search for DICOM files.
+
+        :return: Sorted list of pathlib Path objects.
         """
-        # Define applicable extensions
-        extensions = ["[dD][cC][mM]", "[dD][iI][cC][oO][mM]"]
+        extensions = (".dcm", ".dicom")
 
-        # Get all files with any applicable extension
-        all_files = []
-        for extension in extensions:
-            p = dcm_dir.glob(f"**/*.{extension}")
-            files = [x for x in p if x.is_file()]
-            all_files += files
+        return [
+            path
+            for path in sorted(dcm_dir.rglob("*"))
+            if path.is_file()
+            and (path.name.lower().endswith(extensions) or is_dicom(path))
+        ]
 
-        return all_files
+    @staticmethod
+    def _has_pixel_data(dcm_path: Path) -> bool:
+        """Check if a DICOM file has pixel data.
+
+        :param dcm_path: pathlib Path to a DICOM file.
+
+        :return: True if the file has pixel data.
+        """
+        # defer_size keeps the pixel data itself from being loaded here
+        return "PixelData" in pydicom.dcmread(dcm_path, defer_size="1 KB")
 
     @staticmethod
     def _check_if_greyscale(instance: pydicom.dataset.FileDataset) -> bool:
@@ -1104,9 +1127,30 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
         else:
             dst_dir = dcm_dir
 
+        # A DICOM file without pixel data has nothing to redact
+        files_to_redact = [
+            path
+            for path in self._get_all_dcm_files(Path(dst_dir))
+            if self._has_pixel_data(path)
+        ]
+
+        # Name the files that stay in the output without redaction
+        all_files = {path for path in Path(dst_dir).rglob("*") if path.is_file()}
+        other_files = sorted(
+            path.relative_to(dst_dir).as_posix()
+            for path in all_files.difference(files_to_redact)
+        )
+        if other_files:
+            logger.warning(
+                "%d file(s) in %s were copied without redaction because they "
+                "were not recognized as DICOM files or have no pixel data: %s",
+                len(other_files),
+                dst_dir,
+                ", ".join(other_files),
+            )
+
         # Process each DICOM file directly
-        all_dcm_files = self._get_all_dcm_files(Path(dst_dir))
-        for dst_path in all_dcm_files:
+        for dst_path in files_to_redact:
             self._redact_single_dicom_image(
                 dst_path,
                 crop_ratio,
