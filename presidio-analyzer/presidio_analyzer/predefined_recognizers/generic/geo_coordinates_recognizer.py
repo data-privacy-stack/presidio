@@ -78,9 +78,11 @@ class GeoCoordinatesRecognizer(PatternRecognizer):
     are not detected.
 
     ref :
-    - https://en.wikipedia.org/wiki/ISO_6709
-    - https://datatracker.ietf.org/doc/html/rfc5870
-    - https://en.wikipedia.org/wiki/World_Geodetic_System
+    - ISO 6709:2022, Standard representation of geographic point location by
+      coordinates (decimal degrees and degrees, minutes, seconds notations)
+    - RFC 5870, A Uniform Resource Identifier for Geographic Locations
+      ('geo' URI): https://datatracker.ietf.org/doc/html/rfc5870
+    - WGS 84 (EPSG:4326), the default coordinate reference system of the geo URI
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
@@ -129,12 +131,16 @@ class GeoCoordinatesRecognizer(PatternRecognizer):
         ),
     ]
 
+    # Context words are matched as substrings of lemmas, so "coordinate" also
+    # boosts after "coordinates", the most common label, and unavoidably after
+    # "coordinated". The score stays below 0.6 for bare pairs either way.
     CONTEXT = [
         "latitude",
         "longitude",
         "coordinate",
         "geolocation",
         "gps",
+        "lat/long",
     ]
 
     def __init__(

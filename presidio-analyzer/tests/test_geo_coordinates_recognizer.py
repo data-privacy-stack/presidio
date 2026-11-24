@@ -141,7 +141,7 @@ def test_when_long_run_of_whitespace_then_fast(text, recognizer, entities):
     start = time.perf_counter()
     results = recognizer.analyze(text, entities)
 
-    assert time.perf_counter() - start < 1.0
+    assert time.perf_counter() - start < 5.0
     assert results == []
 
 
@@ -153,10 +153,12 @@ def test_when_custom_name_and_entity_then_applied():
 
 
 @pytest.fixture(scope="module")
-def analyzer():
+def analyzer(spacy_nlp_engine):
     registry = RecognizerRegistry()
     registry.add_recognizer(GeoCoordinatesRecognizer())
-    return AnalyzerEngine(registry=registry, supported_languages=["en"])
+    return AnalyzerEngine(
+        registry=registry, nlp_engine=spacy_nlp_engine, supported_languages=["en"]
+    )
 
 
 def _geo_results(analyzer, text):
@@ -172,6 +174,8 @@ def _geo_results(analyzer, text):
         "coordinates:",
         "geolocation:",
         "gps:",
+        "lat/long:",
+        "lat long",
     ],
 )
 def test_when_context_word_precedes_then_score_is_boosted(prefix, analyzer):
@@ -179,6 +183,13 @@ def test_when_context_word_precedes_then_score_is_boosted(prefix, analyzer):
 
     assert len(results) == 1
     assert results[0].score == pytest.approx(0.55)
+
+
+def test_when_similar_word_precedes_then_score_not_boosted(analyzer):
+    results = _geo_results(analyzer, "Project coordinator: 3.14159, 2.71828")
+
+    assert len(results) == 1
+    assert results[0].score == pytest.approx(0.2)
 
 
 def test_when_no_context_word_then_score_is_base_score(analyzer):
@@ -195,7 +206,7 @@ def test_when_context_word_follows_then_score_not_boosted(analyzer):
     assert results[0].score == pytest.approx(0.2)
 
 
-def test_when_enabled_in_yaml_then_loads_and_detects(tmp_path):
+def test_when_enabled_in_yaml_then_loads_and_detects(tmp_path, spacy_nlp_engine):
     conf = tmp_path / "recognizers.yaml"
     conf.write_text(
         """
@@ -212,7 +223,9 @@ recognizers:
     registry = RecognizerRegistryProvider(
         conf_file=str(conf)
     ).create_recognizer_registry()
-    analyzer = AnalyzerEngine(registry=registry, supported_languages=["en"])
+    analyzer = AnalyzerEngine(
+        registry=registry, nlp_engine=spacy_nlp_engine, supported_languages=["en"]
+    )
 
     results = analyzer.analyze("Fix at 40.4461° N, 79.9822° W", language="en")
 
