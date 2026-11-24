@@ -2,6 +2,8 @@ from typing import List, Optional, Tuple
 
 from presidio_analyzer import EntityRecognizer, Pattern, PatternRecognizer
 
+from .digits import DIGIT_CLASS
+
 
 class InAadhaarRecognizer(PatternRecognizer):
     """
@@ -9,6 +11,9 @@ class InAadhaarRecognizer(PatternRecognizer):
 
     Reference: https://en.wikipedia.org/wiki/Aadhaar
     A 12 digit unique number that is issued to each individual by Government of India
+    The last digit is a Verhoeff checksum of the preceding eleven digits.
+    The digits are matched in ASCII and in the nine Indic digit blocks, since
+    Indian-language text writes the same number in the script it is written in.
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
@@ -23,10 +28,14 @@ class InAadhaarRecognizer(PatternRecognizer):
     PATTERNS = [
         Pattern(
             "AADHAAR (Very Weak)",
-            r"\b[0-9]{12}\b",
+            rf"\b{DIGIT_CLASS}{{12}}\b",
             0.01,
         ),
-        Pattern("AADHAR (Very Weak)", r"\b[0-9]{4}[- :][0-9]{4}[- :][0-9]{4}\b", 0.01),
+        Pattern(
+            "AADHAR (Very Weak)",
+            rf"\b{DIGIT_CLASS}{{4}}[- :]{DIGIT_CLASS}{{4}}[- :]{DIGIT_CLASS}{{4}}\b",
+            0.01,
+        ),
     ]
 
     CONTEXT = [
