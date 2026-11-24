@@ -347,6 +347,10 @@ class HuggingFaceRecognizerConfig(PredefinedRecognizerConfig):
     text_chunker: Optional[Union[TextChunkerConfig, Dict[str, Any]]] = Field(
         None, description="Text chunker configuration"
     )
+    fail_closed: Optional[bool] = Field(
+        default=None,
+        description="Whether to raise an error if inference fails",
+    )
 
     @field_validator("text_chunker", mode="before")
     @classmethod

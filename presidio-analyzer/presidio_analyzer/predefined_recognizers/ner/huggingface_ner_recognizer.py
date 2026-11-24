@@ -121,6 +121,7 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         tokenizer_name: Optional[str] = None,
         text_chunker: Optional[BaseTextChunker] = None,
         label_prefixes: Optional[List[str]] = None,
+        fail_closed: bool = False,
         **kwargs,
     ):
         """Initialize the HuggingFace NER Recognizer.
@@ -154,6 +155,9 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             loader converts the ``text_chunker`` dict to a chunker instance
             automatically.
         :param label_prefixes: List of label prefixes to strip (e.g., B-, I-).
+        :param fail_closed: If True, raises a RuntimeError when NER inference
+            fails, preventing silent failure in security-critical pipelines.
+            If False (default), logs a warning and returns an empty list.
         :raises ImportError: If transformers or torch libraries are not installed.
         """
         # Early check for required dependencies
@@ -182,6 +186,7 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             )
         self.device = self._parse_device(device)
         self.label_prefixes = label_prefixes or ["B-", "I-", "U-", "L-"]
+        self.fail_closed = fail_closed
         self.ner_pipeline = None
 
         if kwargs:
@@ -336,6 +341,10 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             preds = self.ner_pipeline(chunk_text)
         except Exception as e:
             logger.warning(f"NER prediction failed for chunk: {e}", exc_info=True)
+            if self.fail_closed:
+                raise RuntimeError(
+                    f"NER prediction failed for chunk in {self.name}: {e}"
+                ) from e
             return []
 
         # Helper to process a single prediction dictionary
@@ -343,6 +352,13 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             """Convert a single HuggingFace prediction dict to RecognizerResult."""
             raw_label = pred.get("entity_group") or pred.get("entity")
             if not raw_label:
+                logger.warning(
+                    "Prediction item missing entity label in %s", self.name
+                )
+                if self.fail_closed:
+                    raise RuntimeError(
+                        f"Prediction item missing entity label in {self.name}"
+                    )
                 return
 
             model_label = self._normalize_label(raw_label)
@@ -358,6 +374,10 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
                 score = float(raw_score)
             except (TypeError, ValueError):
                 logger.warning("Failed to convert score to float: %r", raw_score)
+                if self.fail_closed:
+                    raise RuntimeError(
+                        f"Failed to convert score to float in {self.name}: {raw_score!r}"
+                    )
                 return
 
             if score < self.threshold:
@@ -366,6 +386,13 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
             start = pred.get("start")
             end = pred.get("end")
             if start is None or end is None:
+                logger.warning(
+                    "Prediction item missing start or end offset in %s", self.name
+                )
+                if self.fail_closed:
+                    raise RuntimeError(
+                        f"Prediction item missing start or end offset in {self.name}"
+                    )
                 return
 
             if raw_label == model_label:
@@ -398,6 +425,10 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
         # Validate preds is a list before iterating
         if not isinstance(preds, list):
             logger.warning("Unexpected pipeline output type: %s", type(preds))
+            if self.fail_closed:
+                raise RuntimeError(
+                    f"Unexpected pipeline output type in {self.name}: {type(preds)}"
+                )
             return []
 
         for pred in preds:
@@ -405,6 +436,10 @@ class HuggingFaceNerRecognizer(LocalRecognizer):
                 process_pred(pred)
             else:
                 logger.warning("Unexpected prediction item type: %s", type(pred))
+                if self.fail_closed:
+                    raise RuntimeError(
+                        f"Unexpected prediction item type in {self.name}: {type(pred)}"
+                    )
 
         return chunk_results
 

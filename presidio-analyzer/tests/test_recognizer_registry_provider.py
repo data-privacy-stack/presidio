@@ -562,3 +562,41 @@ def test_recognizer_registry_config_rejects_invalid_supported_countries():
             recognizers=COUNTRY_FILTER_RECOGNIZERS,
             supported_countries=["  "],
         )
+
+
+def test_recognizer_registry_provider_huggingface_fail_closed():
+    """Test that fail_closed parameter in YAML reaches constructed HuggingFaceNerRecognizer."""
+    from unittest.mock import patch, MagicMock
+    from presidio_analyzer.predefined_recognizers.ner import HuggingFaceNerRecognizer
+
+    mock_pipeline = MagicMock()
+    mock_pipeline.tokenizer = MagicMock()
+
+    with patch(
+        "presidio_analyzer.predefined_recognizers.ner.huggingface_ner_recognizer.hf_pipeline",
+        return_value=mock_pipeline,
+    ), patch(
+        "presidio_analyzer.predefined_recognizers.ner.huggingface_ner_recognizer.torch"
+    ):
+        provider = RecognizerRegistryProvider(
+            registry_configuration={
+                "supported_languages": ["en"],
+                "recognizers": [
+                    {
+                        "name": "HF NER Fail Closed",
+                        "type": "predefined",
+                        "class_name": "HuggingFaceNerRecognizer",
+                        "model_name": "dslim/bert-base-NER",
+                        "supported_languages": ["en"],
+                        "fail_closed": True,
+                    }
+                ],
+            }
+        )
+        registry = provider.create_recognizer_registry()
+
+        hf_recognizers = [
+            r for r in registry.recognizers if isinstance(r, HuggingFaceNerRecognizer)
+        ]
+        assert len(hf_recognizers) == 1
+        assert hf_recognizers[0].fail_closed is True
