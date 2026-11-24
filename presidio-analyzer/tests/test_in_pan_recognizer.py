@@ -1,6 +1,11 @@
 import pytest
 
-from tests import assert_result
+from tests import (
+    BENGALI_DIGITS,
+    DEVANAGARI_DIGITS,
+    ODIA_DIGITS,
+    assert_result,
+)
 from presidio_analyzer.predefined_recognizers import InPanRecognizer
 
 
@@ -47,3 +52,24 @@ def test_when_pan_in_text_then_all_pans_found(
             expected_position[1],
             expected_score,
         )
+
+
+@pytest.mark.parametrize(
+    "table",
+    [DEVANAGARI_DIGITS, BENGALI_DIGITS, ODIA_DIGITS],
+    ids=["devanagari", "bengali", "odia"],
+)
+def test_when_pan_indic_digits_then_same_span_and_score_as_ascii(
+    recognizer,
+    entities,
+    table,
+):
+    ascii_text = "My PAN number is ABBPM4567S."
+
+    expected = recognizer.analyze(ascii_text, entities)
+    actual = recognizer.analyze(ascii_text.translate(table), entities)
+
+    assert [(r.start, r.end, r.score) for r in expected] == [(17, 27, 0.5)]
+    assert [(r.start, r.end, r.score) for r in actual] == [
+        (r.start, r.end, r.score) for r in expected
+    ]

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import unicodedata
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import regex as re
@@ -19,6 +20,26 @@ if TYPE_CHECKING:
 logger = logging.getLogger("presidio-analyzer")
 
 REGEX_TIMEOUT_SECONDS = int(os.environ.get("REGEX_TIMEOUT_SECONDS", 60))
+
+
+_NON_ASCII_DIGIT = re.compile(r"(?![0-9])\d")
+
+
+def _ascii_digit(match: "re.Match[str]") -> str:
+    # The regex module may know digits newer than this Python's unicodedata.
+    value = unicodedata.decimal(match[0], None)
+    return match[0] if value is None else str(value)
+
+
+def _to_ascii_digits(text: str) -> str:
+    """Replace Unicode decimal digits (e.g. Arabic-Indic, Persian) with ASCII.
+
+    Each digit is one code point mapped to one code point, so match offsets
+    in the result are valid offsets in the original text.
+    """
+    if text.isascii():
+        return text
+    return _NON_ASCII_DIGIT.sub(_ascii_digit, text)
 
 
 class PatternRecognizer(LocalRecognizer):
@@ -113,7 +134,9 @@ class PatternRecognizer(LocalRecognizer):
         results = []
 
         if self.patterns:
-            pattern_result = self.__analyze_patterns(text, regex_flags)
+            pattern_result = self.__analyze_patterns(
+                _to_ascii_digits(text), regex_flags
+            )
             results.extend(pattern_result)
 
         return results
@@ -210,7 +233,12 @@ class PatternRecognizer(LocalRecognizer):
             # Compile regex if flags differ from flags the regex was compiled with
             if not pattern.compiled_regex or pattern.compiled_with_flags != flags:
                 pattern.compiled_with_flags = flags
-                pattern.compiled_regex = re.compile(pattern.regex, flags=flags)
+                # Fold digits in the regex itself so patterns and deny-list
+                # entries written with Arabic/Persian digits match folded text.
+                # pattern.regex stays as the caller wrote it.
+                pattern.compiled_regex = re.compile(
+                    _to_ascii_digits(pattern.regex), flags=flags
+                )
 
             try:
                 matches = pattern.compiled_regex.finditer(
