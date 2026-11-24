@@ -1,9 +1,13 @@
 import time
+from pathlib import Path
 
 import pytest
+import yaml
 
+import presidio_analyzer
 from tests import assert_result
 from presidio_analyzer.predefined_recognizers import UrlRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 
 @pytest.fixture(scope="module")
@@ -34,6 +38,11 @@ def entities():
         ("my domains: microsoft.com google.co.il", 2, ((12, 25), (26, 38),), 0.5),
         ('"https://presidio.dataprivacystack.org/"', 1, ((0, 40),), 0.6),
         ("'https://presidio.dataprivacystack.org/'", 1, ((0, 40),), 0.6),
+        # URLs with credentials: the user and password are part of the URL
+        ("https://user:pass@example.com/path", 1, ((0, 34),), 0.6),
+        ("http://alice@proxy.example.net", 1, ((0, 30),), 0.6),
+        ("db: https://admin:hunter2@db.internal.example.org/console", 1, ((4, 57),), 0.6),
+        ("https://deploy:p%40ss!@git.example.com/team/repo.git", 1, ((0, 52),), 0.6),
 
         # Invalid URLs
         ("www.microsoft", 0, (), 0),
@@ -71,3 +80,43 @@ def test_repeated_dot_input_does_not_backtrack(recognizer, entities):
     elapsed = time.time() - start
     assert results == []
     assert elapsed < 15
+
+
+def test_url_credentials_do_not_swallow_a_following_email(recognizer, entities):
+    # "," is not part of the user info, so an address after a comma is not
+    # read as the user of the URL before it.
+    text = "https://example.com,bob@example.org"
+    results = recognizer.analyze(text, entities)
+    assert any(r.start == 0 and r.end == 19 for r in results)
+    assert all(r.end <= 19 or r.start >= 20 for r in results)
+
+
+def test_url_without_credentials_does_not_backtrack(recognizer, entities):
+    # The user info part is optional and bounded, so a long run of user info
+    # characters with no "@" fails fast.
+    text = "https://" + "a:" * 3000
+    start = time.time()
+    results = recognizer.analyze(text, entities)
+    elapsed = time.time() - start
+    assert results == []
+    assert elapsed < 15
+
+
+def test_url_with_credentials_detected_when_loaded_from_default_yaml():
+    conf = Path(presidio_analyzer.__file__).parent / "conf" / "default_recognizers.yaml"
+    recognizers = yaml.safe_load(conf.read_text(encoding="utf-8"))["recognizers"]
+    entries = [r for r in recognizers if r.get("name") == "UrlRecognizer"]
+    assert len(entries) == 1
+
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [entries[0]],
+        }
+    ).create_recognizer_registry()
+    assert [type(r).__name__ for r in registry.recognizers] == ["UrlRecognizer"]
+
+    text = "db: https://admin:hunter2@db.internal.example.org/console"
+    results = registry.recognizers[0].analyze(text, ["URL"])
+    assert len(results) == 1
+    assert_result(results[0], "URL", 4, len(text), 0.6)
