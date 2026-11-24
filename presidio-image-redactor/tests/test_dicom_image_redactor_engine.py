@@ -8,6 +8,8 @@ import numpy as np
 from PIL import Image
 import pydicom
 from presidio_image_redactor.dicom_image_redactor_engine import DicomImageRedactorEngine
+from presidio_image_redactor import ImageAnalyzerEngine
+from presidio_image_redactor.ocr import OCR
 from presidio_analyzer import PatternRecognizer
 from typing import Union, List, Tuple, Dict, TypeVar, Optional
 import pytest
@@ -1329,6 +1331,48 @@ def test_DicomImageRedactorEngine_redact_and_return_bbox(
     mock_get_analyze_bbox.assert_called_once()
     mock_remove_bbox_padding.assert_called_once()
     mock_add_redact_box.assert_called_once()
+
+
+class _BurnedInNameOcr(OCR):
+    """OCR stub reading a surname burned into the pixel data."""
+
+    def perform_ocr(self, image: object, **kwargs) -> dict:
+        return {
+            "text": ["Requested:", "ROE"],
+            "left": [10, 120],
+            "top": [10, 10],
+            "width": [100, 40],
+            "height": [20, 20],
+            "conf": [95, 95],
+        }
+
+
+@pytest.mark.parametrize(
+    "keyword",
+    ["RequestingPhysician", "PhysiciansOfRecord", "ResponsiblePerson"],
+)
+def test_DicomImageRedactorEngine_redact_and_return_bbox_metadata_person_name(
+    keyword: str,
+):
+    """Burned-in names from any Person Name (PN) element are redacted with metadata.
+
+    Args:
+        keyword (str): DICOM keyword of a PN element whose description has no "name".
+    """
+    # Arrange
+    test_image = pydicom.dcmread(Path(TEST_DICOM_PARENT_DIR, "0_ORIGINAL.dcm"))
+    setattr(test_image, keyword, "ROE^JANE")
+    engine = DicomImageRedactorEngine(
+        image_analyzer_engine=ImageAnalyzerEngine(ocr=_BurnedInNameOcr())
+    )
+
+    # Act
+    _, test_bboxes = engine.redact_and_return_bbox(test_image, use_metadata=True)
+
+    # Assert
+    assert test_bboxes == [
+        {"left": 95, "top": 0, "width": 40, "height": 20, "entity_type": "PERSON"}
+    ]
 
 
 @pytest.mark.parametrize(

@@ -563,8 +563,10 @@ class DicomImageRedactorEngine(ImageRedactorEngine):
                 # Save the metadata
                 metadata_text.append(element.value)
 
-                # Track whether this particular element is a name
-                if "name" in element.name.lower():
+                # Track whether this particular element is a name. Person Name
+                # (PN) elements are names whatever their description says,
+                # e.g. Requesting Physician or Physician(s) of Record.
+                if element.VR == "PN" or "name" in element.name.lower():
                     is_name.append(True)
                 else:
                     is_name.append(False)
