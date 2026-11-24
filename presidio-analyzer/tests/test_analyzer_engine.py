@@ -1311,3 +1311,52 @@ def test_when_analyze_with_supported_entities_then_return_exact_results(
         assert "get_supported_entities" in warnings[0]
     else:
         assert warnings == []
+
+
+@pytest.mark.parametrize(
+    "text, allow_list, expected_kept",
+    [
+        # a backreference in a later term refers to that term's own group
+        (
+            "Contact: John Smith, ticket AA-AA",
+            [r"^(John) Smith$", r"^(\w\w)-\1$"],
+            [],
+        ),
+        (
+            "Contact: John Smith, ticket AA-AA",
+            [r"^(\w\w)-\1$", r"^(John) Smith$"],
+            [],
+        ),
+        # a term with its own top-level alternation keeps its group numbering
+        (
+            "Contact: John Smith, ticket AA=AA",
+            [r"^(John)$", r"^(\d\d)-\1$|^(\w\w)=\2$"],
+            ["John Smith"],
+        ),
+        # a backreference that does not hold still keeps the result
+        (
+            "Contact: John Smith, ticket AA-BB",
+            [r"^(John) Smith$", r"^(\w\w)-\1$"],
+            ["AA-BB"],
+        ),
+    ],
+)
+def test_when_regex_allow_list_has_several_terms_then_each_term_matches_alone(
+    text, allow_list, expected_kept
+):
+    start = text.index("John")
+    ticket_start = text.index("ticket") + len("ticket ")
+    results = [
+        RecognizerResult("PERSON", start, start + len("John Smith"), 0.85),
+        RecognizerResult("TICKET", ticket_start, len(text), 0.9),
+    ]
+
+    filtered = AnalyzerEngine._remove_allow_list(
+        results,
+        allow_list,
+        text,
+        re.DOTALL | re.MULTILINE | re.IGNORECASE,
+        "regex",
+    )
+
+    assert [text[r.start : r.end] for r in filtered] == expected_kept
