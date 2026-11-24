@@ -42,3 +42,30 @@ def test_when_all_email_addresses_then_succeed(
     assert len(results) == expected_len
     for res, (st_pos, fn_pos) in zip(results, expected_positions):
         assert_result(res, entities[0], st_pos, fn_pos, max_score)
+
+
+def test_when_email_recognizer_offline_then_detects_valid_email():
+    """Test that EmailRecognizer in offline mode detects emails using bundled snapshot."""
+    rec = EmailRecognizer(offline=True)
+    results = rec.analyze("Contact us at test@presidio.org for details", ["EMAIL_ADDRESS"])
+    assert len(results) == 1
+    assert results[0].start == 14
+    assert results[0].end == 31
+
+
+def test_when_email_recognizer_offline_then_uses_empty_suffix_list_urls(monkeypatch):
+    """Test that offline=True instantiates TLDExtract with suffix_list_urls=()."""
+    import tldextract
+    recorded_kwargs = {}
+
+    original_tldextract_cls = tldextract.TLDExtract
+
+    def mock_tldextract(*args, **kwargs):
+        recorded_kwargs.update(kwargs)
+        return original_tldextract_cls(*args, **kwargs)
+
+    monkeypatch.setattr(tldextract, "TLDExtract", mock_tldextract)
+
+    rec = EmailRecognizer(offline=True)
+    assert rec.offline is True
+    assert recorded_kwargs.get("suffix_list_urls") == ()
