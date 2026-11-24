@@ -302,7 +302,8 @@ class AnonymizerEngine(EngineBase):
         if not operators:
             return {"DEFAULT": default_operator}
         if not operators.get("DEFAULT"):
-            operators["DEFAULT"] = default_operator
+            # Build a new dict so the caller's operators are not modified
+            return {**operators, "DEFAULT": default_operator}
         return operators
 
     @staticmethod
