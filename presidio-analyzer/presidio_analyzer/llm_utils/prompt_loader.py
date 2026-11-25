@@ -1,6 +1,8 @@
 """Prompt loading and rendering utilities for LLM recognizers."""
 import logging
 
+from presidio_analyzer.file_utils import read_utf8_file
+
 from .config_loader import resolve_config_path
 
 logger = logging.getLogger("presidio-analyzer")
@@ -25,8 +27,7 @@ def load_file_from_conf(filename: str, conf_subdir: str = "conf") -> str:
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    with open(file_path, "r") as f:
-        return f.read()
+    return read_utf8_file(file_path)
 
 
 def load_prompt_file(prompt_file: str, conf_subdir: str = "conf") -> str:

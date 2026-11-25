@@ -4,6 +4,7 @@ from typing import Dict, Optional, Tuple, Union
 
 import yaml
 
+from presidio_analyzer.file_utils import read_utf8_file
 from presidio_analyzer.input_validation import ConfigurationValidator
 from presidio_analyzer.nlp_engine import (
     NerModelConfiguration,
@@ -82,8 +83,7 @@ class NlpEngineProvider:
     @staticmethod
     def _read_nlp_conf(conf_file: Union[Path, str]) -> Dict:
         """Read NLP configuration from a YAML file."""
-        with open(conf_file) as file:
-            return yaml.safe_load(file)
+        return yaml.safe_load(read_utf8_file(conf_file))
 
     @staticmethod
     def _get_full_conf_path(

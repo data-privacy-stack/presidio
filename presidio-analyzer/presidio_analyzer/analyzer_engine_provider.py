@@ -11,6 +11,7 @@ from presidio_analyzer.context_aware_enhancers import (
     LemmaContextAwareEnhancer,
     PhraseContextAwareEnhancer,
 )
+from presidio_analyzer.file_utils import ConfigFileEncodingError, read_utf8_file
 from presidio_analyzer.input_validation import ConfigurationValidator
 from presidio_analyzer.nlp_engine import NlpEngine, NlpEngineProvider
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
@@ -58,8 +59,7 @@ class AnalyzerEngineProvider:
 
         if not conf_file:
             default_conf_file = self._get_full_conf_path()
-            with open(default_conf_file) as file:
-                configuration = yaml.safe_load(file)
+            configuration = yaml.safe_load(read_utf8_file(default_conf_file))
             logger.info(
                 f"Analyzer Engine configuration file "
                 f"not provided. Using {default_conf_file}."
@@ -67,21 +67,24 @@ class AnalyzerEngineProvider:
         else:
             try:
                 logger.info(f"Reading analyzer configuration from {conf_file}")
-                with open(conf_file) as file:
-                    configuration = yaml.safe_load(file)
+                configuration = yaml.safe_load(read_utf8_file(conf_file))
+            except ConfigFileEncodingError:
+                raise
             except OSError:
                 logger.warning(
                     f"configuration file {conf_file} not found.  "
                     f"Using default config."
                 )
-                with open(self._get_full_conf_path()) as file:
-                    configuration = yaml.safe_load(file)
+                configuration = yaml.safe_load(
+                    read_utf8_file(self._get_full_conf_path())
+                )
             except Exception:
                 logger.warning(
                     f"Failed to parse file {conf_file}, resorting to default"
                 )
-                with open(self._get_full_conf_path()) as file:
-                    configuration = yaml.safe_load(file)
+                configuration = yaml.safe_load(
+                    read_utf8_file(self._get_full_conf_path())
+                )
 
         ConfigurationValidator.validate_analyzer_configuration(configuration)
         logger.debug("Analyzer configuration validation passed")
