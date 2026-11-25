@@ -14,6 +14,9 @@ from .country_specific.australia.au_tfn_recognizer import AuTfnRecognizer
 from .country_specific.canada.ca_postal_code_recognizer import CaPostalCodeRecognizer
 from .country_specific.canada.ca_sin_recognizer import CaSinRecognizer
 
+# Bangladesh recognizers
+from .country_specific.bangladesh.bd_national_id_recognizer import BdNationalIdRecognizer
+
 # Finland recognizers
 from .country_specific.finland.fi_personal_identity_code_recognizer import (
     FiPersonalIdentityCodeRecognizer,
@@ -270,6 +273,7 @@ __all__ = [
     "HuggingFaceNerRecognizer",
     "PhTinRecognizer",
     "PlPeselRecognizer",
+    "BdNationalIdRecognizer",
     "PhUmidRecognizer",
     "AzureAILanguageRecognizer",
     "InAadhaarRecognizer",
