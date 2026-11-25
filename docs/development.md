@@ -75,6 +75,27 @@ Follow these steps when starting to work on a Presidio service with uv:
 
 ### Local build process
 
+#### Building the documentation
+
+Install the documentation dependencies and build the site from the repository root:
+
+```sh
+uv pip install -r docs/requirements-docs.txt
+python scripts/zensical_build.py build
+```
+
+Run these commands in an activated virtual environment. The build converts notebook
+samples before generating the site in `site/`. Python API references are collected
+from the checked-out source directories configured in `mkdocs.yml`, not the installed
+Presidio release, so newly added APIs can be documented before they are published
+to PyPI. The REST API reference uses a pinned ReDoc version; verify that
+`site/api-docs/api-docs.html` renders after changing that version.
+
+The Release Documentation workflow publishes the generated site to GitHub Pages
+when run manually. Merging a documentation fix does not publish it automatically.
+
+#### Building the services
+
 After modifying presidio codebase, you might want to build presidio cluster locally, and run tests to spot regressions.
 The recommended way of doing so is using docker-compose (bundled with 'Docker Desktop' for Windows and Mac systems,
 more information can be found [here](https://docs.docker.com/compose/install/)).
