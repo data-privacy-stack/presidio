@@ -273,7 +273,7 @@ class AnonymizerEngine(EngineBase):
     def _merge_entities_with_spaces_between(
         self, text: str, analyzer_results: List[RecognizerResult]
     ) -> List[RecognizerResult]:
-        """Merge adjacent entities of the same type separated by whitespace."""
+        """Merge adjacent entities of the same type separated only by spaces."""
         merged_results = []
         prev_result = None
         # Conflict resolution does not keep the results sorted. Out of order, two
@@ -282,7 +282,7 @@ class AnonymizerEngine(EngineBase):
         for result in sorted(analyzer_results, key=lambda x: (x.start, x.end)):
             if prev_result is not None:
                 if prev_result.entity_type == result.entity_type:
-                    if re.search(r"^( )+$", text[prev_result.end:result.start]):
+                    if re.fullmatch(" +", text[prev_result.end:result.start]):
                         merged_results.remove(prev_result)
                         result.start = prev_result.start
             merged_results.append(result)
