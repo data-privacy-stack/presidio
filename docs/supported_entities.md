@@ -146,6 +146,11 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | SE_ORGANISATIONSNUMMER    | The Swedish Organisations ID Number is a unique 10-digit number issued to all Swedish organisations. | Pattern match, context, and checksum. |
 | SE_PERSONNUMMER    | The Swedish Personal ID Number is a unique 10/12-digit number issued to all Swedish residents. The recognizer also supports Samordningsnummer (coordination numbers) issued to individuals who are not (yet) registered residents but need a Swedish identifier (e.g., temporary workers, students). | Pattern match, context, and checksum. |
 
+### Ghana
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| GH_GHANA_CARD    | The Ghana Card Personal Identification Number (PIN) is issued by the National Identification Authority of Ghana in the form GHA-XXXXXXXXX-X: the country code GHA, a 9-digit (occasionally 8-digit) system number, and a trailing check digit. | Pattern match, context and sanity checks. |
+
 ### South Africa
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|

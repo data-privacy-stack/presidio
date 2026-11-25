@@ -45,6 +45,11 @@ from .country_specific.india import (
     InVehicleRegistrationRecognizer,
 )
 
+# Ghana recognizers
+from .country_specific.ghana.gh_ghana_card_recognizer import (
+    GhGhanaCardRecognizer,
+)
+
 # India recognizers
 from .country_specific.india.in_aadhaar_recognizer import InAadhaarRecognizer
 from .country_specific.india.in_gstin_recognizer import InGstinRecognizer
@@ -327,5 +332,6 @@ __all__ = [
     "DeLanrRecognizer",
     "DeBsnrRecognizer",
     "DeVatIdRecognizer",
+    "GhGhanaCardRecognizer",
     "DeFuehrerscheinRecognizer",
 ]
