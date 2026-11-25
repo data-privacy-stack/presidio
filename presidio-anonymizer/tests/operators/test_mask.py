@@ -63,9 +63,10 @@ def test_when_masking_char_is_bad_typed_then_ipe_raised():
         Mask().validate(params)
 
 
-def test_when_masking_char_length_is_greater_than_one_then_ipe_raised():
+@pytest.mark.parametrize("masking_char", ["string_not_character", "", 0])
+def test_when_masking_char_is_not_a_single_character_then_ipe_raised(masking_char):
     params = _get_default_mask_parameters()
-    params["masking_char"] = "string_not_character"
+    params["masking_char"] = masking_char
 
     with pytest.raises(
         InvalidParamError, match="Invalid input, masking_char must be a character"
