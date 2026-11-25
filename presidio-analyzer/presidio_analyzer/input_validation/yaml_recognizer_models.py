@@ -795,3 +795,21 @@ CONFIG_MODEL_MAP: Dict[str, Type[BaseModel]] = {
     "BasicLangExtractRecognizer": LangExtractRecognizerConfig,
     "AzureOpenAILangExtractRecognizer": LangExtractRecognizerConfig,
 }
+
+
+class AllowListConfig(BaseModel):
+    """Validated configuration for the analyzer's default allow list.
+
+    :param terms: Terms that are allowed in every request.
+    :param file: Path of a text file with one term per line. Blank lines and
+    lines starting with # are ignored.
+    :param match: "exact" or "regex", as the allow_list_match request parameter.
+    :param ignore_case: Compare case-insensitively when match is "exact".
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    terms: List[str] = Field(default_factory=list, description="Inline terms")
+    file: Optional[str] = Field(default=None, description="File with one term per line")
+    match: Literal["exact", "regex"] = Field(default="exact", description="Match mode")
+    ignore_case: bool = Field(default=False, description="Case-insensitive exact match")

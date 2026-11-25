@@ -1311,3 +1311,64 @@ def test_when_analyze_with_supported_entities_then_return_exact_results(
         assert "get_supported_entities" in warnings[0]
     else:
         assert warnings == []
+
+
+def _word_engine(**kwargs):
+    from presidio_analyzer import Pattern, PatternRecognizer
+    from presidio_analyzer.nlp_engine import NoOpNlpEngine
+
+    recognizer = PatternRecognizer(
+        supported_entity="WORD",
+        patterns=[Pattern("word", r"\b[A-Za-z]+\b", 0.9)],
+        supported_language="en",
+    )
+    registry = RecognizerRegistry(recognizers=[recognizer], supported_languages=["en"])
+    return AnalyzerEngine(
+        registry=registry, nlp_engine=NoOpNlpEngine(models=[{"lang_code": "en", "model_name": "no_op"}]),
+        supported_languages=["en"],
+        **kwargs,
+    )
+
+
+def _found(results, text):
+    return [text[r.start : r.end] for r in results]
+
+
+def test_when_default_allow_list_then_applied_without_request_allow_list():
+    text = "Contoso Fabrikam"
+    engine = _word_engine(allow_list=["Contoso"])
+    assert _found(engine.analyze(text, "en"), text) == ["Fabrikam"]
+
+
+def test_when_default_and_request_allow_lists_then_both_applied_and_not_mutated():
+    text = "Contoso Fabrikam Acme"
+    request_list = ["Fabrikam"]
+    engine = _word_engine(allow_list=["Contoso"])
+    results = engine.analyze(text, "en", allow_list=request_list)
+    assert _found(results, text) == ["Acme"]
+    assert request_list == ["Fabrikam"]
+    assert engine.allow_list == ["Contoso"]
+
+
+def test_when_default_allow_list_ignore_case_then_case_insensitive_exact():
+    text = "CONTOSO contoso Contoso Berlin"
+    engine = _word_engine(allow_list=["Contoso"], allow_list_ignore_case=True)
+    assert _found(engine.analyze(text, "en"), text) == ["Berlin"]
+
+
+def test_when_default_allow_list_exact_then_case_sensitive():
+    text = "CONTOSO Contoso"
+    engine = _word_engine(allow_list=["Contoso"])
+    assert _found(engine.analyze(text, "en"), text) == ["CONTOSO"]
+
+
+def test_when_default_allow_list_regex_then_request_match_mode_is_independent():
+    text = "Contoso Fabrikam Acme"
+    engine = _word_engine(allow_list=["Con.*"], allow_list_match="regex")
+    results = engine.analyze(text, "en", allow_list=["Acme"])
+    assert _found(results, text) == ["Fabrikam"]
+
+
+def test_when_default_allow_list_match_invalid_then_raises():
+    with pytest.raises(ValueError, match="allow_list_match"):
+        _word_engine(allow_list=["a"], allow_list_match="fuzzy")
