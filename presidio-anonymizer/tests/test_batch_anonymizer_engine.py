@@ -126,6 +126,18 @@ def test_anonymize_dict_with_other_value(engine):
     assert anonymize_results == {"id": 123}
 
 
+def test_anonymize_dict_anonymizes_detected_scalar_value(engine):
+    analyzer_results = [
+        DictRecognizerResult(
+            key="phone",
+            value=2121551234,
+            recognizer_results=[RecognizerResult("PHONE_NUMBER", 0, 10, 0.75)],
+        )
+    ]
+    anonymize_results = engine.anonymize_dict(analyzer_results)
+    assert anonymize_results == {"phone": "<PHONE_NUMBER>"}
+
+
 def test_given_custom_anonymizer_we_anonymize_dict_correctly(engine, analyzer_results):
     anonymizer_config = OperatorConfig("custom", {"lambda": lambda x: f"<ENTITY: {x}>"})
     anonymize_results = engine.anonymize_dict(
