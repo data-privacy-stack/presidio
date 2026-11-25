@@ -88,6 +88,11 @@ from .country_specific.poland.pl_pesel_recognizer import PlPeselRecognizer
 from .country_specific.singapore.sg_fin_recognizer import SgFinRecognizer
 from .country_specific.singapore.sg_uen_recognizer import SgUenRecognizer
 
+# Sri Lanka recognizers
+from .country_specific.sri_lanka.sl_national_id_recognizer import (
+    SlNationalIdRecognizer,
+)
+
 # South Africa recognizers
 from .country_specific.south_africa.za_company_registration_recognizer import (
     ZaCompanyRegistrationRecognizer,
@@ -276,6 +281,7 @@ __all__ = [
     "InGstinRecognizer",
     "InVehicleRegistrationRecognizer",
     "SgUenRecognizer",
+    "SlNationalIdRecognizer",
     "InVoterRecognizer",
     "InPassportRecognizer",
     "FiPersonalIdentityCodeRecognizer",
