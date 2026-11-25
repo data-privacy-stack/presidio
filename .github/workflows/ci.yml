@@ -87,7 +87,7 @@ jobs:
             spacy-models: ''
           - name: 'Image Redactor'
             path: 'presidio-image-redactor'
-            extras: ''
+            extras: '--extra egoblur'
             spacy-models: 'en_core_web_lg'
           - name: 'CLI'
             path: 'presidio-cli'
