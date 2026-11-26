@@ -20,6 +20,11 @@ class DateRecognizer(PatternRecognizer):
             0.8,
         ),
         Pattern(
+            "Datetime (yyyy-mm-ddThh:mm[:ss[.f]] without timezone)",
+            r"\b\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T[0-2]\d:[0-5]\d(?::[0-5]\d(?:\.\d+)?)?\b(?![+-]\d|[.:]\d)",
+            0.6,
+        ),
+        Pattern(
             "mm/dd/yyyy or mm/dd/yy",
             r"\b(([1-9]|0[1-9]|1[0-2])/([1-9]|0[1-9]|[1-2][0-9]|3[0-1])/(\d{4}|\d{2}))\b",
             0.6,
