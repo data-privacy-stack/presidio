@@ -1,7 +1,9 @@
 import pytest
 
 from tests import assert_result_within_score_range
+from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.predefined_recognizers import DateRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 
 @pytest.fixture(scope="module")
@@ -12,6 +14,21 @@ def recognizer():
 @pytest.fixture(scope="module")
 def entities():
     return ["DATE_TIME"]
+
+
+def test_local_iso_datetime_detected_when_loaded_from_yaml_config(spacy_nlp_engine):
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["en"],
+            "recognizers": [{"name": "DateRecognizer", "type": "predefined"}],
+        }
+    ).create_recognizer_registry()
+    analyzer = AnalyzerEngine(registry=registry, nlp_engine=spacy_nlp_engine)
+
+    results = analyzer.analyze("admit_time,2024-03-15T14:30:00", language="en")
+
+    assert [(r.entity_type, r.start, r.end) for r in results] == [("DATE_TIME", 11, 30)]
+    assert results[0].score == pytest.approx(0.6)
 
 
 @pytest.mark.parametrize(
@@ -49,6 +66,12 @@ def entities():
         ("Today is 2024-03-15T14:30:00Z\r or not?", 1, ((9, 29),), ((0.6, 0.81),),),
         ("Today is 2024-03-15T14:30Z\n or not?", 1, ((9, 26),), ((0.6, 0.81),),),
         ("2024-03-15T14:30Z", 1, ((0, 17),), ((0.6, 1),),),
+        # ISO 8601 local date-times (no offset)
+        ("Today is 2024-03-15T14:30:00 or not?", 1, ((9, 28),), ((0.6, 0.6),),),
+        ("Today is 2024-03-15T14:30:00.123456, or not?", 1, ((9, 35),), ((0.6, 0.6),),),
+        ("admit_time,2024-03-15T14:30", 1, ((11, 27),), ((0.6, 0.6),),),
+        ("2024-13-15T14:30:00", 0, (), (),),
+        ("Today is2024-03-15T14:30:00", 0, (), (),),
         # Invalid ISO 8601 month/day values must not be detected as a date
         ("2024-13-15T14:30:00Z", 0, (), (),),
         ("2024-00-15T14:30:00Z", 0, (), (),),
