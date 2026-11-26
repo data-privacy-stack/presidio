@@ -58,6 +58,9 @@ from .country_specific.italy.it_driver_license_recognizer import (
 )
 from .country_specific.italy.it_fiscal_code_recognizer import ItFiscalCodeRecognizer
 from .country_specific.italy.it_identity_card_recognizer import ItIdentityCardRecognizer
+from .country_specific.italy.it_license_plate_recognizer import (
+    ItLicensePlateRecognizer,
+)
 from .country_specific.italy.it_passport_recognizer import ItPassportRecognizer
 from .country_specific.italy.it_vat_code import ItVatCodeRecognizer
 
@@ -264,6 +267,7 @@ __all__ = [
     "ItFiscalCodeRecognizer",
     "ItVatCodeRecognizer",
     "ItIdentityCardRecognizer",
+    "ItLicensePlateRecognizer",
     "ItPassportRecognizer",
     "InPanRecognizer",
     "GLiNERRecognizer",
