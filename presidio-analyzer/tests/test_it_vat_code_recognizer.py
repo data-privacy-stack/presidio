@@ -28,6 +28,15 @@ def entities():
         ("00000000000 and 01333550323", 1, ((16, 27),), ((0.9, 1.0),)),
         # Test with a valid VAT Code and a character that needs to be replaced
         ("01333550_323", 1, ((0, 12),), ((0.9, 1.0),),),
+        # Test that a trailing space is not part of the result span
+        ("01333550323 is valid", 1, ((0, 11),), ((0.9, 1.0),),),
+        ("piva 01333550323 di Mario", 1, ((5, 16),), ((0.9, 1.0),),),
+        # Test that a trailing underscore is not part of the result span
+        ("01333550323_ ok", 1, ((0, 11),), ((0.9, 1.0),),),
+        # Test with spaces inside the code and a trailing space
+        ("013 335 503 23 ok", 1, ((0, 14),), ((0.9, 1.0),),),
+        # Test that a 12-digit number is not detected
+        ("013335503231", 0, (), ()),
         # fmt: on
     ],
 )
