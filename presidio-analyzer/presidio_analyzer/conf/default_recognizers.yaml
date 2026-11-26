@@ -328,6 +328,14 @@ recognizers:
     type: predefined
     country_code: pl
 
+  - name: FrRibRecognizer
+    supported_languages:
+    - fr
+    - en
+    type: predefined
+    enabled: false
+    country_code: fr
+
   - name: FiPersonalIdentityCodeRecognizer
     supported_languages:
     - fi

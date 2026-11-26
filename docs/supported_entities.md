@@ -74,6 +74,12 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |IT_PASSPORT|An Italian passport number.|Pattern match and context|
 |IT_IDENTITY_CARD|An Italian identity card number. <https://en.wikipedia.org/wiki/Italian_electronic_identity_card>|Pattern match and context|
 
+### France
+
+|Entity Type|Description|Detection Method|
+|--- |--- |--- |
+|FR_RIB|A French bank account identifier (RIB): bank code, branch code, account number and key, 23 characters. Disabled by default.|Pattern match, context and checksum|
+
 ### Poland
 
 |Entity Type|Description|Detection Method|

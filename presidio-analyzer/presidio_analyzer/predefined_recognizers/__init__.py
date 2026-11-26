@@ -81,6 +81,9 @@ from .country_specific.philippines.ph_passport_recognizer import PhPassportRecog
 from .country_specific.philippines.ph_tin_recognizer import PhTinRecognizer
 from .country_specific.philippines.ph_umid_recognizer import PhUmidRecognizer
 
+# France recognizers
+from .country_specific.france.fr_rib_recognizer import FrRibRecognizer
+
 # Poland recognizers
 from .country_specific.poland.pl_pesel_recognizer import PlPeselRecognizer
 
@@ -270,6 +273,7 @@ __all__ = [
     "HuggingFaceNerRecognizer",
     "PhTinRecognizer",
     "PlPeselRecognizer",
+    "FrRibRecognizer",
     "PhUmidRecognizer",
     "AzureAILanguageRecognizer",
     "InAadhaarRecognizer",
