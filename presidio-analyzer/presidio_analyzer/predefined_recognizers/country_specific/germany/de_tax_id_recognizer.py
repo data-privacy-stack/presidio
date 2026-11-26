@@ -18,13 +18,15 @@ class DeTaxIdRecognizer(PatternRecognizer):
     Format:
         - 11 digits
         - First digit: 1–9 (never 0)
-        - Digits 1–10: each digit may appear at most three times (BZSt rule
-          in force since the 2016 format revision; previously exactly one
-          digit repeated twice or three times and all others appeared
-          exactly once).
+        - Digits 1–10: exactly one digit appears more than once, twice or
+          (since 2016) three times; every other digit appears at most once.
+          A digit that appears three times may not fill three adjacent
+          positions. Source: ITZBund, "Steuer-Identifikationsnummer,
+          Prüfziffernberechnung" (2016); see also
+          https://de.wikipedia.org/wiki/Steuerliche_Identifikationsnummer
         - Digit 11: check digit (ISO 7064 Mod 11, 10 variant)
 
-    Examples (fictitious): 86095742719, 12345678903
+    Examples (fictitious): 86095742719, 36574321837
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
@@ -91,10 +93,14 @@ class DeTaxIdRecognizer(PatternRecognizer):
 
         digits = [int(d) for d in pattern_text]
 
-        # Post-2016 BZSt rule: no digit may appear more than three times in
-        # positions 1-10. Also rejects the all-identical case that the
-        # pre-2016 rule forbade.
-        if max(Counter(digits[:10]).values()) > 3:
+        # BZSt rule for positions 1-10: exactly one digit is repeated, twice or
+        # three times, and the others appear at most once. Three copies may not
+        # all be adjacent.
+        counts = Counter(digits[:10])
+        repeated = [d for d, c in counts.items() if c > 1]
+        if len(repeated) != 1 or counts[repeated[0]] > 3:
+            return False
+        if counts[repeated[0]] == 3 and str(repeated[0]) * 3 in pattern_text[:10]:
             return False
 
         # ISO 7064 Mod 11, 10 checksum
