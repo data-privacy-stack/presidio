@@ -170,5 +170,9 @@ recognizer_registry:
       type: predefined
       enabled: false
 
+    - name: LtAsmensRecognizer
+      type: predefined
+      enabled: false
+
     - name: SpacyRecognizer
       type: predefined

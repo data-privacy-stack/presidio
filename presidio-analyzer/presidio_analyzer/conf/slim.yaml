@@ -122,3 +122,7 @@ recognizer_registry:
     - name: InGstinRecognizer
       type: predefined
       enabled: false
+
+    - name: LtAsmensRecognizer
+      type: predefined
+      enabled: false

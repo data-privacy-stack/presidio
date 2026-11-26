@@ -206,6 +206,12 @@ recognizers:
     type: predefined
     enabled: false
 
+  - name: LtAsmensRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+
   - name: e2eollama
     supported_languages:
       - en
