@@ -82,16 +82,28 @@ def test_when_chars_to_mask_is_missing_then_ipe_raised():
         Mask().validate(params)
 
 
-def test_when_chars_to_mask_bad_typed_then_ipe_raised():
+@pytest.mark.parametrize(
+    "chars_to_mask, actual_type",
+    [("not_an_integer", "string"), ("", "string"), ([], "array")],
+)
+def test_when_chars_to_mask_bad_typed_then_ipe_raised(chars_to_mask, actual_type):
     params = _get_default_mask_parameters()
-    params["chars_to_mask"] = "not_an_integer"
+    params["chars_to_mask"] = chars_to_mask
 
     with pytest.raises(
         InvalidParamError,
         match="Invalid parameter value for chars_to_mask. "
-        "Expecting 'number', but got 'string'.",
+        f"Expecting 'number', but got '{actual_type}'.",
     ):
         Mask().validate(params)
+
+
+def test_when_chars_to_mask_is_zero_then_text_unchanged():
+    params = _get_default_mask_parameters()
+    params["chars_to_mask"] = 0
+
+    Mask().validate(params)
+    assert Mask().operate(text="text", params=params) == "text"
 
 
 def test_when_from_end_is_missing_then_ipe_raised():
