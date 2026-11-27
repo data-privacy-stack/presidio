@@ -90,7 +90,16 @@ def entities():
         ("19001309-2393", 0, ()),
         ("200504422381", 0, ()),
         ("189x09179809", 0, ()),
-        ("18970c17-9809", 0, ()),],
+        ("18970c17-9809", 0, ()),
+        # Days that do not exist in their month, with valid check digits.
+        ("870231-2383", 0, ()),  # 31 February
+        ("870431-2381", 0, ()),  # 31 April
+        ("870229-2387", 0, ()),  # 29 February in a non-leap year
+        ("19870229-2387", 0, ()),
+        ("870291-2380", 0, ()),  # samordningsnummer for 31 February
+        ("880229-2386", 1, ((0, 11),)),  # 29 February 1988
+        ("19880229-2386", 1, ((0, 13),)),
+    ],
 )
 def test_when_all_swedish_personnummer_then_succeed(
     text, expected_len, expected_positions, recognizer, entities, max_score
