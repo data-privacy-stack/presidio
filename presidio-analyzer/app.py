@@ -22,6 +22,14 @@ DEFAULT_N_PROCESS = "1"
 
 LOGGING_CONF_FILE = "logging.ini"
 
+# spaCy raises a ValueError with this error code
+# when a text is longer than `nlp.max_length`.
+SPACY_TEXT_TOO_LONG_ERROR_CODE = "[E088]"
+TEXT_TOO_LONG_MESSAGE = (
+    "Text is longer than the maximum length of the NLP model. "
+    "Split the text into smaller parts and analyze each part separately."
+)
+
 WELCOME_MESSAGE = r"""
  _______  _______  _______  _______ _________ ______  _________ _______
 (  ____ )(  ____ )(  ____ \(  ____ \\__   __/(  __  \ \__   __/(  ___  )
@@ -125,6 +133,10 @@ class Server:
                 return jsonify(error=error_msg), 400
 
             except Exception as e:
+                if SPACY_TEXT_TOO_LONG_ERROR_CODE in str(e):
+                    self.logger.error(TEXT_TOO_LONG_MESSAGE)
+                    return jsonify(error=TEXT_TOO_LONG_MESSAGE), 413
+
                 self.logger.error(
                     f"A fatal error occurred during execution of "
                     f"AnalyzerEngine.analyze(). {e}"
