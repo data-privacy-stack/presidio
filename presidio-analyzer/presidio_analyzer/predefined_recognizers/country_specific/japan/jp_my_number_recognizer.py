@@ -1,7 +1,7 @@
 import unicodedata
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
-from presidio_analyzer import EntityRecognizer, Pattern, PatternRecognizer
+from presidio_analyzer import Pattern, PatternRecognizer
 
 # Digits as written in Japanese text: half-width (0-9) and full-width (０-９).
 _DIGIT = "[0-9０-９]"
@@ -48,8 +48,6 @@ class JpMyNumberRecognizer(PatternRecognizer):
     :param context: List of context words to increase confidence in detection
     :param supported_language: Language this recognizer supports
     :param supported_entity: The entity this recognizer can detect
-    :param replacement_pairs: List of tuples with potential replacement values
-    for different strings to be used during pattern matching.
     :param name: Name of this recognizer
     """
 
@@ -80,14 +78,8 @@ class JpMyNumberRecognizer(PatternRecognizer):
         context: Optional[List[str]] = None,
         supported_language: str = "ja",
         supported_entity: str = "JP_MY_NUMBER",
-        replacement_pairs: Optional[List[Tuple[str, str]]] = None,
         name: Optional[str] = None,
     ):
-        # Applied after NFKC normalization, which maps the full-width hyphen
-        # and the ideographic space to their ASCII forms.
-        self.replacement_pairs = (
-            replacement_pairs if replacement_pairs else [("-", ""), (" ", "")]
-        )
         patterns = patterns if patterns else self.PATTERNS
         context = context if context else self.CONTEXT
         super().__init__(
@@ -125,9 +117,9 @@ class JpMyNumberRecognizer(PatternRecognizer):
         return len(set(self._normalize(pattern_text))) == 1
 
     def _normalize(self, pattern_text: str) -> str:
-        return EntityRecognizer.sanitize_value(
-            unicodedata.normalize("NFKC", pattern_text), self.replacement_pairs
-        )
+        # NFKC maps the full-width hyphen and ideographic space to ASCII.
+        number = unicodedata.normalize("NFKC", pattern_text)
+        return number.replace("-", "").replace(" ", "")
 
     @staticmethod
     def _compute_check_digit(base: str) -> int:
