@@ -121,6 +121,11 @@ For more information, refer to the [adding new recognizers documentation](analyz
 | KR_RRN     | The Korean Resident Registration Number (RRN) is a 13-digit number issued to all Korean residents. | Pattern match, context and custom logic. |
 
 
+### Netherlands
+| FieldType  | Description                                                                                             | Detection Method                         |
+|------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|
+| NL_BSN | The Dutch citizen service number (burgerservicenummer, BSN) is a 9-digit personal identification number validated with the eleven test. Disabled by default; enable it in the registry configuration with `nl` in `supported_languages`. | Pattern match, context and checksum. |
+
 ### Nigeria
 | FieldType  | Description                                                                                             | Detection Method                         |
 |------------|---------------------------------------------------------------------------------------------------------|------------------------------------------|

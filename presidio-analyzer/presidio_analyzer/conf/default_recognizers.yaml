@@ -335,6 +335,13 @@ recognizers:
     enabled: false
     country_code: fi
 
+  - name: NlBsnRecognizer
+    supported_languages:
+    - nl
+    type: predefined
+    enabled: false
+    country_code: nl
+
   - name: KrBrnRecognizer
     supported_languages: 
     - ko

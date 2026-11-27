@@ -70,6 +70,9 @@ from .country_specific.korea.kr_frn_recognizer import KrFrnRecognizer
 from .country_specific.korea.kr_passport_recognizer import KrPassportRecognizer
 from .country_specific.korea.kr_rrn_recognizer import KrRrnRecognizer
 
+# Netherlands recognizers
+from .country_specific.netherlands.nl_bsn_recognizer import NlBsnRecognizer
+
 # Nigeria recognizers
 from .country_specific.nigeria.ng_nin_recognizer import NgNinRecognizer
 from .country_specific.nigeria.ng_vehicle_registration_recognizer import (
@@ -279,6 +282,7 @@ __all__ = [
     "InVoterRecognizer",
     "InPassportRecognizer",
     "FiPersonalIdentityCodeRecognizer",
+    "NlBsnRecognizer",
     "EsNieRecognizer",
     "EsPassportRecognizer",
     "UkDrivingLicenceRecognizer",
