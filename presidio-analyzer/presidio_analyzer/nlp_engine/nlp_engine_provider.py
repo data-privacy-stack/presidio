@@ -63,7 +63,7 @@ class NlpEngineProvider:
                 "Either conf_file or nlp_configuration should be provided, not both."
             )
 
-        if nlp_configuration:
+        if nlp_configuration is not None:
             ConfigurationValidator.validate_nlp_configuration(nlp_configuration)
             self.nlp_configuration = nlp_configuration
 

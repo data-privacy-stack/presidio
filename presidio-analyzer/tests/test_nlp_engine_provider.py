@@ -351,3 +351,16 @@ def test_when_conf_file_does_not_exist_then_fail():
     
     with pytest.raises(ValueError):
         NlpEngineProvider(conf_file=conf_file)
+
+
+def test_when_nlp_configuration_is_empty_dict_then_fail():
+    """An empty dict must be validated and rejected with a clear ValueError."""
+    with pytest.raises(ValueError, match="missing required fields"):
+        NlpEngineProvider(nlp_configuration={})
+
+
+def test_when_nlp_configuration_is_none_then_default_configuration_loaded():
+    """None must still trigger the default configuration fallback."""
+    provider = NlpEngineProvider(nlp_configuration=None)
+    assert provider.nlp_configuration["nlp_engine_name"] == "spacy"
+    assert provider.nlp_configuration["models"]
