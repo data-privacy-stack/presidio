@@ -17,7 +17,7 @@ from presidio_anonymizer.operators import OperatorsFactory, OperatorType
 class EngineBase(ABC):
     """Handle the logic of operations over the text using the operators."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger("presidio-anonymizer")
         self.operators_factory = OperatorsFactory()
 
