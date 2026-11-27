@@ -1,7 +1,13 @@
+from pathlib import Path
+
+import presidio_analyzer
 import pytest
+import yaml
+from presidio_analyzer import EntityRecognizer
+from presidio_analyzer.predefined_recognizers import SePersonnummerRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 from tests import assert_result
-from presidio_analyzer.predefined_recognizers import SePersonnummerRecognizer
 
 
 @pytest.fixture(scope="module")
@@ -109,3 +115,28 @@ def test_when_all_swedish_personnummer_then_succeed(
     assert len(results) == expected_len
     for res, (st_pos, fn_pos) in zip(results, expected_positions):
         assert_result(res, entities[0], st_pos, fn_pos, max_score)
+
+
+def test_date_check_applies_when_enabled_in_default_yaml():
+    """The recognizer users enable in YAML rejects impossible dates too.
+
+    The shipped entry supports only ``sv``, so the top-level
+    ``supported_languages`` must include ``sv`` or nothing loads.
+    """
+    conf = Path(presidio_analyzer.__file__).parent / "conf" / "default_recognizers.yaml"
+    recognizers = yaml.safe_load(conf.read_text(encoding="utf-8"))["recognizers"]
+    entries = [r for r in recognizers if r.get("name") == "SePersonnummerRecognizer"]
+    assert len(entries) == 1
+
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["sv"],
+            "recognizers": [dict(entries[0], enabled=True)],
+        }
+    ).create_recognizer_registry()
+    [loaded] = registry.recognizers
+
+    valid = loaded.analyze("Personnummer 880229-2386.", ["SE_PERSONNUMMER"])
+    assert [(r.start, r.end) for r in valid] == [(13, 24)]
+    assert valid[0].score == pytest.approx(EntityRecognizer.MAX_SCORE)
+    assert loaded.analyze("Personnummer 870231-2383.", ["SE_PERSONNUMMER"]) == []
