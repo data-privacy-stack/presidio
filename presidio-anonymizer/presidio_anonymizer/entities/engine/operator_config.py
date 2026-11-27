@@ -39,6 +39,7 @@ class OperatorConfig:
             }
         :return: OperatorConfig
         """
+        params = dict(params)
         operator_name = params.get("type")
         if operator_name:
             params.pop("type")
