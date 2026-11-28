@@ -1,29 +1,26 @@
 """
 Tests for DeFuehrerscheinRecognizer (Führerscheinnummer).
 
-Post-2013 EU-harmonized format (FeV Anlage 8, EU Directive 2006/126/EC):
-  11 characters: 2 uppercase letters (Behördenkürzel, derived from the
-                  Kfz-Zulassungskürzel of the issuing Kreis/Stadt, e.g. HH for
-                  Hamburg, MU for Mühldorf/München, BO for Bochum, KO for Koblenz)
-                + 8 digits (3-digit authority number + 5-digit sequential number)
-                + 1 check character (uppercase letter or digit; algorithm not published)
+Format (FeV Anlage 8, field 5 of the EU card licence): 11 characters,
+Behördenschlüssel (Bundesland letter A–P, two digits, one alphanumeric),
+five-character base-36 sequential number, check digit (0–9 or X) and issue
+number. The check digit is the weighted sum (9 … 1) of the base-36 values of
+the first nine characters modulo 11, 10 written as X.
 
-Note: single-letter Kfz abbreviations (B Berlin, K Köln, M München as single chars)
-are always used in combination as 2-char authority codes in the Führerschein system
-(e.g. "BO", "MU", "KN").  Pure single-letter + digit combos like "B0" are NOT part
-of the 2-letter authority code and are out of scope for this strict pattern.
-
-Pre-2013 formats (locally defined, non-standardized) are out of scope.
-
-Fictitious examples following the 11-character structure:
-  BO12345678A  – issuing authority "BO" (Bochum), authority-nr 123, sequential 45678
-  MU12345678B  – issuing authority "MU" (Mühldorf), authority-nr 123, sequential 45678
-  HH98765432C  – issuing authority "HH" (Hamburg)
-  KO12345678X  – issuing authority "KO" (Koblenz)
+B072RRE2I55 is the number on the official specimen licence. B70752123 with
+check digit 9 is the worked example of the Bundesdruckerei guide. All other
+numbers are fictitious and carry a correct check digit.
 """
-import pytest
+from pathlib import Path
 
+import pytest
+import yaml
+
+import presidio_analyzer
+from presidio_analyzer.context_aware_enhancers import LemmaContextAwareEnhancer
+from presidio_analyzer.nlp_engine import NlpArtifacts
 from presidio_analyzer.predefined_recognizers import DeFuehrerscheinRecognizer
+from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 
 
 @pytest.fixture(scope="module")
@@ -37,37 +34,73 @@ def entities():
 
 
 @pytest.mark.parametrize(
-    "text, expected_len",
+    "text, expected_spans",
     [
         # fmt: off
-        # Valid post-2013 format: 2 letters + 8 digits + 1 alphanumeric
-        ("BO12345678A", 1),
-        ("MU12345678B", 1),
-        ("HH98765432C", 1),
-        ("KO12345678X", 1),
-        ("DO98765432Z", 1),
-        # Check character can be a digit too
-        ("GE123456780", 1),
-        ("MU123456785", 1),
+        # Official specimen and Bundesdruckerei example
+        ("B072RRE2I55", [(0, 11)]),
+        ("B7075212391", [(0, 11)]),
+        # Check digit X, letters in the sequential number, issue numbers above 9
+        ("A01000001X1", [(0, 11)]),
+        ("C02ZZZZZZX1", [(0, 11)]),
+        ("P61Z0000A51", [(0, 11)]),
+        ("M19A2B3C42A", [(0, 11)]),
+        # Lowercase: Presidio matches case-insensitively
+        ("b072rre2i55", [(0, 11)]),
         # In running text
-        ("Führerscheinnummer: BO12345678A", 1),
-        ("Fahrerlaubnis MU12345678B wurde ausgestellt.", 1),
-        # Lowercase: Presidio uses global IGNORECASE → also matches
-        ("mu12345678b", 1),
+        ("Führerscheinnummer: B072RRE2I55, Klasse B", [(20, 31)]),
+        ("Die Fahrerlaubnis J1234567851 wurde 2019 ausgestellt.", [(18, 29)]),
         # --- Should NOT match ---
-        # Too short: 10 chars (missing check character)
-        ("BO12345678",  0),
-        # Too long: 12 chars
-        ("BO12345678AB", 0),
-        # Starts with digit instead of two letters
-        ("12345678901", 0),
-        # Only one leading letter (3-letter forms are not part of strict pattern)
-        ("B12345678A",  0),
+        # Wrong check digit (4 instead of 5)
+        ("B072RRE2I45", []),
+        # Bundesland letter outside A–P
+        ("Q072RRE2I55", []),
+        # Positions 2–3 must be digits (old fictitious "2 letters + 8 digits" form)
+        ("BO12345678A", []),
+        # Issue number 0 does not exist
+        ("B072RRE2I50", []),
+        # Too short and too long
+        ("B072RRE2I5", []),
+        ("B072RRE2I551", []),
+        # Non-ASCII characters the case-insensitive pattern lets through
+        ("B072\u212aRE2I55", []),
+        ("B\u066072RRE2I55", []),
         # fmt: on
     ],
 )
-def test_when_all_de_fuehrerschein_numbers_then_succeed(
-    text, expected_len, recognizer, entities
+def test_when_de_fuehrerschein_numbers_then_exact_spans_and_score(
+    text, expected_spans, recognizer, entities
 ):
     results = recognizer.analyze(text, entities)
-    assert len(results) == expected_len
+    assert [(result.start, result.end) for result in results] == expected_spans
+    assert all(result.score == 0.4 for result in results)
+
+
+def test_when_context_word_then_score_increases(recognizer, entities):
+    text = "Nummer B072RRE2I55"
+    results = recognizer.analyze(text, entities)
+    enhanced = LemmaContextAwareEnhancer().enhance_using_context(
+        text,
+        results,
+        NlpArtifacts([], [], [], [], None, "de"),
+        [recognizer],
+        ["führerschein"],
+    )
+    assert results[0].score == 0.4
+    assert enhanced[0].score > results[0].score
+
+
+def test_loads_from_default_recognizers_yaml():
+    conf = Path(presidio_analyzer.__file__).parent / "conf" / "default_recognizers.yaml"
+    recognizers = yaml.safe_load(conf.read_text(encoding="utf-8"))["recognizers"]
+    entries = [r for r in recognizers if r.get("name") == "DeFuehrerscheinRecognizer"]
+    assert len(entries) == 1
+    registry = RecognizerRegistryProvider(
+        registry_configuration={
+            "supported_languages": ["de"],
+            "recognizers": [dict(entries[0], enabled=True)],
+        }
+    ).create_recognizer_registry()
+    assert [type(r).__name__ for r in registry.recognizers] == ["DeFuehrerscheinRecognizer"]
+    results = registry.recognizers[0].analyze("B072RRE2I55", ["DE_FUEHRERSCHEIN"])
+    assert [(result.start, result.end) for result in results] == [(0, 11)]
