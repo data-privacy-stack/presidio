@@ -101,6 +101,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|--- |
 | IN_PAN     | The Indian Permanent Account Number (PAN) is a unique 12 character alphanumeric identifier issued to all business and individual entities registered as Tax Payers. | Pattern match, context |
 | IN_AADHAAR | Indian government issued unique 12 digit individual identity number                                                                                                 | Pattern match, context, and checksum |
+| IN_DRIVING_LICENCE | Indian driving licence number issued by Regional Transport Offices (format: SS-RR-YYYYNNNNNNN)                                                                     | Pattern match, context, and validation |
 | IN_VEHICLE_REGISTRATION | Indian government issued transport (govt, personal, diplomatic, defence)  vehicle registration number                                                               | Pattern match, context, and checksum |
 | IN_VOTER | Indian Election Commission issued 10 digit alpha numeric voter id for all indian citizens (age 18 or above) | Pattern match, context |
 | IN_PASSPORT | Indian Passport Number | Pattern match, Context |

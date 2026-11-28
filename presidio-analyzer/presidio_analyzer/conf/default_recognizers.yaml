@@ -231,7 +231,14 @@ recognizers:
     country_code: ng
 
   - name: InPanRecognizer
-    supported_languages: 
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+    country_code: in
+
+  - name: InDrivingLicenceRecognizer
+    supported_languages:
     - en
     type: predefined
     enabled: false
