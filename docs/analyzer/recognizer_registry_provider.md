@@ -125,6 +125,17 @@ The recognizer list comprises of both the predefined and custom recognizers, for
         overlap_tokens: 32
     ```
 
+  - `supported_regions` and `leniency` (`PhoneRecognizer` only): the phone regions to match, as ISO 3166-1 alpha-2 codes, and the matching strictness from `0` (most lenient) to `3` (strictest). Omitted fields keep the recognizer defaults. National numbers written without a country prefix are only found for the listed regions. Example, detecting Spanish numbers such as `912 345 678` in Spanish text (the top-level `supported_languages` must include `es`, otherwise this entry loads nothing):
+
+    ```yaml
+    - name: PhoneRecognizer
+      type: predefined
+      supported_languages:
+      - language: es
+        context: [teléfono, telefono, móvil, movil, llamar, fijo]
+      supported_regions: [ES]
+    ```
+
 !!! tip "Configuration Tip: Agglutinative languages (e.g., Korean)"
 
     If spaCy-based NER produces noisy or redundant results, you can disable `SpacyRecognizer` and use `HuggingFaceNerRecognizer` as an alternative. Note that `HuggingFaceNerRecognizer` bypasses the spaCy tokenizer alignment mechanism.
