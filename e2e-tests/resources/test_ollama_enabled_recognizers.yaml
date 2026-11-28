@@ -200,6 +200,10 @@ recognizers:
     type: predefined
     enabled: false
 
+  - name: InDrivingLicenceRecognizer
+    type: predefined
+    enabled: false
+
   - name: InGstinRecognizer
     supported_languages: 
     - en
