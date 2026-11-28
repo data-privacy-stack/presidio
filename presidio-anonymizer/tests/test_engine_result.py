@@ -1,3 +1,5 @@
+import pytest
+
 from presidio_anonymizer.entities import OperatorResult, EngineResult
 
 
@@ -51,3 +53,22 @@ def test_when_not_eq_called_then_instances_are_not_equal():
     res2.set_text("b")
 
     assert res.__eq__(res2) is False
+
+
+def test_when_items_differ_in_number_then_instances_are_not_equal():
+    item = OperatorResult(0, 1, "PERSON", "x", "replace")
+    other_item = OperatorResult(5, 9, "EMAIL_ADDRESS", "y", "replace")
+    res = EngineResult("x", [item])
+    res2 = EngineResult("x", [item, other_item])
+
+    assert res.__eq__(res2) is False
+    assert EngineResult("x", []).__eq__(res2) is False
+
+
+@pytest.mark.parametrize("other", [None, "x", {"text": "x", "items": []}])
+def test_when_compared_with_other_type_then_not_equal(other):
+    res = EngineResult("x", [])
+
+    assert res.__eq__(other) is NotImplemented
+    assert (res == other) is False
+    assert (res != other) is True

@@ -56,6 +56,6 @@ class EngineResult:
 
         Returns true if the two instances are equal, false otherwise.
         """
-        return self.text == other.text and all(
-            map(lambda x, y: x == y, self.items, other.items)
-        )
+        if not isinstance(other, EngineResult):
+            return NotImplemented
+        return self.text == other.text and self.items == other.items
