@@ -12,10 +12,19 @@ class InGstinRecognizer(PatternRecognizer):
     - Next 10 digits: PAN of the entity
     - 13th digit: Registration number for same PAN in the state
     - 14th digit: 'Z'
-    - 15th digit: Checksum
+    - 15th digit: Check character
+
+    The check character is computed with the Luhn mod N algorithm over the
+    base-36 alphabet 0-9A-Z: going left to right over the first 14 characters,
+    each value is multiplied by 1 and 2 alternately, the base-36 digits of each
+    product are summed, and the check character is the one that brings the
+    total to a multiple of 36. A same-shape token passes with probability 1/36.
 
     Reference: https://www.gst.gov.in/
-    This recognizer identifies GSTIN using regex and context words.
+    Check character: https://en.wikipedia.org/wiki/Luhn_mod_N_algorithm, as
+    implemented by python-stdnum (``stdnum.in_.gstin``).
+    This recognizer identifies GSTIN using regex, context words and the
+    check character.
 
     :param patterns: List of patterns to be used by this recognizer
     :param context: List of context words to increase confidence in detection
@@ -136,12 +145,27 @@ class InGstinRecognizer(PatternRecognizer):
         if gstin[13] != "Z":
             return False
 
-        # Check 15th character (checksum)
-        checksum = gstin[14]
-        if not checksum.isalnum():
-            return False
+        # Check 15th character (Luhn mod 36 check character)
+        return self._check_character(gstin[:14]) == gstin[14]
 
-        return True
+    @staticmethod
+    def _check_character(first_fourteen: str) -> Optional[str]:
+        """
+        Compute the GSTIN check character (Luhn mod 36) for 14 characters.
+
+        :param first_fourteen: The first 14 characters of a GSTIN, uppercase
+        :return: The expected 15th character, or None if the input has
+        characters outside 0-9A-Z
+        """
+        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        total = 0
+        for position, char in enumerate(first_fourteen):
+            value = alphabet.find(char)
+            if value < 0:
+                return None
+            product = value * (2 if position % 2 else 1)
+            total += product // 36 + product % 36
+        return alphabet[-total % 36]
 
     def _validate_pan_format(self, pan: str) -> bool:
         """
