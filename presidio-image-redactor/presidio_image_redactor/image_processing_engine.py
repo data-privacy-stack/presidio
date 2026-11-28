@@ -324,7 +324,9 @@ class ContrastSegmentedImageEnhancer(ImagePreprocessor):
         image = self.convert_image_to_array(image)
 
         # Apply bilateral filtering
-        filtered_image, _ = self.bilateral_filter.preprocess_image(image)
+        filtered_image, bilateral_filter_metadata = (
+            self.bilateral_filter.preprocess_image(image)
+        )
 
         # Convert to grayscale
         pil_filtered_image = Image.fromarray(np.uint8(filtered_image))
@@ -335,9 +337,10 @@ class ContrastSegmentedImageEnhancer(ImagePreprocessor):
         adjusted_image, _, adjusted_contrast = self._improve_contrast(grayscale_image)
 
         # Adaptive Thresholding
-        adaptive_threshold_image, _ = self.adaptive_threshold.preprocess_image(
-            adjusted_image
-        )
+        (
+            adaptive_threshold_image,
+            adaptive_threshold_metadata,
+        ) = self.adaptive_threshold.preprocess_image(adjusted_image)
         # Increase contrast
         _, threshold_image = cv2.threshold(
             np.asarray(adaptive_threshold_image),
@@ -351,7 +354,14 @@ class ContrastSegmentedImageEnhancer(ImagePreprocessor):
             threshold_image
         )
 
-        return rescaled_image, scale_metadata
+        # The documented return contract includes metadata from every stage.
+        metadata = {
+            **bilateral_filter_metadata,
+            **adaptive_threshold_metadata,
+            **scale_metadata,
+        }
+
+        return rescaled_image, metadata
 
     def _improve_contrast(self, image: np.ndarray) -> Tuple[np.ndarray, str, str]:
         """Improve the contrast of an image based on its initial contrast level.
