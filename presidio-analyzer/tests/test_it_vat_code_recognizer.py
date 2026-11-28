@@ -28,6 +28,14 @@ def entities():
         ("00000000000 and 01333550323", 1, ((16, 27),), ((0.9, 1.0),)),
         # Test with a valid VAT Code and a character that needs to be replaced
         ("01333550_323", 1, ((0, 12),), ((0.9, 1.0),),),
+        # Valid VAT Codes issued under the special office codes 999 and 120
+        ("13335509991", 1, ((0, 11),), ((0.9, 1.0),),),
+        ("13335501204", 1, ((0, 11),), ((0.9, 1.0),),),
+        # Correct check digit, but no such office (500, 101) or an all-zero
+        # registration number
+        ("13335505007", 0, (), ()),
+        ("13335501014", 0, (), ()),
+        ("00000000323", 0, (), ()),
         # fmt: on
     ],
 )
