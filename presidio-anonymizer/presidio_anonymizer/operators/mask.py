@@ -4,7 +4,10 @@ from typing import Dict
 
 from presidio_anonymizer.entities import InvalidParamError
 from presidio_anonymizer.operators import Operator, OperatorType
-from presidio_anonymizer.services.validators import validate_parameter
+from presidio_anonymizer.services.validators import (
+    _get_bad_typed_parameter_error_message,
+    validate_parameter,
+)
 
 
 class Mask(Operator):
@@ -45,12 +48,23 @@ class Mask(Operator):
         """
         masking_char = params.get(self.MASKING_CHAR)
         validate_parameter(masking_char, self.MASKING_CHAR, str)
-        if len(masking_char) > 1:
+        if not isinstance(masking_char, str) or len(masking_char) != 1:
             raise InvalidParamError(
                 f"Invalid input, {self.MASKING_CHAR} must be a character"
             )
 
-        validate_parameter(params.get(self.CHARS_TO_MASK), self.CHARS_TO_MASK, int)
+        chars_to_mask = params.get(self.CHARS_TO_MASK)
+        validate_parameter(chars_to_mask, self.CHARS_TO_MASK, int)
+        # validate_parameter skips the type check for falsy values such as ""
+        # or [], which would otherwise fail later in operate() with a TypeError.
+        if not isinstance(chars_to_mask, int):
+            raise InvalidParamError(
+                _get_bad_typed_parameter_error_message(
+                    self.CHARS_TO_MASK,
+                    expected_type=int,
+                    actual_type=type(chars_to_mask),
+                )
+            )
         validate_parameter(params.get(self.FROM_END), self.FROM_END, bool)
 
     def operator_name(self) -> str:
