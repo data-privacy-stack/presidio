@@ -2,6 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Union
 
+import pandas as pd
 from pandas import DataFrame
 from presidio_anonymizer.entities import OperatorConfig
 from presidio_anonymizer.operators import OperatorsFactory, OperatorType
@@ -118,13 +119,17 @@ class PandasDataProcessor(DataProcessorBase):
         if not isinstance(data, DataFrame):
             raise ValueError("Data must be a pandas DataFrame")
 
+        data = data.copy()
         for key, operator_callable in key_to_operator_mapping.items():
             self.logger.debug(f"Operating on column {key}")
-            for index, text_to_operate_on in data[key].items():
-                operated_text = self._operate_on_text(
-                    text_to_operate_on, operator_callable
-                )
-                data.at[index, key] = operated_text
+            # Assign the whole column so numeric dtypes work in Pandas 3+,
+            # and keep null values untouched so string operators don't fail.
+            data[key] = [
+                val
+                if pd.isna(val)
+                else self._operate_on_text(str(val), operator_callable)
+                for val in data[key]
+            ]
         return data
 
 

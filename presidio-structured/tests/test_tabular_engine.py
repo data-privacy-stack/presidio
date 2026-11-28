@@ -68,3 +68,20 @@ def test_pandas_processor_with_json_will_raise(json_analysis):
     data = {"name": ["John", "Jane"]}
     with pytest.raises(ValueError):
         structured_engine.anonymize(data, json_analysis)
+
+
+def test_structured_engine_anonymize_does_not_mutate_operators():
+    # Arrange
+    data_processor = Mock()
+    structured_engine = StructuredEngine(data_processor)
+    data = Mock()
+    structured_analysis = Mock()
+    operators = {"PERSON": OperatorConfig("replace")}
+
+    # Act
+    structured_engine.anonymize(data, structured_analysis, operators)
+
+    # Assert
+    assert "DEFAULT" not in operators
+    passed_operators = data_processor.operate.call_args[0][2]
+    assert "DEFAULT" in passed_operators
