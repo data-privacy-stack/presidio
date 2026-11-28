@@ -15,6 +15,32 @@ def test_given_valid_json_then_we_parse_it_to_operator_config():
     }
 
 
+def test_given_valid_json_then_from_json_leaves_input_unchanged():
+    params = {
+        "type": "mask",
+        "masking_char": "*",
+        "chars_to_mask": 4,
+        "from_end": True,
+    }
+    original = dict(params)
+
+    OperatorConfig.from_json(params)
+
+    assert params == original
+    assert params["type"] == "mask"
+
+
+def test_given_same_json_then_from_json_can_be_called_twice():
+    params = {"type": "replace", "new_value": "REDACTED"}
+    original = dict(params)
+
+    first = OperatorConfig.from_json(params)
+    second = OperatorConfig.from_json(params)
+
+    assert first == second
+    assert params == original
+
+
 def test_given_invalid_json_then_we_fail_to_parse_it_to_operator_config():
     expected_error = "Invalid input, operator config must contain operator_name"
     with pytest.raises(InvalidParamError, match=expected_error):
