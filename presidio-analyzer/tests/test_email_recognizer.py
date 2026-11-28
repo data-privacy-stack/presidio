@@ -42,3 +42,28 @@ def test_when_all_email_addresses_then_succeed(
     assert len(results) == expected_len
     for res, (st_pos, fn_pos) in zip(results, expected_positions):
         assert_result(res, entities[0], st_pos, fn_pos, max_score)
+
+
+@pytest.mark.parametrize(
+    "text, expected_start, expected_end",
+    [
+        # fmt: off
+        # mailboxes on private-network domains (RFC 6762 and its Appendix G)
+        ("jane.doe@corp.local", 0, 19),
+        ("backup job svc-backup@acme.internal failed", 11, 35),
+        ("ALICE@HOME.LAN", 0, 14),
+        # fmt: on
+    ],
+)
+def test_when_email_on_private_network_domain_then_keep_pattern_score(
+    text, expected_start, expected_end, recognizer, entities
+):
+    results = recognizer.analyze(text, entities)
+    assert len(results) == 1
+    assert_result(results[0], entities[0], expected_start, expected_end, 0.5)
+
+
+def test_when_email_suffix_is_neither_public_nor_private_then_no_result(
+    recognizer, entities
+):
+    assert recognizer.analyze("see icon@2x.png for the logo", entities) == []

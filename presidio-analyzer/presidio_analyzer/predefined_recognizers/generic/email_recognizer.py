@@ -30,6 +30,13 @@ class EmailRecognizer(PatternRecognizer):
 
     CONTEXT = ["email"]
 
+    # Not public suffixes, so tldextract finds no registrable domain, yet
+    # mailboxes on them are real: ".local" (RFC 6762) and the private-network
+    # TLDs listed in RFC 6762 Appendix G.
+    PRIVATE_NETWORK_TLDS = frozenset(
+        ("local", "intranet", "internal", "private", "corp", "home", "lan")
+    )
+
     def __init__(
         self,
         patterns: Optional[List[Pattern]] = None,
@@ -50,4 +57,9 @@ class EmailRecognizer(PatternRecognizer):
 
     def validate_result(self, pattern_text: str):  # noqa: D102
         result = tldextract.extract(pattern_text)
-        return result.fqdn != ""
+        if result.fqdn != "":
+            return True
+        if pattern_text.rsplit(".", 1)[-1].lower() in self.PRIVATE_NETWORK_TLDS:
+            # Cannot be checked against the public suffix list: keep the score.
+            return None
+        return False
