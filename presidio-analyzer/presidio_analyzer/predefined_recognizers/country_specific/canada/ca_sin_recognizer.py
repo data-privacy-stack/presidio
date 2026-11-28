@@ -26,6 +26,14 @@ class CaSinRecognizer(PatternRecognizer):
 
     COUNTRY_CODE = "ca"
 
+    # "sin" is a substring of "business", "using", "since", "single" and
+    # "cousin", so with the default substring matching those words boost
+    # unrelated 9-digit numbers as if "SIN" were next to them (#2459).
+    # Match this recognizer's context words as whole tokens only; the
+    # longer phrases ("social insurance number", ...) still match through
+    # the phrase enhancer.
+    CONTEXT_MATCHING_MODE = "whole_word"
+
     PATTERNS = [
         Pattern("SIN (weak)", r"\b[1-79]\d{8}\b", 0.05),
         Pattern("SIN (medium)", r"\b[1-79]\d{2}([- ])\d{3}\1\d{3}\b", 0.5),
