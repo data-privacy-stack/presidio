@@ -32,6 +32,7 @@
 | Usage | Text     | AISIX AI Gateway                        | [Protect LLM requests with Presidio and AISIX AI Gateway](docker/aisix.md)|
 | Usage | Text     | Python Notebook                         | [YAML based no-code configuration](python/no_code_config.ipynb) |
 | Usage | Text     | Python file                             | [Using GLiNER within Presidio](python/gliner.md) |
+| Usage | Text     | Python file                             | [Using ReDefiNER within Presidio](python/redefiner.md) |
 | Usage      | | REST API (postman)                          | [Presidio as a REST endpoint](docker/index.md)|
 | Deployment | | App Service                                 | [Presidio with App Service](deployments/app-service/index.md)|
 | Deployment | | Kubernetes                                  | [Presidio with Kubernetes](deployments/k8s/index.md)|
