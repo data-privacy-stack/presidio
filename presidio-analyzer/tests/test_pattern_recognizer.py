@@ -393,6 +393,25 @@ def test_pattern_recognizer_analyze_with_custom_regex_flags():
     assert len(results) == 1
 
 
+def test_analyze_with_explicit_zero_regex_flags_overrides_global():
+    """regex_flags=0 is a valid override meaning no flags and must win over the default."""
+    patterns = [Pattern(name="test_pattern", regex=r"test", score=0.8)]
+    recognizer = PatternRecognizer(
+        supported_entity="TEST",
+        patterns=patterns,
+        name="FlagTest",
+        global_regex_flags=re.IGNORECASE,
+    )
+
+    # Default flags apply: IGNORECASE matches uppercase text
+    results = recognizer.analyze("TEST", ["TEST"])
+    assert len(results) == 1
+
+    # Explicit 0 disables IGNORECASE for this request, so no match
+    results = recognizer.analyze("TEST", ["TEST"], regex_flags=0)
+    assert len(results) == 0
+
+
 def test_pattern_recognizer_multiple_patterns():
     """Test recognizer with multiple patterns."""
     patterns = [
