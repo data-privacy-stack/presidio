@@ -15,6 +15,7 @@ from presidio_analyzer.input_validation import ConfigurationValidator
 from presidio_analyzer.nlp_engine import NlpEngine, NlpEngineProvider
 from presidio_analyzer.recognizer_registry import RecognizerRegistryProvider
 from presidio_analyzer.text_normalizers import (
+    CjkSpacingNormalizer,
     FullWidthAndInvisibleCharsNormalizer,
     TextNormalizer,
 )
@@ -168,6 +169,7 @@ class AnalyzerEngineProvider:
         )
         normalizer_classes = {
             "full_width_and_invisible_chars": FullWidthAndInvisibleCharsNormalizer,
+            "cjk_spacing": CjkSpacingNormalizer,
         }
         return normalizer_classes[normalizer_configuration["type"]]()
 
