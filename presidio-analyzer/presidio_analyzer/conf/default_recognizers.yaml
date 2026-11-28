@@ -509,6 +509,12 @@ recognizers:
     type: predefined
     country_code: us
 
+  - name: GeoCoordinatesRecognizer
+    supported_languages:
+    - en
+    type: predefined
+    enabled: false
+
   - name: MacAddressRecognizer
     type: predefined
 

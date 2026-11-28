@@ -178,6 +178,7 @@ from .generic.credit_card_recognizer import CreditCardRecognizer
 from .generic.crypto_recognizer import CryptoRecognizer
 from .generic.date_recognizer import DateRecognizer
 from .generic.email_recognizer import EmailRecognizer
+from .generic.geo_coordinates_recognizer import GeoCoordinatesRecognizer
 from .generic.iban_recognizer import IbanRecognizer
 from .generic.ip_recognizer import IpRecognizer
 from .generic.mac_recognizer import MacAddressRecognizer
@@ -233,6 +234,7 @@ __all__ = [
     "IpRecognizer",
     "NhsRecognizer",
     "MedicalLicenseRecognizer",
+    "GeoCoordinatesRecognizer",
     "MacAddressRecognizer",
     "UuidRecognizer",
     "PhoneRecognizer",

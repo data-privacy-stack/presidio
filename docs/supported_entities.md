@@ -16,6 +16,7 @@ For more information, refer to the [adding new recognizers documentation](analyz
 |CRYPTO|A Crypto wallet number. Currently only Bitcoin address is supported|Pattern match, context and checksum|
 |DATE_TIME|Absolute or relative dates or periods or times smaller than a day.|Pattern match and context|
 |EMAIL_ADDRESS|An email address identifies an email box to which email messages are delivered|Pattern match, context and RFC-822 validation|
+|GEO_COORDINATES|Geographic coordinates (latitude/longitude) in decimal degrees, degrees-minutes-seconds, or geo: URI form. Bare decimal pairs score 0.2, so set a `score_threshold` when enabling it.|Pattern match, range validation and context|
 |IBAN_CODE|The International Bank Account Number (IBAN) is an internationally agreed system of identifying bank accounts across national borders to facilitate the communication and processing of cross border transactions with a reduced risk of transcription errors.|Pattern match, context and checksum|
 |IP_ADDRESS|An Internet Protocol (IP) address (either IPv4 or IPv6).|Pattern match and context|
 |MAC_ADDRESS| A Media Access Control (MAC) address is a unique identifier assigned to network interfaces for communications on the physical network segment.|Pattern match and context|
