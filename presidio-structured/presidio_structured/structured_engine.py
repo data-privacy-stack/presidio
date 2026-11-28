@@ -64,5 +64,5 @@ class StructuredEngine:
             return {"DEFAULT": default_operator}
         if not operators.get("DEFAULT"):
             self.logger.debug("No default operator provided, using default operator")
-            operators["DEFAULT"] = default_operator
+            return {**operators, "DEFAULT": default_operator}
         return operators

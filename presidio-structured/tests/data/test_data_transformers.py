@@ -1,5 +1,7 @@
+import pandas as pd
 import pytest
 from pandas import DataFrame
+from presidio_anonymizer.entities import OperatorConfig
 from presidio_structured.config import StructuredAnalysis
 from presidio_structured.data.data_processors import (
     DataProcessorBase,
@@ -53,6 +55,32 @@ class TestPandasDataProcessor:
         processor = PandasDataProcessor()
         with pytest.raises(ValueError):
             processor.operate(sample_json, tabular_analysis, operators)
+
+    def test_process_does_not_mutate_input_df(
+        self, sample_df, operators, tabular_analysis
+    ):
+        processor = PandasDataProcessor()
+        original = sample_df.copy()
+        result = processor.operate(sample_df, tabular_analysis, operators)
+        assert sample_df.equals(original)
+        assert not result.equals(original)
+
+    def test_process_handles_numeric_and_null_values(self):
+        processor = PandasDataProcessor()
+        df = DataFrame({"name": ["Alice", None], "zip": [90210, 10001]})
+        analysis = StructuredAnalysis(
+            entity_mapping={"name": "PERSON", "zip": "LOCATION"}
+        )
+        ops = {
+            "DEFAULT": OperatorConfig(
+                "mask",
+                {"chars_to_mask": 2, "masking_char": "*", "from_end": False},
+            )
+        }
+        result = processor.operate(df, analysis, ops)
+        assert result["name"].iloc[0] == "**ice"
+        assert pd.isna(result["name"].iloc[1])
+        assert list(result["zip"]) == ["**210", "**001"]
 
 
 class TestJsonDataProcessor:
