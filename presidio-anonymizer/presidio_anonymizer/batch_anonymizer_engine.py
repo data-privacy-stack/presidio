@@ -64,9 +64,11 @@ class BatchAnonymizerEngine:
                 )
                 return_dict[result.key] = resp
 
-            elif isinstance(result.value, str):
+            elif isinstance(result.value, str) or (
+                type(result.value) in (bool, int, float) and result.recognizer_results
+            ):
                 resp = self.anonymizer_engine.anonymize(
-                    text=result.value,
+                    text=str(result.value),
                     analyzer_results=result.recognizer_results,
                     **kwargs,
                 )
